@@ -3,7 +3,7 @@ import { config } from "../../../../../lib/config";
 import { webhookService } from "../../../../../services/WebhookService";
 
 function customerOrderPage(orderId: string | null) {
-  const destination = new URL("/check-order", config.frontendUrl);
+  const destination = new URL("/payment-return", config.frontendUrl);
   if (orderId) destination.searchParams.set("orderId", orderId);
   return NextResponse.redirect(destination, 303);
 }

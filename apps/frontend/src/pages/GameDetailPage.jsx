@@ -87,6 +87,7 @@ export const GameDetailPage = () => {
   // Checkout submission
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
   const [submitError, setSubmitError] = useState(null);
+  const [paymentNotice, setPaymentNotice] = useState(null);
   const [paymentSession, setPaymentSession] = useState(null);
   const [successInvoice, setSuccessInvoice] = useState(null);
 
@@ -103,6 +104,7 @@ export const GameDetailPage = () => {
     setPlayerCheckError(null);
     setIsValidatingPlayer(false);
     setSelectedProduct(null);
+    setPaymentNotice(null);
     setPaymentSession(null);
     setSuccessInvoice(null);
     return () => {
@@ -118,10 +120,36 @@ export const GameDetailPage = () => {
       setSuccessInvoice({ order, status });
       setPaymentSession(null);
       setSubmitError(null);
+      setPaymentNotice(null);
     } catch (err) {
       setSubmitError(err.message || "Payment succeeded, but the receipt could not be loaded. Please try again.");
     }
   }, []);
+
+  useEffect(() => {
+    const handlePaymentReturn = async (event) => {
+      if (event.origin !== window.location.origin) return;
+      if (event.data?.type !== "na-topup:payment-return") return;
+      if (!paymentSession || event.data.orderId !== paymentSession.publicOrderId) return;
+
+      closeProviderCheckout();
+      setSubmitError(null);
+      setPaymentNotice("Payment submitted. We are verifying it and preparing your invoice.");
+
+      try {
+        const status = await fetchOrderStatus(paymentSession.publicOrderId);
+        if (status.paymentStatus === "PAID" ||
+            ["PAID", "FULFILMENT_QUEUED", "PROCESSING", "DELIVERED"].includes(status.status)) {
+          await showSuccessfulInvoice(paymentSession.publicOrderId, status.status);
+        }
+      } catch {
+        // The regular status poll will retry until the payment session expires.
+      }
+    };
+
+    window.addEventListener("message", handlePaymentReturn);
+    return () => window.removeEventListener("message", handlePaymentReturn);
+  }, [paymentSession, showSuccessfulInvoice]);
 
   useEffect(() => {
     if (!paymentSession) return;
@@ -141,11 +169,13 @@ export const GameDetailPage = () => {
           clearInterval(timer);
           closeProviderCheckout();
           setPaymentSession(null);
+          setPaymentNotice(null);
           setSubmitError(status.customerStatusText || "Payment was not completed.");
         } else if (Date.now() >= new Date(paymentSession.expiresAt).getTime()) {
           clearInterval(timer);
           closeProviderCheckout();
           setPaymentSession(null);
+          setPaymentNotice(null);
           setSubmitError("Payment session expired. Please try again.");
         }
       } catch {
@@ -324,6 +354,7 @@ export const GameDetailPage = () => {
 
     setIsSubmittingOrder(true);
     setSubmitError(null);
+    setPaymentNotice(null);
 
     try {
       const orderRes = await createOrder({
@@ -607,6 +638,13 @@ export const GameDetailPage = () => {
                 <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs flex items-center gap-2 font-kulen">
                   <AlertCircle className="w-4 h-4 flex-shrink-0" />
                   <span>{submitError}</span>
+                </div>
+              )}
+
+              {paymentNotice && (
+                <div className="flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 p-3 text-xs text-brand-violet font-kulen">
+                  <Loader2 className="h-4 w-4 flex-shrink-0 animate-spin" />
+                  <span>{paymentNotice}</span>
                 </div>
               )}
 
