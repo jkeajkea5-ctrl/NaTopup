@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Search,
   Receipt,
@@ -11,8 +11,10 @@ import {
 } from "lucide-react";
 import { fetchOrderDetail, fetchOrderStatus } from "../services/api";
 import { OrderTimeline } from "../components/OrderTimeline";
+import { SuccessInvoiceModal } from "../components/SuccessInvoiceModal";
 
 export const CheckOrderPage = () => {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialOrderId = searchParams.get("orderId") || "";
 
@@ -121,9 +123,18 @@ export const CheckOrderPage = () => {
     title: mapTimelineTitle(item.title),
   }));
   const liveStatus = statusData?.status || orderData?.status;
+  const paymentConfirmed =
+    statusData?.paymentStatus === "PAID" ||
+    ["PAID", "FULFILMENT_QUEUED", "PROCESSING", "DELIVERED"].includes(liveStatus);
 
   return (
     <div className="max-w-3xl mx-auto py-6 sm:py-10 space-y-8">
+      <SuccessInvoiceModal
+        order={paymentConfirmed ? orderData : null}
+        status={liveStatus}
+        onClose={() => navigate("/")}
+      />
+
       {/* Page Heading */}
       <div className="text-center space-y-2">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-violet/10 text-brand-violet text-xs font-semibold">
