@@ -1,0 +1,406 @@
+// Production PostgreSQL Schema
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(uuid())
+  email        String?   @unique
+  phone        String?
+  name         String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  orders       Order[]
+}
+
+model AdminUser {
+  id           String    @id @default(uuid())
+  username     String    @unique
+  email        String    @unique
+  passwordHash String
+  role         String    @default("ADMIN")
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  auditLogs    AuditLog[]
+}
+
+model AdminIpAllowlist {
+  id         String   @id @default(uuid())
+  ipAddress  String   @unique
+  label      String?
+  isActive   Boolean  @default(true)
+  lastUsedAt DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model AdminInvite {
+  id               String    @id @default(uuid())
+  tokenHash        String    @unique
+  createdByAdminId String
+  expiresAt        DateTime
+  usedAt           DateTime?
+  usedIp           String?
+  createdAt        DateTime  @default(now())
+}
+
+model Game {
+  id           String      @id @default(uuid())
+  slug         String      @unique
+  name         String
+  description  String?
+  category     String      @default("Mobile")
+  logoUrl      String
+  bannerUrl    String?
+  region       String      @default("Global")
+  instructions String?
+  deliveryTime String      @default("Instant (1-3 mins)")
+  isActive     Boolean     @default(true)
+  isPopular    Boolean     @default(false)
+  sortOrder    Int         @default(0)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  fields       GameField[]
+  products     Product[]
+  orders       Order[]
+}
+
+model GameField {
+  id          String   @id @default(uuid())
+  gameId      String
+  fieldKey    String
+  fieldLabel  String
+  placeholder String
+  fieldType   String   @default("text")
+  options     String?
+  isRequired  Boolean  @default(true)
+  helperText  String?
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  game        Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@unique([gameId, fieldKey])
+}
+
+model Product {
+  id           String            @id @default(uuid())
+  gameId       String
+  sku          String            @unique
+  name         String
+  description  String?
+  amount       String
+  iconUrl      String?
+  isPopular    Boolean           @default(false)
+  isFeatured   Boolean           @default(false)
+  isActive     Boolean           @default(true)
+  sortOrder    Int               @default(0)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  game         Game              @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  price        ProductPrice?
+  mappings     SupplierMapping[]
+  orders       Order[]
+}
+
+model ProductPrice {
+  id              String   @id @default(uuid())
+  productId       String   @unique
+  supplierCost    Decimal  @db.Decimal(10, 2)
+  pricingStrategy String   @default("FIXED_MARKUP")
+  markupValue     Decimal  @db.Decimal(10, 2)
+  sellingPrice    Decimal  @db.Decimal(10, 2)
+  discount        Decimal  @default(0.00) @db.Decimal(10, 2)
+  currency        String   @default("USD")
+  updatedAt       DateTime @updatedAt
+
+  product         Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model Supplier {
+  id           String            @id @default(uuid())
+  code         String            @unique
+  name         String
+  baseUrl      String
+  isEnabled    Boolean           @default(true)
+  priority     Int               @default(1)
+  balance      Decimal           @default(0.00) @db.Decimal(10, 2)
+  currency     String            @default("USD")
+  healthStatus String            @default("HEALTHY")
+  lastChecked  DateTime          @default(now())
+  lastError    String?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  products     SupplierProduct[]
+  mappings     SupplierMapping[]
+}
+
+model SupplierProduct {
+  id                  String            @id @default(uuid())
+  supplierId          String
+  supplierGameCode    String
+  supplierProductCode String
+  supplierProductName String
+  currentCost         Decimal           @db.Decimal(10, 2)
+  currency            String            @default("USD")
+  isAvailable         Boolean           @default(true)
+  lastSyncAt          DateTime          @default(now())
+
+  supplier            Supplier          @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  mappings            SupplierMapping[]
+
+  @@unique([supplierId, supplierProductCode])
+}
+
+model SupplierMapping {
+  id                String          @id @default(uuid())
+  productId         String
+  supplierId        String
+  supplierProductId String
+  priority          Int             @default(1)
+  isEnabled         Boolean         @default(true)
+  createdAt         DateTime        @default(now())
+
+  product           Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  supplier          Supplier        @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  supplierProduct   SupplierProduct @relation(fields: [supplierProductId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, supplierId])
+}
+
+model Order {
+  id                   String        @id @default(uuid())
+  publicOrderId        String        @unique
+  publicLookupToken    String
+  userId               String?
+  status               String        @default("AWAITING_PAYMENT")
+  
+  gameId               String
+  productId            String
+  
+  playerData           String
+  playerId             String
+  serverId             String?
+  playerName           String?
+  
+  currency             String        @default("USD")
+  subtotal             Decimal       @db.Decimal(10, 2)
+  discount             Decimal       @default(0.00) @db.Decimal(10, 2)
+  total                Decimal       @db.Decimal(10, 2)
+  totalKhr             Decimal       @db.Decimal(14, 0)
+  
+  supplierCostSnapshot Decimal       @db.Decimal(10, 2)
+  sellingPriceSnapshot Decimal       @db.Decimal(10, 2)
+  
+  clientIp             String?
+  customerEmail        String?
+  customerPhone        String?
+  
+  paidAt               DateTime?
+  completedAt          DateTime?
+  failedAt             DateTime?
+  expiredAt            DateTime?
+  
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  game                 Game          @relation(fields: [gameId], references: [id])
+  product              Product       @relation(fields: [productId], references: [id])
+  user                 User?         @relation(fields: [userId], references: [id])
+  
+  payment              Payment?
+  fulfilment           Fulfilment?
+  events               OrderEvent[]
+
+  @@index([publicOrderId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Payment {
+  id                   String           @id @default(uuid())
+  orderId              String           @unique
+  provider             String           @default("KHQR")
+  
+  providerPaymentId    String?
+  providerReference    String?
+  providerTransactionId String?         @unique
+  
+  amount               Decimal          @db.Decimal(10, 2)
+  currency             String           @default("USD")
+  amountKhr            Decimal          @db.Decimal(14, 0)
+  status               String           @default("PENDING")
+  
+  qrPayload            String
+  md5Hash              String?
+  qrExpiresAt          DateTime
+  
+  verifiedAt           DateTime?
+  paidAt               DateTime?
+  failedAt             DateTime?
+  
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+
+  order                Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  attempts             PaymentAttempt[]
+
+  @@index([orderId])
+  @@index([providerTransactionId])
+  @@index([status])
+}
+
+model PaymentAttempt {
+  id           String    @id @default(uuid())
+  paymentId    String
+  provider     String
+  attemptType  String
+  status       String
+  requestData  String?
+  responseData String?
+  createdAt    DateTime  @default(now())
+
+  payment      Payment   @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+}
+
+model Fulfilment {
+  id             String          @id @default(uuid())
+  orderId        String          @unique
+  supplier       String
+  supplierOrderId String?
+  status         String          @default("QUEUED")
+  
+  supplierCost   Decimal         @db.Decimal(10, 2)
+  currency       String          @default("USD")
+  
+  idempotencyKey String          @unique
+  attemptCount   Int             @default(0)
+  lastCheckedAt  DateTime?
+  lastError      String?
+  
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  completedAt    DateTime?
+
+  order          Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  supplierOrders SupplierOrder[]
+
+  @@index([orderId])
+  @@index([status])
+  @@index([supplierOrderId])
+}
+
+model SupplierOrder {
+  id              String      @id @default(uuid())
+  fulfilmentId    String
+  supplier        String
+  supplierOrderId String?
+  referenceCode   String
+  status          String
+  requestPayload  String?
+  responsePayload String?
+  cost            Decimal     @db.Decimal(10, 2)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  fulfilment      Fulfilment  @relation(fields: [fulfilmentId], references: [id], onDelete: Cascade)
+
+  @@index([fulfilmentId])
+  @@index([supplierOrderId])
+}
+
+model WebhookEvent {
+  id             String    @id @default(uuid())
+  provider       String
+  eventId        String?
+  eventHash      String    @unique
+  eventType      String
+  payload        String
+  signatureValid Boolean   @default(false)
+  processed      Boolean   @default(false)
+  processedAt    DateTime?
+  error          String?
+  receivedAt     DateTime  @default(now())
+
+  @@index([provider])
+  @@index([eventHash])
+  @@index([processed])
+}
+
+model OrderEvent {
+  id         String   @id @default(uuid())
+  orderId    String
+  fromStatus String
+  toStatus   String
+  reason     String
+  metadata   String?
+  createdAt  DateTime @default(now())
+
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+}
+
+model CronRun {
+  id               String   @id @default(uuid())
+  jobName          String
+  status           String
+  recordsProcessed Int      @default(0)
+  durationMs       Int      @default(0)
+  details          String?
+  error            String?
+  executedAt       DateTime @default(now())
+
+  @@index([jobName])
+  @@index([executedAt])
+}
+
+model AuditLog {
+  id          String     @id @default(uuid())
+  adminUserId String?
+  action      String
+  entity      String
+  entityId    String
+  oldValue    String?
+  newValue    String?
+  ipAddress   String?
+  createdAt   DateTime   @default(now())
+
+  adminUser   AdminUser? @relation(fields: [adminUserId], references: [id])
+
+  @@index([action])
+  @@index([entity])
+  @@index([createdAt])
+}
+
+model AppSetting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  type      String   @default("string")
+  updatedAt DateTime @updatedAt
+}
+
+model Promotion {
+  id          String   @id @default(uuid())
+  title       String
+  badge       String?
+  description String?
+  bannerUrl   String?
+  targetUrl   String?
+  discountPct Decimal  @default(0.00) @db.Decimal(5, 2)
+  isActive    Boolean  @default(true)
+  startsAt    DateTime @default(now())
+  endsAt      DateTime?
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+}

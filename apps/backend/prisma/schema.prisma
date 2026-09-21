@@ -1,0 +1,401 @@
+// MongoDB Atlas Schema for Alucard TopUp
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(auto()) @map("_id") @db.ObjectId
+  email        String?   @unique
+  phone        String?
+  name         String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  orders       Order[]
+}
+
+model AdminUser {
+  id           String     @id @default(auto()) @map("_id") @db.ObjectId
+  username     String     @unique
+  email        String     @unique
+  passwordHash String
+  role         String     @default("ADMIN") // SUPERADMIN, ADMIN, OPERATOR
+  isActive     Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  auditLogs    AuditLog[]
+}
+
+model AdminIpAllowlist {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  ipAddress  String   @unique
+  label      String?
+  isActive   Boolean  @default(true)
+  lastUsedAt DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model AdminInvite {
+  id               String    @id @default(auto()) @map("_id") @db.ObjectId
+  tokenHash        String    @unique
+  createdByAdminId String    @db.ObjectId
+  expiresAt        DateTime
+  usedAt           DateTime?
+  usedIp           String?
+  createdAt        DateTime  @default(now())
+}
+
+model Game {
+  id           String      @id @default(auto()) @map("_id") @db.ObjectId
+  slug         String      @unique
+  name         String
+  description  String?
+  category     String      @default("Mobile")
+  logoUrl      String
+  bannerUrl    String?
+  region       String      @default("Global")
+  instructions String?
+  deliveryTime String      @default("Instant (1-3 mins)")
+  isActive     Boolean     @default(true)
+  isPopular    Boolean     @default(false)
+  sortOrder    Int         @default(0)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  fields       GameField[]
+  products     Product[]
+  orders       Order[]
+}
+
+model GameField {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  gameId      String   @db.ObjectId
+  fieldKey    String   // e.g. "userId", "zoneId", "serverId"
+  fieldLabel  String   // e.g. "User ID", "Zone ID"
+  placeholder String   // e.g. "Enter User ID"
+  fieldType   String   @default("text") // text, select, number
+  options     String?  // JSON string for dropdown options
+  isRequired  Boolean  @default(true)
+  helperText  String?
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  game        Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@unique([gameId, fieldKey])
+}
+
+model Product {
+  id           String            @id @default(auto()) @map("_id") @db.ObjectId
+  gameId       String            @db.ObjectId
+  sku          String            @unique
+  name         String            // e.g. "86 Diamonds"
+  description  String?
+  amount       String            // e.g. "86"
+  iconUrl      String?
+  isPopular    Boolean           @default(false)
+  isFeatured   Boolean           @default(false)
+  isActive     Boolean           @default(true)
+  sortOrder    Int               @default(0)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  game         Game              @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  price        ProductPrice?
+  mappings     SupplierMapping[]
+  orders       Order[]
+}
+
+model ProductPrice {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  productId      String   @unique @db.ObjectId
+  supplierCost   Float    // e.g. 1.25
+  pricingStrategy String  @default("FIXED_MARKUP") // FIXED_MARKUP, PERCENTAGE_MARKUP, MANUAL, MINIMUM_MARGIN
+  markupValue    Float    @default(0.50)
+  sellingPrice   Float    // Final calculated selling price in USD
+  discount       Float    @default(0.0)
+  currency       String   @default("USD")
+  updatedAt      DateTime @updatedAt
+
+  product        Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model Supplier {
+  id          String            @id @default(auto()) @map("_id") @db.ObjectId
+  code        String            @unique // G2BULK, VIZO
+  name        String
+  baseUrl     String
+  isEnabled   Boolean           @default(true)
+  priority    Int               @default(1) // 1 = Highest
+  balance     Float             @default(0.0)
+  currency    String            @default("USD")
+  healthStatus String           @default("HEALTHY") // HEALTHY, DEGRADED, DOWN
+  lastChecked DateTime          @default(now())
+  lastError   String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  products    SupplierProduct[]
+  mappings    SupplierMapping[]
+}
+
+model SupplierProduct {
+  id                  String            @id @default(auto()) @map("_id") @db.ObjectId
+  supplierId          String            @db.ObjectId
+  supplierGameCode    String
+  supplierProductCode String
+  supplierProductName String
+  currentCost         Float
+  currency            String            @default("USD")
+  isAvailable         Boolean           @default(true)
+  lastSyncAt          DateTime          @default(now())
+
+  supplier            Supplier          @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  mappings            SupplierMapping[]
+
+  @@unique([supplierId, supplierProductCode])
+}
+
+model SupplierMapping {
+  id                String          @id @default(auto()) @map("_id") @db.ObjectId
+  productId         String          @db.ObjectId
+  supplierId        String          @db.ObjectId
+  supplierProductId String          @db.ObjectId
+  priority          Int             @default(1)
+  isEnabled         Boolean         @default(true)
+  createdAt         DateTime        @default(now())
+
+  product           Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  supplier          Supplier        @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  supplierProduct   SupplierProduct @relation(fields: [supplierProductId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, supplierId])
+}
+
+model Order {
+  id                   String        @id @default(auto()) @map("_id") @db.ObjectId
+  publicOrderId        String        @unique // e.g. TP-8K9F2A1M
+  publicLookupToken    String        // Secure token for customer check-order access
+  userId               String?       @db.ObjectId
+  status               String        @default("AWAITING_PAYMENT")
+  
+  gameId               String        @db.ObjectId
+  productId            String        @db.ObjectId
+  
+  playerData           String        // JSON object string of customer fields e.g. {"userId": "...", "zoneId": "..."}
+  playerId             String
+  serverId             String?
+  playerName           String?       // Account name resolved during validation
+  
+  currency             String        @default("USD")
+  subtotal             Float
+  discount             Float         @default(0.0)
+  total                Float
+  totalKhr             Float
+  
+  supplierCostSnapshot Float
+  sellingPriceSnapshot Float
+  
+  clientIp             String?
+  customerEmail        String?
+  customerPhone        String?
+  
+  paidAt               DateTime?
+  completedAt          DateTime?
+  failedAt             DateTime?
+  expiredAt            DateTime?
+  
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  game                 Game          @relation(fields: [gameId], references: [id])
+  product              Product       @relation(fields: [productId], references: [id])
+  user                 User?         @relation(fields: [userId], references: [id])
+  
+  payment              Payment?
+  fulfilment           Fulfilment?
+  events               OrderEvent[]
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Payment {
+  id                   String           @id @default(auto()) @map("_id") @db.ObjectId
+  orderId              String           @unique @db.ObjectId
+  provider             String           @default("KHQR") // KHQR.cc, BAKONG
+  
+  providerPaymentId    String?
+  providerReference    String?          // Merchant order reference
+  providerTransactionId String?         @unique // Bank / Gateway transaction ID
+  
+  amount               Float
+  currency             String           @default("USD")
+  amountKhr            Float
+  status               String           @default("PENDING") // PENDING, VERIFYING, PAID, EXPIRED, FAILED
+  
+  qrPayload            String           // EMVCo QR String
+  md5Hash              String?          // Checksum for Bakong/KHQR verify
+  qrExpiresAt          DateTime
+  
+  verifiedAt           DateTime?
+  paidAt               DateTime?
+  failedAt             DateTime?
+  
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+
+  order                Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  attempts             PaymentAttempt[]
+
+  @@index([status])
+}
+
+model PaymentAttempt {
+  id           String    @id @default(auto()) @map("_id") @db.ObjectId
+  paymentId    String    @db.ObjectId
+  provider     String
+  attemptType  String    // WEBHOOK, CRON_POLL, USER_VERIFY
+  status       String
+  requestData  String?   // JSON
+  responseData String?   // JSON
+  createdAt    DateTime  @default(now())
+
+  payment      Payment   @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+}
+
+model Fulfilment {
+  id             String          @id @default(auto()) @map("_id") @db.ObjectId
+  orderId        String          @unique @db.ObjectId
+  supplier       String          // G2BULK, VIZO
+  supplierOrderId String?
+  status         String          @default("QUEUED") // QUEUED, PROCESSING, DELIVERED, FAILED, REVIEW_REQUIRED
+  
+  supplierCost   Float
+  currency       String          @default("USD")
+  
+  idempotencyKey String          @unique // e.g. FULFIL-TP-XXXXXXXX
+  attemptCount   Int             @default(0)
+  lastCheckedAt  DateTime?
+  lastError      String?
+  
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  completedAt    DateTime?
+
+  order          Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  supplierOrders SupplierOrder[]
+
+  @@index([status])
+  @@index([supplierOrderId])
+}
+
+model SupplierOrder {
+  id              String      @id @default(auto()) @map("_id") @db.ObjectId
+  fulfilmentId    String      @db.ObjectId
+  supplier        String      // G2BULK, VIZO
+  supplierOrderId String?
+  referenceCode   String      // Unique local ref e.g. TP-2026-XXXXXXXX
+  status          String      // PENDING, SUBMITTED, PROCESSING, COMPLETED, FAILED
+  requestPayload  String?     // Redacted JSON
+  responsePayload String?     // Redacted JSON
+  cost            Float
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  fulfilment      Fulfilment  @relation(fields: [fulfilmentId], references: [id], onDelete: Cascade)
+
+  @@index([fulfilmentId])
+  @@index([supplierOrderId])
+}
+
+model WebhookEvent {
+  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  provider       String    // KHQR, G2BULK, VIZO
+  eventId        String?
+  eventHash      String    @unique // SHA256 of payload for deduplication
+  eventType      String
+  payload        String    // JSON string
+  signatureValid Boolean   @default(false)
+  processed      Boolean   @default(false)
+  processedAt    DateTime?
+  error          String?
+  receivedAt     DateTime  @default(now())
+
+  @@index([provider])
+  @@index([processed])
+}
+
+model OrderEvent {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  orderId    String   @db.ObjectId
+  fromStatus String
+  toStatus   String
+  reason     String
+  metadata   String?  // JSON string
+  createdAt  DateTime @default(now())
+
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+}
+
+model CronRun {
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  jobName          String   // payments, fulfilments, reconcile, sync-products
+  status           String   // SUCCESS, FAILED, RUNNING
+  recordsProcessed Int      @default(0)
+  durationMs       Int      @default(0)
+  details          String?  // JSON
+  error            String?
+  executedAt       DateTime @default(now())
+
+  @@index([jobName])
+  @@index([executedAt])
+}
+
+model AuditLog {
+  id          String     @id @default(auto()) @map("_id") @db.ObjectId
+  adminUserId String?    @db.ObjectId
+  action      String     // PRODUCT_PRICE_CHANGED, SUPPLIER_TOGGLED, MANUAL_REVIEW, etc.
+  entity      String     // Order, Product, Supplier
+  entityId    String
+  oldValue    String?    // JSON
+  newValue    String?    // JSON
+  ipAddress   String?
+  createdAt   DateTime   @default(now())
+
+  adminUser   AdminUser? @relation(fields: [adminUserId], references: [id])
+
+  @@index([action])
+  @@index([entity])
+  @@index([createdAt])
+}
+
+model AppSetting {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  key       String   @unique
+  value     String
+  type      String   @default("string") // string, number, boolean, json
+  updatedAt DateTime @updatedAt
+}
+
+model Promotion {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  badge       String?  // e.g. "HOT", "50% OFF"
+  description String?
+  bannerUrl   String?
+  targetUrl   String?
+  discountPct Float    @default(0.0)
+  isActive    Boolean  @default(true)
+  startsAt    DateTime @default(now())
+  endsAt      DateTime?
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+}

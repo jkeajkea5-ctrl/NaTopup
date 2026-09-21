@@ -1,0 +1,27 @@
+{
+  "short_name": "NA TOPUP",
+  "name": "NA TOPUP — Game Top-Up Platform",
+  "description": "Instant automated game top-up platform in Cambodia via KHQR",
+  "icons": [
+    {
+      "src": "/na-topup-logo.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/na-topup-logo.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    },
+    {
+      "src": "/favicon.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#EBE3F0",
+  "theme_color": "#8E78D8",
+  "display": "standalone",
+  "orientation": "portrait"
+}

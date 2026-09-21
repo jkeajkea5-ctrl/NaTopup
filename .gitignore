@@ -1,0 +1,25 @@
+node_modules/
+.next/
+dist/
+out/
+build/
+.env
+.env.local
+.env.production
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store
+*.sqlite
+*.sqlite-journal
+*.db
+*.db-journal
+*.tsbuildinfo
+coverage/
+.turbo/
+.vercel/
+apps/backend/storage/uploads/
+
+# Local operational exports; keep backups out of source control.
+apps/backend/backups/
