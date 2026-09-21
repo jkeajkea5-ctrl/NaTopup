@@ -168,13 +168,24 @@ export class KhqrClient {
           hash: hash,
         });
 
-        const response = await fetch(url, {
+        let response = await fetch(url, {
           method: "POST",
           headers: {
             "Content-Type": "application/x-www-form-urlencoded",
           },
           body: body.toString(),
         });
+
+        if (response.status === 429 || response.status >= 500) {
+          await new Promise((resolve) => setTimeout(resolve, 400));
+          response = await fetch(url, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: body.toString(),
+          });
+        }
 
         if (response.ok) {
           const result = await response.json();
@@ -211,6 +222,18 @@ export class KhqrClient {
               rawResponse: result,
             };
           }
+
+          logger.warn("AnajakPay Check Transaction V2 returned an unexpected response", {
+            orderId: txId,
+            providerCode: result?.responseCode === undefined ? undefined : String(result.responseCode),
+            providerMessage: result?.responseMessage,
+            providerStatus: result?.data?.status,
+          });
+        } else {
+          logger.warn("AnajakPay Check Transaction V2 returned an HTTP error", {
+            orderId: txId,
+            httpStatus: response.status,
+          });
         }
       } catch (err: any) {
         logger.error("AnajakPay Check Transaction V2 request failed", {
