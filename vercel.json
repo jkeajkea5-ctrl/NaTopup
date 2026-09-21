@@ -1,4 +1,38 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "regions": ["sin1"]
+  "services": {
+    "frontend": {
+      "root": "apps/frontend/",
+      "framework": "vite",
+      "rewrites": [
+        {
+          "source": "/(.*)",
+          "destination": "/index.html"
+        }
+      ]
+    },
+    "backend": {
+      "root": "apps/backend/",
+      "framework": "nextjs",
+      "functions": {
+        "app/api/**/route.ts": {
+          "regions": ["sin1"]
+        }
+      }
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": {
+        "service": "backend"
+      }
+    },
+    {
+      "source": "/(.*)",
+      "destination": {
+        "service": "frontend"
+      }
+    }
+  ]
 }
