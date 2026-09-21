@@ -170,8 +170,10 @@ export class KhqrClient {
 
         let response = await fetch(url, {
           method: "POST",
+          cache: "no-store",
           headers: {
             "Content-Type": "application/x-www-form-urlencoded",
+            "Cache-Control": "no-cache",
           },
           body: body.toString(),
         });
@@ -180,8 +182,10 @@ export class KhqrClient {
           await new Promise((resolve) => setTimeout(resolve, 400));
           response = await fetch(url, {
             method: "POST",
+            cache: "no-store",
             headers: {
               "Content-Type": "application/x-www-form-urlencoded",
+              "Cache-Control": "no-cache",
             },
             body: body.toString(),
           });
@@ -248,8 +252,10 @@ export class KhqrClient {
       try {
         const response = await fetch(`${this.khqrBaseUrl}/payments/verify-v2`, {
           method: "POST",
+          cache: "no-store",
           headers: {
             "Content-Type": "application/json",
+            "Cache-Control": "no-cache",
             Authorization: `Bearer ${this.khqrApiKey}`,
           },
           body: JSON.stringify({
