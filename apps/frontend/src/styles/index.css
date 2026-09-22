@@ -82,20 +82,27 @@ dialog {
   display: inline-grid;
   place-items: center;
   flex: 0 0 auto;
-  padding: 10%;
+  padding: 0;
   border: 1px solid #eee9f5;
   border-radius: 28%;
   background: #fff;
   box-shadow: 0 5px 14px #7468ad24;
 }
-.telegram-brand-icon > svg {
-  width: 100% !important;
-  height: 100% !important;
+.telegram-brand-disc {
+  display: grid;
+  width: 74%;
+  height: 74%;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #5ec4e8 0%, #7d79d8 100%);
+}
+.telegram-brand-disc > svg {
+  width: 70% !important;
+  height: 70% !important;
   display: block;
   transform: none !important;
 }
-.telegram-brand-icon circle { fill: url(#telegram-brand-gradient) !important; }
-.telegram-brand-icon path { fill: #fff !important; }
+.telegram-brand-disc path { fill: #fff !important; }
 .contact-icon:hover { transform: translateY(-3px); box-shadow: 0 7px 14px #45345b12; }
 .navbar-contact {
   min-width: 44px;
