@@ -108,7 +108,6 @@ class TelegramAlertService {
                 serverId: true,
                 playerName: true,
                 total: true,
-                totalKhr: true,
                 game: { select: { name: true } },
                 product: { select: { name: true } },
                 fulfilment: {
@@ -133,9 +132,7 @@ class TelegramAlertService {
     }
     if (order?.playerName) lines.push(`<b>Name:</b> ${escapeTelegramHtml(order.playerName)}`);
     if (typeof order?.total === "number") {
-      lines.push(
-        `<b>Amount:</b> $${order.total.toFixed(2)} / ${Math.round(order.totalKhr).toLocaleString("en-US")} KHR`
-      );
+      lines.push(`<b>Amount:</b> $${order.total.toFixed(2)} USD`);
     }
     if (order?.fulfilment?.supplier) {
       const supplierOrder = order.fulfilment.supplierOrderId
