@@ -210,6 +210,7 @@ dialog {
   color: #fff;
   background: linear-gradient(135deg, #e33b76, #ef4b86);
   box-shadow: 0 5px 14px #e33b7640;
+  animation: support-label-pulse 2.8s ease-in-out infinite;
 }
 .support-contact-logo {
   display: grid;
@@ -222,6 +223,20 @@ dialog {
   box-shadow: none;
 }
 .support-contact-logo img { width: 100%; height: 100%; object-fit: contain; }
+.support-contact-logo { animation: support-logo-bob 2.8s ease-in-out infinite; }
+
+@keyframes support-label-pulse {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-3px) scale(1.04); }
+}
+@keyframes support-logo-bob {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(3px) rotate(-2deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .support-contact-label, .support-contact-logo { animation: none; }
+}
 .support-contact-symbol { color: white; background: linear-gradient(135deg, #6bbadd, #8b82d2); }
 .support-contact:hover { transform: translateY(-3px); box-shadow: 0 10px 28px #5d417338; }
 .contact-icon:focus-visible, .navbar-contact:focus-visible, .support-contact:focus-visible {
