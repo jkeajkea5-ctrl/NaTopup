@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Home, Mail, Menu, Phone, Send, X } from "lucide-react";
+import { Home, Mail, Menu, Phone, X } from "lucide-react";
 import { NavbarSearch } from "./NavbarSearch";
+import { TelegramBrandIcon } from "./TelegramBrandIcon";
 
 const FacebookIcon = () => (
   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.1 8.3V6.6c0-.8.5-1 1-1h2.6V1.2L14.1 1C10.5 1 8.8 3.2 8.8 6.2v2.1H6.3v5h2.5V23h5.3v-9.7h3.5l.6-5h-4.1Z" /></svg>
@@ -63,7 +64,7 @@ export const Header = () => {
             <NavbarSearch />
             <div className="flex items-center gap-2 sm:gap-3">
               <a href="https://t.me/LukasTopupSupport" target="_blank" rel="noopener noreferrer" className="navbar-contact flex shrink-0 items-center justify-center gap-2 rounded-2xl p-2 md:px-4 md:py-2.5" title="ទាក់ទង Telegram" aria-label="ទាក់ទង Telegram">
-                <Send className="h-5 w-5" aria-hidden="true" />
+                <TelegramBrandIcon className="h-10 w-10" />
                 <span className="relative z-10 hidden whitespace-nowrap pr-0.5 font-kulen text-xs font-bold tracking-tight text-[#2489b6] lg:inline lg:text-sm">ទាក់ទង Telegram</span>
               </a>
               <button type="button" onClick={() => setIsMenuOpen(true)} className="shrink-0 cursor-pointer rounded-xl p-2 text-gray-700 transition-all hover:bg-brand-violet/10 hover:text-brand-violet active:scale-90 lg:hidden" aria-label="បើកម៉ឺនុយ" aria-expanded={isMenuOpen} aria-controls="mobile-navigation">
@@ -87,14 +88,14 @@ export const Header = () => {
               <RailLink href="https://facebook.com" label="Facebook" className="is-facebook"><FacebookIcon /></RailLink>
               <RailLink href="https://tiktok.com" label="TikTok" className="is-tiktok"><TikTokIcon /></RailLink>
               <RailLink href="https://youtube.com" label="YouTube" className="is-youtube"><YouTubeIcon /></RailLink>
-              <RailLink href="https://t.me/LukasTopupSupport" label="Telegram" className="is-telegram"><Send /></RailLink>
+              <RailLink href="https://t.me/LukasTopupSupport" label="Telegram" className="is-telegram"><TelegramBrandIcon className="h-9 w-9" /></RailLink>
             </div>
           </section>
 
           <section className="mobile-rail-section mobile-rail-contact" aria-labelledby="contact-us-title">
             <h2 id="contact-us-title">ទាក់ទងមកយើង</h2>
             <div className="mobile-rail-icons">
-              <RailLink href="https://t.me/LukasTopupSupport" label="Telegram support" className="is-telegram"><Send /></RailLink>
+              <RailLink href="https://t.me/LukasTopupSupport" label="Telegram support" className="is-telegram"><TelegramBrandIcon className="h-9 w-9" /></RailLink>
               <RailLink href="/support" label="Contact support" className="is-phone"><Phone /></RailLink>
               <RailLink href="mailto:support@lukastopup.com" label="Email support" className="is-email"><Mail /></RailLink>
             </div>

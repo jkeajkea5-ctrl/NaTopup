@@ -1,5 +1,6 @@
 import React from "react";
-import { Send, HelpCircle, ShieldCheck, Clock, Zap } from "lucide-react";
+import { HelpCircle, ShieldCheck, Clock, Zap } from "lucide-react";
+import { TelegramBrandIcon } from "../components/TelegramBrandIcon";
 
 export const SupportPage = () => {
   const faqs = [
@@ -57,7 +58,7 @@ export const SupportPage = () => {
           rel="noopener noreferrer"
           className="bg-white text-brand-text hover:bg-brand-bg px-6 py-3 rounded-button font-bold text-sm shadow-md transition-all flex items-center gap-2 flex-shrink-0"
         >
-          <Send className="w-4 h-4 text-[#229ED9]" />
+          <TelegramBrandIcon className="h-7 w-7" />
           <span>ជជែកតាម Telegram</span>
         </a>
       </div>

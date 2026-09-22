@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { Send, Mail } from "lucide-react";
+import { Mail } from "lucide-react";
+import { TelegramBrandIcon } from "./TelegramBrandIcon";
 
 export const Footer = () => {
   return (
@@ -39,7 +40,7 @@ export const Footer = () => {
                 title="Telegram Channel"
                 aria-label="Telegram Channel"
               >
-                <Send className="w-4 h-4 -translate-x-0.5 translate-y-0.5" />
+                <TelegramBrandIcon className="h-8 w-8" />
               </a>
 
               <a
@@ -68,7 +69,7 @@ export const Footer = () => {
                 title="Telegram"
                 aria-label="Telegram"
               >
-                <Send className="w-4 h-4 -translate-x-0.5 translate-y-0.5" />
+                <TelegramBrandIcon className="h-8 w-8" />
               </a>
 
               <a
