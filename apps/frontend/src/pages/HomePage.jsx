@@ -74,9 +74,9 @@ export const HomePage = () => {
           <div className="popular-games-rule" aria-hidden="true" />
         </div>
 
-        {/* Responsive game grid: 2-3 phone, 4 tablet, 6 desktop. */}
+        {/* Responsive game grid: 3 phone, 4 tablet, 6 desktop. */}
         {isLoading ? (
-          <div className="responsive-game-grid grid grid-cols-2 min-[380px]:grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2.5 sm:gap-3 md:gap-3.5 lg:gap-4">
+          <div className="responsive-game-grid grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2.5 sm:gap-3 md:gap-3.5 lg:gap-4">
             {[1, 2, 3, 4, 5, 6].map((n) => (
               <div
                 key={n}
@@ -93,7 +93,7 @@ export const HomePage = () => {
             <h3 className="font-heading font-semibold text-lg text-brand-text">រកមិនឃើញហ្គេមទេ</h3>
           </div>
         ) : (
-          <div className="responsive-game-grid grid grid-cols-2 min-[380px]:grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2.5 sm:gap-3 md:gap-3.5 lg:gap-4">
+          <div className="responsive-game-grid grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2.5 sm:gap-3 md:gap-3.5 lg:gap-4">
             {games.map((game, index) => (
               <div key={game.id} className="popular-game-enter min-w-0" style={{ "--enter-delay": `${Math.min(index, 11) * 45}ms` }}>
                 <GameCard game={game} />
