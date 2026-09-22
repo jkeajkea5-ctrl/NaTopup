@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { ADMIN_COOKIE, SESSION_SECONDS, createAdminSession, getAdminSession, isAdminIpAllowed, getClientIp, hashAdminPassword, trustedAdminOrigin, verifyAdminPassword } from "../../../../lib/adminAuth";
+import { ADMIN_COOKIE, SESSION_SECONDS, createAdminSession, getActiveAdminSession, isAdminIpAllowed, getClientIp, hashAdminPassword, trustedAdminOrigin, verifyAdminPassword } from "../../../../lib/adminAuth";
 import { prisma } from "../../../../lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -7,7 +7,7 @@ const attempts = new Map<string, number[]>();
 
 export async function GET(request: Request) {
   const allowed = await isAdminIpAllowed(request);
-  const session = allowed ? getAdminSession(request) : null;
+  const session = allowed ? await getActiveAdminSession(request) : null;
   return NextResponse.json({ success: true, data: { authenticated: !!session, allowed, ip: getClientIp(request), username: session?.username, role: session?.role } }, { headers: { "Cache-Control": "no-store" } });
 }
 

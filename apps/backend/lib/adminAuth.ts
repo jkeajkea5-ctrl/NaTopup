@@ -81,6 +81,21 @@ export function getAdminSession(request: Request): AdminSession | null {
 
 export function hasAdminSession(request: Request) { return !!getAdminSession(request); }
 
+export async function getActiveAdminSession(request: Request) {
+  const session = getAdminSession(request);
+  if (!session) return null;
+  try {
+    const admin = await prisma.adminUser.findUnique({
+      where: { id: session.id },
+      select: { username: true, role: true, isActive: true },
+    });
+    if (!admin?.isActive || admin.username !== session.username || admin.role !== session.role) return null;
+    return session;
+  } catch {
+    return null;
+  }
+}
+
 // Kept as a compatibility export for existing integrations; new logins use username/password.
 export function validAdminKey(value: unknown) {
   const expected = process.env.ADMIN_DASHBOARD_KEY || "";
@@ -140,8 +155,8 @@ export function requireAdmin(request: Request) {
 }
 
 export async function requireAdminWithIp(request: Request) {
-  const denied = requireAdmin(request);
-  if (denied) return denied;
+  if (!trustedAdminOrigin(request)) return NextResponse.json({ success: false, error: "Untrusted request origin." }, { status: 403 });
+  if (!(await getActiveAdminSession(request))) return NextResponse.json({ success: false, error: "Please sign in to the admin dashboard." }, { status: 401 });
   if (!(await isAdminIpAllowed(request))) return NextResponse.json({ success: false, error: "This network is not approved for admin access." }, { status: 403 });
   return null;
 }
