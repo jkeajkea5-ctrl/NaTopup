@@ -199,9 +199,9 @@ dialog {
   .mobile-drawer-backdrop, .mobile-nav-rail, .mobile-rail-link, .mobile-rail-close { transition: none; }
 }
 .support-contact {
-  border: 1px solid #ffffff;
-  background: #fffcfff5;
-  box-shadow: 0 6px 25px #5d417329;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
   transition: transform 200ms ease, box-shadow 200ms ease;
 }
 .support-contact-label {
@@ -216,10 +216,10 @@ dialog {
   flex: 0 0 auto;
   place-items: center;
   overflow: hidden;
-  border: 1px solid #eee9f5;
+  border: 0;
   border-radius: 16px;
-  background: #fff;
-  box-shadow: 0 5px 14px #7468ad24;
+  background: transparent;
+  box-shadow: none;
 }
 .support-contact-logo img { width: 100%; height: 100%; object-fit: contain; }
 .support-contact-symbol { color: white; background: linear-gradient(135deg, #6bbadd, #8b82d2); }
