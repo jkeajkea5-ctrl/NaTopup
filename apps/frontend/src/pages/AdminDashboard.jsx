@@ -105,12 +105,18 @@ function Editor({ editor, saving, error, onClose, onSave }) {
 
 function SecurityPanel() {
   const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [invite, setInvite] = useState("");
   const [adminForm, setAdminForm] = useState({ username: "", email: "", password: "", role: "ADMIN" });
   const [ipForm, setIpForm] = useState({ ipAddress: "", label: "" });
-  async function refresh() { try { setData(await fetchAdminSettings()); setError(""); } catch (err) { setError(err.message); } }
+  async function refresh() {
+    setLoading(true);
+    try { setData(await fetchAdminSettings()); setError(""); }
+    catch (err) { setData(null); setError(err.message); }
+    finally { setLoading(false); }
+  }
   useEffect(() => { refresh(); }, []);
   async function action(payload, success) {
     try { const result = await updateAdminSecurity(payload); setMessage(success); setError(""); await refresh(); return result; }
@@ -121,14 +127,15 @@ function SecurityPanel() {
   async function createInvite() { const result = await action({ action: "create-invite", expiresInMinutes: 30 }, "One-time invite created."); if (result?.url) setInvite(result.url); }
   return <div className="admin-security">
     {error && <p className="admin-alert error">{error}</p>}{message && <p className="admin-alert success">{message}</p>}
+    <div className="admin-security-status"><span>{loading ? "Loading security settings…" : data ? "Security settings loaded" : "Security settings unavailable"}</span><button type="button" className="admin-btn secondary" onClick={refresh} disabled={loading}><RefreshCw size={15} className={loading ? "spin" : ""} />Retry</button></div>
     <div className="admin-form-grid">
       <form className="admin-card admin-form-card" onSubmit={addAdmin}><UserPlus /><div><h3>Add administrator</h3><p>Create an admin or operator account.</p></div><label className="admin-field">Username<input required value={adminForm.username} onChange={(e) => setAdminForm({ ...adminForm, username: e.target.value })} /></label><label className="admin-field">Email<input required type="email" value={adminForm.email} onChange={(e) => setAdminForm({ ...adminForm, email: e.target.value })} /></label><label className="admin-field">Temporary password<input required minLength={10} type="password" value={adminForm.password} onChange={(e) => setAdminForm({ ...adminForm, password: e.target.value })} /></label><select value={adminForm.role} onChange={(e) => setAdminForm({ ...adminForm, role: e.target.value })}><option value="ADMIN">Admin</option><option value="OPERATOR">Operator</option></select><button className="admin-btn primary">Add account</button></form>
       <form className="admin-card admin-form-card" onSubmit={addIp}><ShieldCheck /><div><h3>Approve an IP</h3><p>Permit a trusted network to access admin pages.</p></div><label className="admin-field">IP address<input required value={ipForm.ipAddress} onChange={(e) => setIpForm({ ...ipForm, ipAddress: e.target.value })} /></label><label className="admin-field">Label<input value={ipForm.label} onChange={(e) => setIpForm({ ...ipForm, label: e.target.value })} /></label><button className="admin-btn primary">Approve IP</button></form>
     </div>
     <section className="admin-card admin-invite"><div><Link2 /><h3>One-time secret URL</h3><p>The first visitor is whitelisted and the link is consumed.</p></div><button className="admin-btn primary" onClick={createInvite}>Create 30-minute link</button>{invite && <div className="admin-copy"><input readOnly value={invite} /><button className="admin-icon-btn" onClick={() => navigator.clipboard?.writeText(invite)}><Copy size={17} /></button></div>}</section>
     <div className="admin-form-grid">
-      <section className="admin-card"><h3>Admin accounts</h3><div className="admin-list">{data?.admins?.map((admin) => <div key={admin.id}><span><strong>{admin.username}</strong><small>{admin.email} · {admin.role}</small></span>{admin.role !== "SUPERADMIN" && <button onClick={() => action({ action: "toggle-admin", id: admin.id, isActive: !admin.isActive }, admin.isActive ? "Account disabled." : "Account enabled.")} className={admin.isActive ? "state-on" : "state-off"}>{admin.isActive ? "Active" : "Disabled"}</button>}</div>)}</div></section>
-      <section className="admin-card"><h3>IP allowlist</h3><div className="admin-list">{data?.allowlist?.map((entry) => <div key={entry.id}><span><strong>{entry.ipAddress}</strong><small>{entry.label || "No label"}</small></span>{entry.isActive && <button className="remove" onClick={() => action({ action: "remove-ip", id: entry.id }, "IP removed.")}>Remove</button>}</div>)}</div></section>
+      <section className="admin-card"><h3>Admin accounts</h3><div className="admin-list">{data?.admins?.map((admin) => <div key={admin.id}><span><strong>{admin.username}</strong><small>{admin.email} · {admin.role}</small></span>{admin.role !== "SUPERADMIN" && <button onClick={() => action({ action: "toggle-admin", id: admin.id, isActive: !admin.isActive }, admin.isActive ? "Account disabled." : "Account enabled.")} className={admin.isActive ? "state-on" : "state-off"}>{admin.isActive ? "Active" : "Disabled"}</button>}</div>)}{!loading && data && !data.admins?.length && <Empty>No administrator accounts found.</Empty>}</div></section>
+      <section className="admin-card"><h3>IP allowlist</h3><div className="admin-list">{data?.allowlist?.map((entry) => <div key={entry.id}><span><strong>{entry.ipAddress}</strong><small>{entry.label || "No label"}</small></span>{entry.locked ? <em>Environment</em> : entry.isActive && <button className="remove" onClick={() => action({ action: "remove-ip", id: entry.id }, "IP removed.")}>Remove</button>}</div>)}{!loading && data && !data.allowlist?.length && <Empty>No approved IP addresses found.</Empty>}</div></section>
     </div>
   </div>;
 }

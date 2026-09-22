@@ -51,7 +51,7 @@ export class G2BulkAdapter implements ISupplierAdapter {
     if (code === "valorant-cambodia" || code === "valorant_kh" || code === "valorant-kh") return "valorant_kh";
     if (code === "valorant-sg" || code === "valorant_sg") return "valorant_sg";
     if (code === "valorant") return "valorant_kh";
-    if (code === "honor-of-kings" || code === "hok") return "honor_of_kings";
+    if (code === "honor-of-kings" || code === "hok") return "hok";
     return code.replace(/-/g, "_");
   }
 
@@ -65,6 +65,9 @@ export class G2BulkAdapter implements ISupplierAdapter {
       .replace(/^MLBB_/i, "")
       .replace(/^PUBGM_/i, "")
       .replace(/^VAL_/i, "")
+      .replace(/^HOK_/i, "")
+      .replace(/^DELTA_/i, "")
+      .replace(/^BLOODSTRIKE_/i, "")
       .trim();
 
     const mappings: Record<string, string> = {
@@ -138,6 +141,20 @@ export class G2BulkAdapter implements ISupplierAdapter {
       if (res.ok && Array.isArray(data.catalogues)) return data.catalogues;
     } catch (err: any) {
       logger.error("Failed to fetch G2Bulk PUBG Global catalogue", { error: err.message });
+    }
+    return [];
+  }
+
+  async getHokCatalogue(): Promise<any[]> {
+    if (!this.apiKey) return [];
+    try {
+      const res = await fetch(`${this.baseUrl}/games/hok/catalogue`, {
+        headers: this.getHeaders(), signal: AbortSignal.timeout(6000),
+      });
+      const data = await res.json();
+      if (res.ok && Array.isArray(data.catalogues)) return data.catalogues;
+    } catch (err: any) {
+      logger.error("Failed to fetch G2Bulk HOK catalogue", { error: err.message });
     }
     return [];
   }

@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 import path from "node:path";
 import { mkdir, writeFile } from "node:fs/promises";
 import { PrismaClient } from "@prisma/client";
-import { prepareGameCatalogue } from "../lib/mlbbCatalogue";
+import { prepareBloodStrikeCatalogue } from "../lib/bloodStrikeCatalogue";
 
 dotenv.config({ path: path.resolve(__dirname, "../.env.local") });
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
@@ -11,8 +11,7 @@ async function main() {
   if (!process.env.DATABASE_URL?.startsWith("mongodb")) throw new Error("A MongoDB DATABASE_URL is required.");
   const { g2bulkAdapter } = await import("../suppliers/g2bulk/client");
   const { config } = await import("../lib/config");
-  const packages = prepareGameCatalogue(await g2bulkAdapter.getBloodStrikeCatalogue(), "BLOODSTRIKE", ["320", "540", "1100", "2260", "5800", "Strike Pass Elite", "Strike Pass Premium"]);
-  for (const entry of packages) { entry.product.name = entry.catalogueName; entry.product.amount = entry.catalogueName; entry.product.description = `Blood Strike Cambodia Server (${entry.catalogueName})`; }
+  const packages = prepareBloodStrikeCatalogue(await g2bulkAdapter.getBloodStrikeCatalogue());
   console.log(`Validated ${packages.length} Blood Strike Cambodia packages.`);
   const db = new PrismaClient({ log: [] });
   try {

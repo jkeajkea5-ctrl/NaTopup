@@ -10,10 +10,10 @@ export const AdminGate = ({ children }) => {
     let active = true;
     fetchAdminSession().then((session) => {
       if (!active) return;
-      if (!session.allowed) navigate("/", { replace: true });
+      if (!session.allowed) navigate("/admin/login", { replace: true });
       else if (!session.authenticated) navigate("/admin/login", { replace: true });
       else setReady(true);
-    }).catch(() => navigate("/", { replace: true }));
+    }).catch(() => navigate("/admin/login", { replace: true }));
     return () => { active = false; };
   }, [navigate]);
   if (!ready) return <div className="min-h-[55vh] grid place-items-center"><Loader2 className="h-7 w-7 animate-spin text-brand-violet" /></div>;

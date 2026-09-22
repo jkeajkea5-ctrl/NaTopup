@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 import path from "node:path";
 import { mkdir, writeFile } from "node:fs/promises";
 import { PrismaClient } from "@prisma/client";
-import { prepareGameCatalogue } from "../lib/mlbbCatalogue";
+import { preparePubgCatalogue } from "../lib/pubgCatalogue";
 
 dotenv.config({ path: path.resolve(__dirname, "../.env.local") });
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
@@ -12,11 +12,7 @@ async function main() {
   const { g2bulkAdapter } = await import("../suppliers/g2bulk/client");
   const { config } = await import("../lib/config");
   const { FALLBACK_GAMES } = await import("../lib/fallbackData");
-  const packages = prepareGameCatalogue(
-    await g2bulkAdapter.getPubgGlobalCatalogue(),
-    "PUBGM",
-    ["325", "660", "985", "1320", "1800", "2460", "3850", "5650", "8100", "11950", "16200"]
-  );
+  const packages = preparePubgCatalogue(await g2bulkAdapter.getPubgGlobalCatalogue());
   console.log(`Validated ${packages.length} PUBG Global packages.`);
   const db = new PrismaClient({ log: [] });
   try {

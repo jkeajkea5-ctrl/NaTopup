@@ -119,6 +119,23 @@ export const FALLBACK_GAMES = [
     ],
   },
   {
+    id: "6aaf9a4d431e16926147c9e8",
+    slug: "honor-of-kings",
+    name: "Honor of Kings",
+    category: "MOBA",
+    logoUrl: "/games/honor-of-kings.png",
+    bannerUrl: "/games/honor-of-kings.png",
+    region: "Global",
+    instructions: "Enter your Honor of Kings Player ID.",
+    deliveryTime: "Instant (1-3 mins)",
+    isPopular: true,
+    _count: { products: 0 },
+    fields: [
+      { id: "hok1", fieldKey: "playerId", fieldLabel: "Player ID", placeholder: "Enter your Player ID", fieldType: "text", isRequired: true },
+    ],
+    products: [],
+  },
+  {
     id: "6aaf9a51431e16926147c9f2",
     slug: "genshin-impact",
     name: "Genshin Impact",

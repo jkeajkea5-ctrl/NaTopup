@@ -4,6 +4,26 @@ import { useQuery } from "@tanstack/react-query";
 import { Search, X } from "lucide-react";
 import { fetchGames } from "../services/api";
 
+const GAME_SEARCH_ALIASES = {
+  "mobile-legends": ["ml", "mlbb", "mobile legend", "bang bang"],
+  "free-fire": ["ff", "freefire", "free fire my", "ff my", "sgmy"],
+  "pubg-mobile": ["pubg", "pubgm", "uc"],
+  "honor-of-kings": ["hok", "honour of kings", "honor kings"],
+  valorant: ["valo", "valorant kh", "valorant cambodia"],
+  zepeto: ["zepeto zems"],
+  "delta-force": ["delta", "deltaforce"],
+  "blood-strike": ["bloodstrike"],
+  "magic-chess-gogo": ["magic chess", "mcgogo", "gogo"],
+  "crossfire-legend": ["crossfire", "cross fire", "cf legend"],
+};
+
+const normalizeSearch = (value) =>
+  String(value || "")
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[^a-z0-9\u1780-\u17ff]+/g, " ")
+    .trim();
+
 export const NavbarSearch = () => {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
@@ -12,10 +32,19 @@ export const NavbarSearch = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { data, isLoading, isError } = useQuery({ queryKey: ["games"], queryFn: fetchGames });
-  const term = query.trim().toLowerCase();
-  const matches = (data?.games || []).filter((game) =>
-    `${game.name} ${game.category || ""}`.toLowerCase().includes(term)
-  );
+  const term = normalizeSearch(query);
+  const compactTerm = term.replace(/\s+/g, "");
+  const matches = (data?.games || []).filter((game) => {
+    const aliases = GAME_SEARCH_ALIASES[game.slug] || [];
+    const searchable = normalizeSearch([
+      game.name,
+      game.slug,
+      game.category,
+      game.region,
+      ...aliases,
+    ].join(" "));
+    return searchable.includes(term) || searchable.replace(/\s+/g, "").includes(compactTerm);
+  });
   const visible = open && !!term;
 
   useEffect(() => { setOpen(false); setQuery(""); }, [location.pathname]);

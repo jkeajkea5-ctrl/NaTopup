@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 import path from "node:path";
 import { mkdir, writeFile } from "node:fs/promises";
 import { PrismaClient } from "@prisma/client";
-import { prepareGameCatalogue } from "../lib/mlbbCatalogue";
+import { prepareDeltaForceCatalogue } from "../lib/deltaForceCatalogue";
 
 dotenv.config({ path: path.resolve(__dirname, "../.env.local") });
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
@@ -11,8 +11,7 @@ async function main() {
   if (!process.env.DATABASE_URL?.startsWith("mongodb")) throw new Error("A MongoDB DATABASE_URL is required.");
   const { g2bulkAdapter } = await import("../suppliers/g2bulk/client");
   const { config } = await import("../lib/config");
-  const packages = prepareGameCatalogue(await g2bulkAdapter.getDeltaForceCatalogue(), "DELTA", ["320", "750", "1480", "3950", "8100"]);
-  for (const entry of packages) { entry.product.name = entry.catalogueName; entry.product.amount = entry.catalogueName; entry.product.description = `Delta Force Cambodia Server (${entry.catalogueName})`; }
+  const packages = prepareDeltaForceCatalogue(await g2bulkAdapter.getDeltaForceCatalogue());
   console.log(`Validated ${packages.length} Delta Force Cambodia packages.`);
   const db = new PrismaClient({ log: [] });
   try {

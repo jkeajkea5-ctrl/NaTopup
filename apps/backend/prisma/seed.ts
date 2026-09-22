@@ -147,6 +147,22 @@ async function main() {
       products: [],
     },
     {
+      slug: "honor-of-kings",
+      name: "Honor of Kings",
+      category: "MOBA",
+      logoUrl: "/games/honor-of-kings.png",
+      bannerUrl: "/games/honor-of-kings.png",
+      region: "Global",
+      instructions: "Enter your Honor of Kings Player ID.",
+      deliveryTime: "Instant (1-3 mins)",
+      isPopular: true,
+      sortOrder: 4,
+      fields: [
+        { fieldKey: "playerId", fieldLabel: "Player ID", placeholder: "Enter your Player ID", fieldType: "text", isRequired: true, sortOrder: 1 },
+      ],
+      products: [],
+    },
+    {
       slug: "genshin-impact",
       name: "Genshin Impact",
       category: "RPG",

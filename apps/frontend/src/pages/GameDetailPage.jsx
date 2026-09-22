@@ -17,6 +17,7 @@ import {
   Check,
   Send,
   ShoppingBag,
+  ArrowLeft,
 } from "lucide-react";
 import { checkPlayerId, createOrder, fetchGameDetail, initKhqrPayment, fetchOrderDetail, fetchOrderStatus } from "../services/api";
 import { ProductCard } from "../components/ProductCard";
@@ -280,8 +281,8 @@ export const GameDetailPage = () => {
     }
   };
 
-  const isFreeFireMy = game.slug === "free-fire" || game.slug === "free-fire-khsgmy";
-  const packageGroups = isFreeFireMy
+  const usesThreeCatalogs = ["free-fire", "free-fire-khsgmy", "pubg-mobile", "honor-of-kings", "hok", "delta-force", "blood-strike"].includes(game.slug);
+  const packageGroups = usesThreeCatalogs
     ? [
         { id: "pass", title: "Pass", products: products.filter((product) => product.isPopular) },
         { id: "normal", title: "Normal", products: products.filter((product) => !product.isPopular && !product.isFeatured) },
@@ -407,6 +408,15 @@ export const GameDetailPage = () => {
         }}
       />
 
+      <Link
+        to="/"
+        className="-mx-4 -mt-6 flex h-10 items-center gap-1.5 border-l-2 border-[#59aeca] bg-[#eaf8fc] px-2.5 font-kulen text-sm text-[#18233f] transition-colors hover:bg-[#dff3f9] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-violet sm:mx-0 sm:mt-0 sm:rounded-xl"
+        aria-label="ត្រឡប់ក្រោយទៅទំព័រដើម"
+      >
+        <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+        <span>ត្រឡប់ក្រោយ</span>
+      </Link>
+
       {/* SELECT PACKAGE ALERT BANNER */}
       {packageAlertMessage && (
         <div className="animate-in slide-in-from-top-3 duration-200 p-4 rounded-2xl bg-brand-violet/10 border-2 border-brand-violet text-brand-violet flex items-center justify-between shadow-lg font-kulen">
@@ -456,7 +466,7 @@ export const GameDetailPage = () => {
       )}
 
       {/* TOP GAME BANNER (Fits Yellow Border: Full-width Edge-to-Edge on Mobile) */}
-      <div className="-mx-4 -mt-6 sm:mx-0 sm:mt-0 mb-6 relative overflow-hidden rounded-none sm:rounded-2xl lg:rounded-3xl shadow-card border-b sm:border border-brand-border bg-black group">
+      <div className="-mx-4 sm:mx-0 mb-6 relative overflow-hidden rounded-none sm:rounded-2xl lg:rounded-3xl shadow-card border-b sm:border border-brand-border bg-black group">
         <div className="relative w-full h-[190px] sm:h-[260px] md:h-[320px] lg:h-[360px] overflow-hidden">
           <img
             src={game.bannerUrl || game.logoUrl || "/placeholder.png"}

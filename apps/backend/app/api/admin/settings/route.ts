@@ -16,10 +16,25 @@ export async function GET(request: Request) {
   const roleDenied = requireSuperAdmin(request);
   if (roleDenied) return roleDenied;
   try {
-    const [admins, allowlist] = await Promise.all([
+    const [admins, databaseAllowlist] = await Promise.all([
       prisma.adminUser.findMany({ orderBy: { createdAt: "asc" }, select: { id: true, username: true, email: true, role: true, isActive: true, createdAt: true, updatedAt: true } }),
       prisma.adminIpAllowlist.findMany({ orderBy: { createdAt: "asc" }, select: { id: true, ipAddress: true, label: true, isActive: true, lastUsedAt: true, createdAt: true } }),
     ]);
+    const databaseIps = new Set(databaseAllowlist.map((entry) => entry.ipAddress));
+    const environmentAllowlist = (process.env.ADMIN_ALLOWED_IPS || "")
+      .split(",")
+      .map((ipAddress) => ipAddress.trim().replace(/^::ffff:/i, ""))
+      .filter((ipAddress) => net.isIP(ipAddress) && !databaseIps.has(ipAddress))
+      .map((ipAddress) => ({
+        id: `environment:${ipAddress}`,
+        ipAddress,
+        label: "Configured in deployment environment",
+        isActive: true,
+        lastUsedAt: null,
+        createdAt: null,
+        locked: true,
+      }));
+    const allowlist = [...environmentAllowlist, ...databaseAllowlist.map((entry) => ({ ...entry, locked: false }))];
     return NextResponse.json({ success: true, data: { admins, allowlist } }, { headers: { "Cache-Control": "no-store" } });
   } catch {
     return error("Security settings could not be loaded.", 503);

@@ -16,6 +16,7 @@
     "test": "node --test tests/**/*.test.js || tsx --test tests/**/*.test.ts",
     "catalogue:mlbb": "tsx scripts/replace-mlbb-global.ts",
     "catalogue:freefire-my": "tsx scripts/replace-freefire-my.ts",
+    "catalogue:hok": "tsx scripts/replace-honor-of-kings.ts",
     "catalogue:pubg": "tsx scripts/replace-pubg-global.ts",
     "catalogue:valorant-kh": "tsx scripts/replace-valorant-kh.ts",
     "catalogue:zepeto": "tsx scripts/replace-zepeto.ts",

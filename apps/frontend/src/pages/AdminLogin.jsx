@@ -12,6 +12,7 @@ export const AdminLogin = () => {
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState("error");
   const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -25,10 +26,10 @@ export const AdminLogin = () => {
         }
         const session = await fetchAdminSession();
         if (!active) return;
-        if (!session.allowed) return navigate("/", { replace: true });
+        if (!session.allowed) { setNotFound(true); return; }
         if (session.authenticated) navigate("/admin", { replace: true });
       } catch {
-        if (active) navigate("/", { replace: true });
+        if (active) setNotFound(true);
       } finally {
         if (active) setLoading(false);
       }
@@ -52,6 +53,7 @@ export const AdminLogin = () => {
   }
 
   if (loading) return <div className="admin-login-page"><Loader2 className="spin" /></div>;
+  if (notFound) return <main className="admin-login-not-found">404 page not found</main>;
   return (
     <main className="admin-login-page">
       <form onSubmit={submit} className="admin-login-card">
