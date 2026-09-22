@@ -91,10 +91,11 @@ dialog {
 .telegram-brand-icon > svg {
   width: 100% !important;
   height: 100% !important;
-  fill: none !important;
-  stroke: none !important;
+  display: block;
   transform: none !important;
 }
+.telegram-brand-icon circle { fill: url(#telegram-brand-gradient) !important; }
+.telegram-brand-icon path { fill: #fff !important; }
 .contact-icon:hover { transform: translateY(-3px); box-shadow: 0 7px 14px #45345b12; }
 .navbar-contact {
   min-width: 44px;

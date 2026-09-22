@@ -58,7 +58,7 @@ export const SupportPage = () => {
           rel="noopener noreferrer"
           className="bg-white text-brand-text hover:bg-brand-bg px-6 py-3 rounded-button font-bold text-sm shadow-md transition-all flex items-center gap-2 flex-shrink-0"
         >
-          <TelegramBrandIcon className="h-7 w-7" />
+          <TelegramBrandIcon className="h-7 w-7 support-contact-symbol" />
           <span>ជជែកតាម Telegram</span>
         </a>
       </div>
