@@ -1,6 +1,5 @@
 import React from "react";
 import { useLocation } from "react-router-dom";
-import { TelegramBrandIcon } from "./TelegramBrandIcon";
 
 export const FloatingSupportButton = () => {
   const { pathname } = useLocation();
@@ -26,7 +25,9 @@ export const FloatingSupportButton = () => {
       aria-label="ត្រូវការជំនួយ ? ទាក់ទង Telegram 24/7"
     >
 
-      <TelegramBrandIcon className="h-11 w-11" />
+      <span className="support-contact-logo h-11 w-11" aria-hidden="true">
+        <img src="/na-topup-brand-uppercase-2026.png" alt="" />
+      </span>
 
       {/* Button Text */}
       <span className="relative z-10 hidden min-[430px]:inline font-heading font-extrabold text-xs sm:text-sm tracking-wide text-[#594274] whitespace-nowrap pr-1">
