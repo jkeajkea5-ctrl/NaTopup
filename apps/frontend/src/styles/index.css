@@ -204,6 +204,13 @@ dialog {
   box-shadow: 0 6px 25px #5d417329;
   transition: transform 200ms ease, box-shadow 200ms ease;
 }
+.support-contact-label {
+  padding: 5px 12px;
+  border-radius: 999px;
+  color: #fff;
+  background: linear-gradient(135deg, #e33b76, #ef4b86);
+  box-shadow: 0 5px 14px #e33b7640;
+}
 .support-contact-logo {
   display: grid;
   flex: 0 0 auto;

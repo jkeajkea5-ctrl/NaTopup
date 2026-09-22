@@ -20,18 +20,16 @@ export const FloatingSupportButton = () => {
       href="https://t.me/LukasTopupSupport"
       target="_blank"
       rel="noopener noreferrer"
-      className={`support-contact fixed ${bottomPosClass} right-3 sm:right-6 z-30 group flex items-center gap-2.5 sm:gap-3 rounded-[20px] sm:rounded-[22px] p-2.5 sm:p-3`}
+      className={`support-contact fixed ${bottomPosClass} right-3 sm:right-6 z-30 group flex flex-col items-center gap-2 rounded-[20px] sm:rounded-[22px] p-2.5 sm:p-3`}
       title="ត្រូវការជំនួយ ? ទាក់ទង Telegram 24/7"
       aria-label="ត្រូវការជំនួយ ? ទាក់ទង Telegram 24/7"
     >
 
-      <span className="support-contact-logo h-11 w-11" aria-hidden="true">
-        <img src="/na-topup-brand-uppercase-2026.png" alt="" />
-      </span>
-
-      {/* Button Text */}
-      <span className="relative z-10 hidden min-[430px]:inline font-heading font-extrabold text-xs sm:text-sm tracking-wide text-[#594274] whitespace-nowrap pr-1">
+      <span className="support-contact-label relative z-10 font-heading font-extrabold text-xs sm:text-sm tracking-wide whitespace-nowrap">
         ត្រូវការជំនួយ ?
+      </span>
+      <span className="support-contact-logo h-12 w-12" aria-hidden="true">
+        <img src="/na-topup-brand-uppercase-2026.png" alt="" />
       </span>
     </a>
   );
