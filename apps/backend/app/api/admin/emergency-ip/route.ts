@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import net from "node:net";
 import { NextResponse } from "next/server";
-import { ADMIN_NETWORK_COOKIE, NETWORK_ACCESS_SECONDS, createAdminNetworkAccess, getClientIp } from "../../../../lib/adminAuth";
+import { ADMIN_NETWORK_COOKIE, NETWORK_ACCESS_SECONDS, createAdminNetworkAccess, getClientIp, getIpv4SubnetRule } from "../../../../lib/adminAuth";
 import { prisma } from "../../../../lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -33,6 +33,15 @@ export async function GET(request: Request) {
       create: { ipAddress, isActive: true, label: "Emergency secret URL", lastUsedAt: new Date() },
     });
 
+    const savedSubnet = getIpv4SubnetRule(ipAddress);
+    if (savedSubnet) {
+      await prisma.adminIpAllowlist.upsert({
+        where: { ipAddress: savedSubnet },
+        update: { isActive: true, label: "Emergency mobile subnet", lastUsedAt: new Date() },
+        create: { ipAddress: savedSubnet, isActive: true, label: "Emergency mobile subnet", lastUsedAt: new Date() },
+      });
+    }
+
     const origin = process.env.FRONTEND_URL || url.origin;
     const loginUrl = `${origin.replace(/\/$/, "")}/admin/login`;
 
@@ -57,6 +66,8 @@ export async function GET(request: Request) {
         file: "emergency-ip.json",
         ipAddress,
         message: "This IP address is approved for admin access.",
+        saved_subnet: savedSubnet || ipAddress,
+        your_original_ip: ipAddress,
         loginUrl,
       },
       {

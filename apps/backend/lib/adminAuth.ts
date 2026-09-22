@@ -100,17 +100,37 @@ export function getClientIp(request: Request) {
   return net.isIP(normalized) ? normalized : "unknown";
 }
 
+export function getIpv4SubnetRule(ip: string) {
+  if (net.isIP(ip) !== 4) return null;
+  return `${ip.split(".").slice(0, 3).join(".")}.0/24`;
+}
+
+export function isAdminIpRule(value: string) {
+  if (net.isIP(value)) return true;
+  const match = value.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.0\/24$/);
+  return !!match && match.slice(1).every((part) => Number(part) <= 255);
+}
+
+export function adminIpRuleMatches(ip: string, rule: string) {
+  if (ip === rule) return true;
+  const subnet = getIpv4SubnetRule(ip);
+  return !!subnet && subnet === rule;
+}
+
 function configuredIps() {
-  return new Set((process.env.ADMIN_ALLOWED_IPS || "").split(",").map((value) => value.trim()).filter((value) => net.isIP(value)));
+  return (process.env.ADMIN_ALLOWED_IPS || "").split(",").map((value) => value.trim()).filter(isAdminIpRule);
 }
 
 export async function isAdminIpAllowed(request: Request) {
   if (hasAdminNetworkAccess(request)) return true;
   const ip = getClientIp(request);
-  if (configuredIps().has(ip)) return true;
+  if (configuredIps().some((rule) => adminIpRuleMatches(ip, rule))) return true;
   if (process.env.NODE_ENV !== "production" && ["127.0.0.1", "::1"].includes(ip)) return true;
   if (ip === "unknown") return false;
-  try { return !!(await prisma.adminIpAllowlist.findFirst({ where: { ipAddress: ip, isActive: true } })); } catch { return false; }
+  try {
+    const rules = await prisma.adminIpAllowlist.findMany({ where: { isActive: true }, select: { ipAddress: true } });
+    return rules.some((rule) => adminIpRuleMatches(ip, rule.ipAddress));
+  } catch { return false; }
 }
 
 export function requireAdmin(request: Request) {

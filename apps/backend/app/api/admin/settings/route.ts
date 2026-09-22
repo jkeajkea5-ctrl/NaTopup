@@ -1,7 +1,6 @@
 import crypto from "node:crypto";
-import net from "node:net";
 import { NextResponse } from "next/server";
-import { getAdminSession, hashAdminPassword, requireAdminWithIp, requireSuperAdmin } from "../../../../lib/adminAuth";
+import { getAdminSession, hashAdminPassword, isAdminIpRule, requireAdminWithIp, requireSuperAdmin } from "../../../../lib/adminAuth";
 import { prisma } from "../../../../lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -24,7 +23,7 @@ export async function GET(request: Request) {
     const environmentAllowlist = (process.env.ADMIN_ALLOWED_IPS || "")
       .split(",")
       .map((ipAddress) => ipAddress.trim().replace(/^::ffff:/i, ""))
-      .filter((ipAddress) => net.isIP(ipAddress) && !databaseIps.has(ipAddress))
+      .filter((ipAddress) => isAdminIpRule(ipAddress) && !databaseIps.has(ipAddress))
       .map((ipAddress) => ({
         id: `environment:${ipAddress}`,
         ipAddress,
@@ -69,7 +68,7 @@ export async function POST(request: Request) {
     }
     if (body?.action === "add-ip") {
       const ipAddress = typeof body.ipAddress === "string" ? body.ipAddress.trim().replace(/^::ffff:/i, "") : "";
-      if (!net.isIP(ipAddress)) return error("Enter a valid IPv4 or IPv6 address.");
+      if (!isAdminIpRule(ipAddress)) return error("Enter a valid IPv4, IPv6, or IPv4 /24 subnet.");
       const item = await prisma.adminIpAllowlist.upsert({ where: { ipAddress }, update: { label: body.label?.trim() || null, isActive: true }, create: { ipAddress, label: body.label?.trim() || null } });
       return NextResponse.json({ success: true, data: item });
     }
