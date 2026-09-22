@@ -37,6 +37,7 @@ const wait = (milliseconds: number) =>
   new Promise<void>((resolve) => setTimeout(resolve, milliseconds));
 
 class TelegramAlertService {
+  private lowBalanceAlertAt = new Map<string, number>();
   private isConfigured(topic: TelegramAlertTopic): boolean {
     return Boolean(
       config.telegram.botToken &&
@@ -155,6 +156,9 @@ class TelegramAlertService {
   async notifyLowBalance(supplier: "G2BULK" | "VIZO", balance: number, currency = "USD") {
     const topic: TelegramAlertTopic = supplier === "G2BULK" ? "lowBalanceG2b" : "lowBalanceVizo";
     if (!this.isConfigured(topic)) return false;
+    const now = Date.now();
+    const lastAlert = this.lowBalanceAlertAt.get(supplier) || 0;
+    if (now - lastAlert < 30 * 60 * 1000) return false;
     const lines = [
       `<b>Low Balance ${supplier === "G2BULK" ? "G2B" : "Vizo"}</b>`,
       `<b>Supplier:</b> ${escapeTelegramHtml(supplier)}`,
@@ -162,7 +166,9 @@ class TelegramAlertService {
       `<b>Threshold:</b> $3.00 USD`,
       `<b>Time:</b> ${escapeTelegramHtml(new Date().toISOString())}`,
     ];
-    return this.send(topic, lines.join("\n"));
+    const sent = await this.send(topic, lines.join("\n"));
+    if (sent) this.lowBalanceAlertAt.set(supplier, now);
+    return sent;
   }
 }
 
