@@ -37,6 +37,31 @@ export const AdminLogin = () => {
     return () => { active = false; };
   }, [navigate, params]);
 
+  useEffect(() => {
+    if (!notFound) return undefined;
+
+    let active = true;
+    const retry = async () => {
+      try {
+        const session = await fetchAdminSession();
+        if (!active || !session.allowed) return;
+        setNotFound(false);
+        if (session.authenticated) navigate("/admin", { replace: true });
+      } catch {
+        // Keep the private 404 screen until this network becomes approved.
+      }
+    };
+
+    const onFocus = () => void retry();
+    window.addEventListener("focus", onFocus);
+    const timer = window.setInterval(retry, 5000);
+    return () => {
+      active = false;
+      window.removeEventListener("focus", onFocus);
+      window.clearInterval(timer);
+    };
+  }, [navigate, notFound]);
+
   async function submit(event) {
     event.preventDefault();
     setSubmitting(true);

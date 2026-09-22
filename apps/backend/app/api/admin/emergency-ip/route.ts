@@ -34,13 +34,23 @@ export async function GET(request: Request) {
     });
 
     const origin = process.env.FRONTEND_URL || url.origin;
+    const loginUrl = `${origin.replace(/\/$/, "")}/admin/login`;
+
+    if (url.searchParams.get("redirect") === "1") {
+      const response = NextResponse.redirect(loginUrl, 302);
+      response.headers.set("Cache-Control", "no-store");
+      response.headers.set("Referrer-Policy", "no-referrer");
+      response.headers.set("X-Content-Type-Options", "nosniff");
+      return response;
+    }
+
     return NextResponse.json(
       {
         success: true,
         file: "emergency-ip.json",
         ipAddress,
         message: "This IP address is approved for admin access.",
-        loginUrl: `${origin.replace(/\/$/, "")}/admin/login`,
+        loginUrl,
       },
       {
         headers: {
