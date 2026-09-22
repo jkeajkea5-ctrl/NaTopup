@@ -27,7 +27,7 @@ export const PaymentReturnPage = () => {
   return (
     <main className="flex min-h-dvh items-center justify-center bg-[#f8f5fb] p-6 text-center">
       <section className="w-full max-w-sm rounded-[28px] border border-violet-100 bg-white p-8 shadow-[0_20px_60px_rgba(77,60,130,0.16)]">
-        <img src="/na-topup-brand-2026.png" alt="NA TOPUP" className="mx-auto h-28 w-28 object-contain" />
+        <img src="/na-topup-brand-uppercase-2026.png" alt="NA TOPUP" className="mx-auto h-28 w-28 object-contain" />
         <Loader2 className="mx-auto mt-5 h-8 w-8 animate-spin text-brand-violet" />
         <h1 className="mt-4 font-heading text-2xl font-black text-brand-text">Verifying payment</h1>
         <p className="mt-2 text-sm text-brand-muted">Please wait while we prepare your invoice.</p>

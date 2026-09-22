@@ -83,7 +83,7 @@ export const AdminLogin = () => {
     <main className="admin-login-page">
       <form onSubmit={submit} className="admin-login-card">
         <section className="admin-login-form-panel">
-          <img className="admin-login-logo" src="/na-topup-brand-2026.png" alt="NA TOPUP" />
+          <img className="admin-login-logo" src="/na-topup-brand-uppercase-2026.png" alt="NA TOPUP" />
           <div className="admin-login-heading"><h1>Welcome Back</h1><p>Sign in to access the NA TOPUP admin dashboard</p></div>
           <label className="admin-login-field"><span>Username or Email</span><div><Mail size={20} /><input value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" placeholder="admin or admin@example.com" required /></div></label>
           <label className="admin-login-field"><span>Password</span><div><LockKeyhole size={20} /><input value={password} onChange={(e) => setPassword(e.target.value)} type="password" autoComplete="current-password" placeholder="••••••••" required /></div></label>

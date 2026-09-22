@@ -25,7 +25,7 @@ export const SuccessInvoiceModal = ({ order, status, onClose }) => {
         </button>
 
         <div className="text-center">
-          <img src="/na-topup-brand-2026.png" alt="NA TOPUP" className="mx-auto h-28 w-28 object-contain drop-shadow-md sm:h-32 sm:w-32" />
+          <img src="/na-topup-brand-uppercase-2026.png" alt="NA TOPUP" className="mx-auto h-28 w-28 object-contain drop-shadow-md sm:h-32 sm:w-32" />
           <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-emerald-300 bg-emerald-100 px-4 py-1.5 text-xs font-extrabold uppercase tracking-wide text-emerald-800">
             <CheckCircle2 className="h-4 w-4" /> Payment Success
           </div>
