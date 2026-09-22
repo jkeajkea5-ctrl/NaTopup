@@ -12,7 +12,8 @@ export const adminMutation = z.discriminatedUnion("entity", [
   }).strict() }).strict(),
   z.object({ entity: z.literal("package"), id, data: z.object({
     iconUrl: image.or(z.literal("")).optional(),
-    name: text, amount: text, sortOrder: sort, isActive: z.boolean(), isPopular: z.boolean(), isFeatured: z.boolean(),
+    name: text, amount: text, customBadge: z.string().trim().max(40), category: z.enum(["pass", "normal", "other"]),
+    sortOrder: sort, isActive: z.boolean(), supplierCost: z.number().finite().min(0).max(100000),
     sellingPrice: z.number().finite().positive().max(100000), discount: z.number().finite().min(0).max(100000),
   }).strict().refine((data) => data.discount < data.sellingPrice, "Discount must be less than the price") }).strict(),
   z.object({ entity: z.literal("slide"), id: id.optional(), data: z.object({

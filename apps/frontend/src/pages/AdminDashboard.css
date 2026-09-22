@@ -834,6 +834,60 @@
   .admin-shell .admin-order-row:hover { transform: none; }
 }
 
+/* Compact package workspace and focused package editor. */
+.admin-package-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 11px; }
+.admin-shell .admin-package-card { min-height: 210px; padding: 14px; gap: 9px; border-radius: 15px; }
+.admin-package-card .admin-card-title { gap: 9px; }
+.admin-package-card .admin-thumb { width: 46px; height: 46px; border-radius: 11px; object-fit: contain; }
+.admin-package-card .admin-card-title h3 { font-size: 12px; line-height: 1.25; }
+.admin-package-card .admin-card-title p { margin-top: 2px; font-size: 9px; }
+.admin-package-card .admin-price-block { padding: 10px; border-radius: 11px; }
+.admin-package-card .admin-price-block > strong { font-size: 17px; }
+.admin-package-card .admin-tags span { padding: 4px 7px; font-size: 8px; }
+.admin-package-card .admin-card-footer { padding-top: 9px; }
+.admin-package-card .admin-card-footer p { font-size: 9px; }
+.admin-package-card .admin-card-footer .admin-btn { min-height: 32px; padding-inline: 10px; font-size: 10px; }
+
+.admin-package-dialog { width: min(630px, calc(100% - 24px)); padding: 30px; border-color: #b8c9ef !important; border-radius: 20px; background: #fff !important; }
+.admin-package-dialog > form { display: grid; gap: 18px; }
+.admin-package-dialog .admin-dialog-head h2 { margin: 0; color: #17275e; font-size: 25px; text-transform: none; }
+.admin-package-dialog .admin-dialog-head .admin-icon-btn { border: 0; color: #91a0bd; background: transparent; }
+.admin-package-preview { min-height: 112px; padding: 18px 20px; display: flex; align-items: center; gap: 18px; border: 1px solid #cfe0ff; border-radius: 16px; background: #f0f6ff; }
+.admin-package-preview .admin-thumb { width: 70px; height: 70px; padding: 4px; object-fit: contain; border: 1px solid #d6e4fb; border-radius: 13px; background: #fff; }
+.admin-package-preview > span { min-width: 0; display: grid; gap: 5px; }
+.admin-package-preview strong { overflow-wrap: anywhere; color: #17275e; font-size: 21px; line-height: 1.2; }
+.admin-package-preview small { color: #1556ff; font-size: 13px; font-weight: 800; }
+.admin-package-fields { min-width: 0; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; border: 0; }
+.admin-package-fields .admin-field { min-width: 0; gap: 7px; color: #60769a; font-size: 11px; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
+.admin-package-fields .admin-field input,
+.admin-package-fields .admin-field select { width: 100%; height: 47px; padding: 0 20px; border: 1px solid #bdd5ff; border-radius: 14px; color: #17275e; background: #fff; font-size: 14px; font-weight: 750; letter-spacing: 0; outline: 0; text-transform: none; }
+.admin-package-fields .admin-field input:focus,
+.admin-package-fields .admin-field select:focus { border-color: #4f83ff; box-shadow: 0 0 0 3px #4f83ff18; }
+.admin-package-wide { grid-column: 1 / -1; }
+.admin-selling-field > span { position: relative; display: block; }
+.admin-selling-field > span input { padding-right: 122px; }
+.admin-selling-field em { position: absolute; top: 50%; right: 10px; padding: 5px 8px; transform: translateY(-50%); border-radius: 7px; font-size: 10px; font-style: normal; font-weight: 850; letter-spacing: 0; text-transform: none; }
+.admin-selling-field em.positive { color: #00864f; border: 1px solid #83ecc0; background: #ddfff0; }
+.admin-selling-field em.negative { color: #a13648; border: 1px solid #f2bac4; background: #fff0f3; }
+.admin-package-fields .admin-check { color: #253563; font-size: 13px; font-weight: 800; letter-spacing: 0; text-transform: none; }
+.admin-package-fields .admin-check input { width: 20px; height: 20px; accent-color: #1f63ff; }
+.admin-package-dialog .admin-dialog-actions { margin-top: 0; padding-top: 18px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: 1px solid #dce6f7; }
+.admin-package-dialog .admin-dialog-actions .admin-btn { width: 100%; min-height: 50px; border-radius: 14px; font-size: 14px; }
+.admin-package-dialog .admin-dialog-actions .primary { color: #fff; border-color: #1f63ff; background: #1f63ff; box-shadow: 0 8px 18px #1f63ff30; }
+.admin-package-dialog .admin-dialog-actions .secondary { color: #17275e; border-color: transparent; background: #edf3fb; }
+
+@media (max-width: 1500px) { .admin-package-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (max-width: 1120px) { .admin-package-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 760px) { .admin-package-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) {
+  .admin-package-dialog { width: calc(100% - 12px); padding: 18px; }
+  .admin-package-preview { min-height: 90px; padding: 13px; }
+  .admin-package-preview .admin-thumb { width: 56px; height: 56px; }
+  .admin-package-preview strong { font-size: 17px; }
+  .admin-package-fields { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .admin-package-wide { grid-column: auto; }
+}
+
 /* Shared layouts for Games, Packages, Slides, Users, Suppliers, and Security. */
 .admin-collection-view { min-height: 260px; background: linear-gradient(180deg, #fffafd, #fbf8fc); }
 .admin-collection-meta {
@@ -930,3 +984,7 @@
   .admin-shell .admin-entity-card { transition: none; }
   .admin-shell .admin-entity-card:hover { transform: none; }
 }
+
+/* Keep package cards compact after the shared entity-card rules above. */
+.admin-shell .admin-package-card { min-height: 210px; padding: 14px; gap: 9px; }
+@media (max-width: 700px) { .admin-shell .admin-package-card { min-height: 205px; } }

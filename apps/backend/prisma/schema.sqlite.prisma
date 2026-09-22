@@ -97,6 +97,7 @@ model Product {
   description  String?
   amount       String            // e.g. "86"
   iconUrl      String?
+  customBadge  String?
   isPopular    Boolean           @default(false)
   isFeatured   Boolean           @default(false)
   isActive     Boolean           @default(true)

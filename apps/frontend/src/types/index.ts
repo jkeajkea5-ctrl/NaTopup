@@ -31,6 +31,7 @@ export interface ProductItem {
   description?: string;
   amount: string;
   iconUrl?: string;
+  customBadge?: string;
   isPopular: boolean;
   isFeatured: boolean;
   priceUsd: number;

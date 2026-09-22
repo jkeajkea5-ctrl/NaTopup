@@ -20,7 +20,7 @@ export async function GET(request: Request) {
         id: true, name: true, slug: true, category: true, logoUrl: true, bannerUrl: true, sortOrder: true, isActive: true, isPopular: true,
       } }),
       prisma.product.findMany({ orderBy: { sortOrder: "asc" }, select: {
-        id: true, name: true, amount: true, sku: true, gameId: true, iconUrl: true, isActive: true, isPopular: true, isFeatured: true, sortOrder: true,
+        id: true, name: true, amount: true, sku: true, gameId: true, iconUrl: true, customBadge: true, isActive: true, isPopular: true, isFeatured: true, sortOrder: true,
         price: { select: { sellingPrice: true, discount: true, supplierCost: true } },
         _count: { select: { mappings: true } },
       } }),
@@ -72,9 +72,14 @@ export async function PATCH(request: Request) {
       if (mutation.entity === "game") {
         await tx.game.update({ where: { id: mutation.id }, data: mutation.data });
       } else if (mutation.entity === "package") {
-        const { sellingPrice, discount, ...data } = mutation.data;
-        await tx.product.update({ where: { id: mutation.id }, data });
-        await tx.productPrice.update({ where: { productId: mutation.id }, data: { sellingPrice, discount, pricingStrategy: "MANUAL" } });
+        const { sellingPrice, supplierCost, discount, category, ...data } = mutation.data;
+        await tx.product.update({ where: { id: mutation.id }, data: {
+          ...data,
+          customBadge: data.customBadge || null,
+          isPopular: category === "pass",
+          isFeatured: category === "other",
+        } });
+        await tx.productPrice.update({ where: { productId: mutation.id }, data: { sellingPrice, supplierCost, discount, pricingStrategy: "MANUAL" } });
       } else if (mutation.entity === "slide") {
         const slide = mutation.id
           ? await tx.promotion.update({ where: { id: mutation.id }, data: mutation.data })

@@ -138,6 +138,7 @@ export async function GET(
         sku: p.sku,
         name: p.name,
         description: p.description,
+        customBadge: p.customBadge,
         amount: p.amount,
         iconUrl: p.iconUrl,
         isPopular: p.isPopular,
