@@ -52,7 +52,7 @@ export const Header = () => {
             <div className="flex h-[68px] shrink-0 items-center sm:h-20 lg:h-24">
               <Link to="/" className="na-brand group flex min-w-0 select-none items-center gap-1.5 sm:gap-2.5 lg:gap-3" aria-label="NA TOPUP home">
                 <div className="na-brand-emblem relative flex h-[52px] w-[52px] shrink-0 items-center justify-center sm:h-16 sm:w-16 lg:h-20 lg:w-20">
-                  <img src="/na-topup-icon-2026.png" alt="NA TOPUP" className="h-full w-full object-contain animate-logo-box" />
+                  <img src="/na-topup-brand-2026.png" alt="NA TOPUP" className="h-full w-full object-contain animate-logo-box" />
                 </div>
                 <div className="flex items-center gap-1 sm:gap-1.5" aria-hidden="true">
                   <span className="font-heading text-lg font-black tracking-tight text-[#30213f] sm:text-2xl lg:text-3xl">NA</span>
