@@ -53,6 +53,22 @@ function Picture({ url, name }) {
     : <span className="admin-thumb admin-thumb-fallback">{name?.slice(0, 2)?.toUpperCase()}</span>;
 }
 
+async function optimizeUploadImage(file) {
+  if (!file.type.startsWith("image/") || file.size <= 900 * 1024) return file;
+  const bitmap = await createImageBitmap(file);
+  const maxEdge = 1600;
+  const scale = Math.min(1, maxEdge / Math.max(bitmap.width, bitmap.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+  canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+  const context = canvas.getContext("2d");
+  if (!context) { bitmap.close(); return file; }
+  context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  bitmap.close();
+  const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/webp", 0.84));
+  return blob && blob.size < file.size ? new File([blob], `${file.name.replace(/\.[^.]+$/, "")}.webp`, { type: "image/webp" }) : file;
+}
+
 function ImageUpload({ label, value, disabled, onChange }) {
   const input = useRef(null);
   const [uploading, setUploading] = useState(false);
@@ -62,7 +78,7 @@ function ImageUpload({ label, value, disabled, onChange }) {
     event.target.value = "";
     if (!file) return;
     setUploading(true); setError("");
-    try { onChange((await uploadAdminImage(file)).url); }
+    try { onChange((await uploadAdminImage(await optimizeUploadImage(file))).url); }
     catch (err) { setError(err.message); }
     finally { setUploading(false); }
   }
