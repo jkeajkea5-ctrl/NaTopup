@@ -3,7 +3,7 @@ import { config } from "../lib/config";
 import { logger } from "../lib/logger";
 import { prisma, safeDbQuery } from "../lib/prisma";
 
-export type TelegramAlertTopic = "paid" | "completed" | "system";
+export type TelegramAlertTopic = "paid" | "completed" | "system" | "lowBalanceG2b" | "lowBalanceVizo";
 
 export function getTelegramAlertTopic(status: OrderStatus): TelegramAlertTopic | null {
   if (status === OrderStatus.PAID) return "paid";
@@ -22,6 +22,8 @@ export function escapeTelegramHtml(value: unknown): string {
 function threadIdFor(topic: TelegramAlertTopic): number {
   if (topic === "paid") return config.telegram.paidThreadId;
   if (topic === "completed") return config.telegram.completedThreadId;
+  if (topic === "lowBalanceG2b") return config.telegram.lowBalanceG2bThreadId;
+  if (topic === "lowBalanceVizo") return config.telegram.lowBalanceVizoThreadId;
   return config.telegram.systemThreadId;
 }
 
@@ -147,6 +149,19 @@ class TelegramAlertService {
     }
     lines.push(`<b>Time:</b> ${escapeTelegramHtml(new Date().toISOString())}`);
 
+    return this.send(topic, lines.join("\n"));
+  }
+
+  async notifyLowBalance(supplier: "G2BULK" | "VIZO", balance: number, currency = "USD") {
+    const topic: TelegramAlertTopic = supplier === "G2BULK" ? "lowBalanceG2b" : "lowBalanceVizo";
+    if (!this.isConfigured(topic)) return false;
+    const lines = [
+      `<b>Low Balance ${supplier === "G2BULK" ? "G2B" : "Vizo"}</b>`,
+      `<b>Supplier:</b> ${escapeTelegramHtml(supplier)}`,
+      `<b>Balance:</b> ${escapeTelegramHtml(balance.toFixed(2))} ${escapeTelegramHtml(currency)}`,
+      `<b>Threshold:</b> $3.00 USD`,
+      `<b>Time:</b> ${escapeTelegramHtml(new Date().toISOString())}`,
+    ];
     return this.send(topic, lines.join("\n"));
   }
 }

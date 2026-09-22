@@ -34,5 +34,11 @@
         "service": "frontend"
       }
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/internal/cron/balances",
+      "schedule": "*/5 * * * *"
+    }
   ]
 }

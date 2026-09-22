@@ -64,6 +64,8 @@ export const config = {
     paidThreadId: parseInt(process.env.TELEGRAM_PAID_THREAD_ID || "0", 10),
     completedThreadId: parseInt(process.env.TELEGRAM_COMPLETED_THREAD_ID || "0", 10),
     systemThreadId: parseInt(process.env.TELEGRAM_SYSTEM_THREAD_ID || "0", 10),
+    lowBalanceG2bThreadId: parseInt(process.env.TELEGRAM_LOW_BALANCE_G2B_THREAD_ID || "22", 10),
+    lowBalanceVizoThreadId: parseInt(process.env.TELEGRAM_LOW_BALANCE_VIZO_THREAD_ID || "25", 10),
   },
   
   business: {
