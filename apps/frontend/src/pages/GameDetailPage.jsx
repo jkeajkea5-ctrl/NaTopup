@@ -824,7 +824,7 @@ export const GameDetailPage = () => {
                     {group.title}
                   </h3>
                   {group.products.length > 0 ? (
-                    <div className="grid grid-cols-2 min-[360px]:grid-cols-3 min-[560px]:grid-cols-4 xl:grid-cols-5 gap-1.5 sm:gap-3">
+                    <div className="grid grid-cols-3 min-[560px]:grid-cols-4 xl:grid-cols-5 gap-1.5 sm:gap-3">
                       {group.products.map((prod) => (
                         <ProductCard
                           key={prod.id}
