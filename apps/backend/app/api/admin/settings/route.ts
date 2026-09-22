@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { NextResponse } from "next/server";
-import { getAdminSession, hashAdminPassword, isAdminIpRule, requireAdminWithIp, requireSuperAdmin } from "../../../../lib/adminAuth";
+import { ADMIN_COOKIE, SESSION_SECONDS, createAdminSession, getAdminSession, hashAdminPassword, isAdminIpRule, requireAdminWithIp, requireSuperAdmin, verifyAdminPassword } from "../../../../lib/adminAuth";
 import { prisma } from "../../../../lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -34,7 +34,9 @@ export async function GET(request: Request) {
         locked: true,
       }));
     const allowlist = [...environmentAllowlist, ...databaseAllowlist.map((entry) => ({ ...entry, locked: false }))];
-    return NextResponse.json({ success: true, data: { admins, allowlist } }, { headers: { "Cache-Control": "no-store" } });
+    const session = getAdminSession(request);
+    const currentAdmin = admins.find((admin) => admin.id === session?.id) || null;
+    return NextResponse.json({ success: true, data: { admins, allowlist, currentAdmin } }, { headers: { "Cache-Control": "no-store" } });
   } catch {
     return error("Security settings could not be loaded.", 503);
   }
@@ -48,6 +50,36 @@ export async function POST(request: Request) {
   const session = getAdminSession(request);
   const body = await request.json().catch(() => null);
   try {
+    if (body?.action === "update-profile") {
+      const username = typeof body.username === "string" ? body.username.trim() : "";
+      const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+      const currentPassword = typeof body.currentPassword === "string" ? body.currentPassword : "";
+      const newPassword = typeof body.newPassword === "string" ? body.newPassword : "";
+      if (!/^[a-zA-Z0-9_.-]{3,40}$/.test(username) || !/^\S+@\S+\.\S+$/.test(email)) {
+        return error("Use a valid username and email address.");
+      }
+      if (newPassword && newPassword.length < 10) return error("The new password must be at least 10 characters.");
+      const currentAdmin = await prisma.adminUser.findUnique({ where: { id: session!.id } });
+      if (!currentAdmin || !verifyAdminPassword(currentPassword, currentAdmin.passwordHash)) return error("The current password is incorrect.", 403);
+      const updated = await prisma.adminUser.update({
+        where: { id: currentAdmin.id },
+        data: {
+          username,
+          email,
+          ...(newPassword ? { passwordHash: hashAdminPassword(newPassword) } : {}),
+        },
+        select: { id: true, username: true, email: true, role: true, isActive: true },
+      });
+      const response = NextResponse.json({ success: true, data: updated });
+      response.cookies.set(ADMIN_COOKIE, createAdminSession({ id: updated.id, username: updated.username, role: updated.role as any }), {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        path: "/api/admin",
+        maxAge: SESSION_SECONDS,
+      });
+      return response;
+    }
     if (body?.action === "add-admin") {
       const username = typeof body.username === "string" ? body.username.trim() : "";
       const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";

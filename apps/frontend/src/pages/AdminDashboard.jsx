@@ -109,11 +109,17 @@ function SecurityPanel() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [invite, setInvite] = useState("");
+  const [profileForm, setProfileForm] = useState({ username: "", email: "", currentPassword: "", newPassword: "" });
   const [adminForm, setAdminForm] = useState({ username: "", email: "", password: "", role: "ADMIN" });
   const [ipForm, setIpForm] = useState({ ipAddress: "", label: "" });
   async function refresh() {
     setLoading(true);
-    try { setData(await fetchAdminSettings()); setError(""); }
+    try {
+      const next = await fetchAdminSettings();
+      setData(next);
+      if (next.currentAdmin) setProfileForm({ username: next.currentAdmin.username, email: next.currentAdmin.email, currentPassword: "", newPassword: "" });
+      setError("");
+    }
     catch (err) { setData(null); setError(err.message); }
     finally { setLoading(false); }
   }
@@ -123,12 +129,14 @@ function SecurityPanel() {
     catch (err) { setError(err.message); return null; }
   }
   async function addAdmin(e) { e.preventDefault(); if (await action({ action: "add-admin", ...adminForm }, "Administrator added.")) setAdminForm({ username: "", email: "", password: "", role: "ADMIN" }); }
+  async function updateProfile(e) { e.preventDefault(); await action({ action: "update-profile", ...profileForm }, "Account details updated."); }
   async function addIp(e) { e.preventDefault(); if (await action({ action: "add-ip", ...ipForm }, "IP address approved.")) setIpForm({ ipAddress: "", label: "" }); }
   async function createInvite() { const result = await action({ action: "create-invite", expiresInMinutes: 30 }, "One-time invite created."); if (result?.url) setInvite(result.url); }
   return <div className="admin-security">
     {error && <p className="admin-alert error">{error}</p>}{message && <p className="admin-alert success">{message}</p>}
     <div className="admin-security-status"><span>{loading ? "Loading security settings…" : data ? "Security settings loaded" : "Security settings unavailable"}</span><button type="button" className="admin-btn secondary" onClick={refresh} disabled={loading}><RefreshCw size={15} className={loading ? "spin" : ""} />Retry</button></div>
     <div className="admin-form-grid">
+      <form className="admin-card admin-form-card admin-profile-card" onSubmit={updateProfile}><Settings /><div><h3>My administrator account</h3><p>Change your username, email, or password. Confirm with your current password.</p></div><label className="admin-field">Username<input required value={profileForm.username} onChange={(e) => setProfileForm({ ...profileForm, username: e.target.value })} /></label><label className="admin-field">Email<input required type="email" value={profileForm.email} onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })} /></label><label className="admin-field">Current password<input required type="password" autoComplete="current-password" value={profileForm.currentPassword} onChange={(e) => setProfileForm({ ...profileForm, currentPassword: e.target.value })} /></label><label className="admin-field">New password <small>(leave blank to keep it)</small><input minLength={10} type="password" autoComplete="new-password" value={profileForm.newPassword} onChange={(e) => setProfileForm({ ...profileForm, newPassword: e.target.value })} /></label><button className="admin-btn primary">Update my account</button></form>
       <form className="admin-card admin-form-card" onSubmit={addAdmin}><UserPlus /><div><h3>Add administrator</h3><p>Create an admin or operator account.</p></div><label className="admin-field">Username<input required value={adminForm.username} onChange={(e) => setAdminForm({ ...adminForm, username: e.target.value })} /></label><label className="admin-field">Email<input required type="email" value={adminForm.email} onChange={(e) => setAdminForm({ ...adminForm, email: e.target.value })} /></label><label className="admin-field">Temporary password<input required minLength={10} type="password" value={adminForm.password} onChange={(e) => setAdminForm({ ...adminForm, password: e.target.value })} /></label><select value={adminForm.role} onChange={(e) => setAdminForm({ ...adminForm, role: e.target.value })}><option value="ADMIN">Admin</option><option value="OPERATOR">Operator</option></select><button className="admin-btn primary">Add account</button></form>
       <form className="admin-card admin-form-card" onSubmit={addIp}><ShieldCheck /><div><h3>Approve an IP</h3><p>Permit a trusted network to access admin pages.</p></div><label className="admin-field">IP address<input required value={ipForm.ipAddress} onChange={(e) => setIpForm({ ...ipForm, ipAddress: e.target.value })} /></label><label className="admin-field">Label<input value={ipForm.label} onChange={(e) => setIpForm({ ...ipForm, label: e.target.value })} /></label><button className="admin-btn primary">Approve IP</button></form>
     </div>

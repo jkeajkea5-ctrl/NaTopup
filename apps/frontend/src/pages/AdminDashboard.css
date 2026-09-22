@@ -108,6 +108,7 @@
 .admin-security-status { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--admin-muted); font-size: 11px; }
 .admin-security-status .admin-btn { min-height: 36px; }
 .admin-security .admin-form-grid { grid-template-columns: 1fr 1fr; padding: 0; }
+.admin-security .admin-profile-card { grid-column: 1 / -1; }
 .admin-form-card { display: grid; }
 .admin-form-card > svg { color: #2b72c8; }
 .admin-form-card .admin-field { width: 100%; }
