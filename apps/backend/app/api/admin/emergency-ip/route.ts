@@ -63,12 +63,9 @@ export async function GET(request: Request) {
     const response = NextResponse.json(
       {
         success: true,
-        file: "emergency-ip.json",
-        ipAddress,
-        message: "This IP address is approved for admin access.",
-        saved_subnet: savedSubnet || ipAddress,
+        message: "Success! Your IP subnet has been added to the whitelist.",
+        saved_subnet: savedSubnet ? savedSubnet.replace(/0\/24$/, "") : ipAddress,
         your_original_ip: ipAddress,
-        loginUrl,
       },
       {
         headers: {
