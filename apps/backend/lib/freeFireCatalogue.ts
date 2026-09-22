@@ -1,5 +1,16 @@
 export type FreeFireCategory = "pass" | "normal" | "other";
 
+export function getFreeFireIconUrl(name: string, category = getFreeFireCategory(name)) {
+  const normalized = name.toLowerCase().replace(/\s+/g, " ").trim();
+  if (category === "normal") return "/packages/freefire/diamonds.png";
+  if (normalized.includes("weeklylite") || normalized.includes("weekly lite") || normalized.includes("weekly lit")) return "/packages/freefire/weekly-lite.png";
+  if (normalized.includes("weekly")) return "/packages/freefire/weekly.png";
+  if (normalized.includes("monthly")) return "/packages/freefire/monthly.png";
+  if (normalized.includes("level up")) return "/packages/freefire/level-up.png";
+  if (normalized.includes("3 in 1")) return "/packages/freefire/three-in-one.jpg";
+  return "/packages/freefire/diamonds.png";
+}
+
 export function getFreeFireCategory(name: string): FreeFireCategory {
   const normalized = name.toLowerCase();
   if (normalized.includes("weekly") || normalized.includes("monthly")) return "pass";
@@ -34,6 +45,7 @@ export function prepareFreeFireCatalogue(items: unknown) {
       product: {
         sku: `VIZO_${productCode.toUpperCase()}`,
         name: displayName,
+        iconUrl: getFreeFireIconUrl(name, catalogCategory),
         description: `FreeFire MY | ${catalogCategory}`,
         amount: catalogCategory === "normal" ? name : "1 Package",
         isPopular: catalogCategory === "pass",
