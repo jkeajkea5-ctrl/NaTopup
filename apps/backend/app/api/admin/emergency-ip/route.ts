@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import net from "node:net";
 import { NextResponse } from "next/server";
-import { getClientIp } from "../../../../lib/adminAuth";
+import { ADMIN_NETWORK_COOKIE, NETWORK_ACCESS_SECONDS, createAdminNetworkAccess, getClientIp } from "../../../../lib/adminAuth";
 import { prisma } from "../../../../lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -38,13 +38,20 @@ export async function GET(request: Request) {
 
     if (url.searchParams.get("redirect") === "1") {
       const response = NextResponse.redirect(loginUrl, 302);
+      response.cookies.set(ADMIN_NETWORK_COOKIE, createAdminNetworkAccess(), {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        path: "/api/admin",
+        maxAge: NETWORK_ACCESS_SECONDS,
+      });
       response.headers.set("Cache-Control", "no-store");
       response.headers.set("Referrer-Policy", "no-referrer");
       response.headers.set("X-Content-Type-Options", "nosniff");
       return response;
     }
 
-    return NextResponse.json(
+    const response = NextResponse.json(
       {
         success: true,
         file: "emergency-ip.json",
@@ -61,6 +68,14 @@ export async function GET(request: Request) {
         },
       }
     );
+    response.cookies.set(ADMIN_NETWORK_COOKIE, createAdminNetworkAccess(), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      path: "/api/admin",
+      maxAge: NETWORK_ACCESS_SECONDS,
+    });
+    return response;
   } catch {
     return new NextResponse("Emergency access is temporarily unavailable.", {
       status: 503,

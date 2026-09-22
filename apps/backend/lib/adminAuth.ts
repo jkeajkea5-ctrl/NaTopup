@@ -4,7 +4,9 @@ import { NextResponse } from "next/server";
 import { prisma } from "./prisma";
 
 export const ADMIN_COOKIE = "na_admin_session";
+export const ADMIN_NETWORK_COOKIE = "na_admin_network_access";
 export const SESSION_SECONDS = 8 * 60 * 60;
+export const NETWORK_ACCESS_SECONDS = 30 * 24 * 60 * 60;
 
 export type AdminRole = "SUPERADMIN" | "ADMIN" | "OPERATOR";
 export type AdminSession = { id: string; username: string; role: AdminRole; expiresAt: number };
@@ -46,8 +48,26 @@ export function createAdminSession(admin: Partial<AdminSession> = {}) {
 }
 
 function cookieValue(request: Request) {
+  return namedCookieValue(request, ADMIN_COOKIE);
+}
+
+function namedCookieValue(request: Request, name: string) {
   return request.headers.get("cookie")?.split(";").map((part) => part.trim())
-    .find((part) => part.startsWith(`${ADMIN_COOKIE}=`))?.slice(ADMIN_COOKIE.length + 1) || "";
+    .find((part) => part.startsWith(`${name}=`))?.slice(name.length + 1) || "";
+}
+
+export function createAdminNetworkAccess() {
+  const expiresAt = Date.now() + NETWORK_ACCESS_SECONDS * 1000;
+  const payload = `${expiresAt}.${crypto.randomBytes(16).toString("hex")}`;
+  return `${payload}.${sign(`network-access.${payload}`)}`;
+}
+
+export function hasAdminNetworkAccess(request: Request) {
+  const [expires, nonce, signature, extra] = namedCookieValue(request, ADMIN_NETWORK_COOKIE).split(".");
+  if (!secret() || extra || !/^\d+$/.test(expires || "") || !/^[a-f\d]{32}$/i.test(nonce || "") ||
+      !/^[a-f\d]{64}$/i.test(signature || "") || Number(expires) <= Date.now()) return false;
+  const payload = `${expires}.${nonce}`;
+  return crypto.timingSafeEqual(Buffer.from(signature, "hex"), Buffer.from(sign(`network-access.${payload}`), "hex"));
 }
 
 export function getAdminSession(request: Request): AdminSession | null {
@@ -85,6 +105,7 @@ function configuredIps() {
 }
 
 export async function isAdminIpAllowed(request: Request) {
+  if (hasAdminNetworkAccess(request)) return true;
   const ip = getClientIp(request);
   if (configuredIps().has(ip)) return true;
   if (process.env.NODE_ENV !== "production" && ["127.0.0.1", "::1"].includes(ip)) return true;
