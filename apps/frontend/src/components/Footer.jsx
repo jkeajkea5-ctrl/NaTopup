@@ -7,19 +7,16 @@ export const Footer = () => {
     <footer className="bg-white/95 backdrop-blur-sm border-t border-[#DFD3E6] mt-16 sm:mt-24 text-brand-text">
       <div className="mx-auto max-w-[1100px] px-4 py-9 sm:px-6 sm:py-12 lg:px-8">
         <div className="flex flex-col items-center text-center">
-          <Link to="/" className="group flex items-center justify-center gap-4 sm:gap-6">
-              <div className="flex h-20 w-20 flex-shrink-0 items-center justify-center transition-transform duration-300 group-hover:scale-105 sm:h-24 sm:w-24">
+          <Link to="/" className="group flex flex-col items-center justify-center" aria-label="NA TOPUP home">
+              <div className="flex h-32 w-32 flex-shrink-0 items-center justify-center transition-transform duration-300 group-hover:scale-105 sm:h-40 sm:w-40">
                 <img
-                  src="/na-topup-logo.png"
+                  src="/na-topup-brand-2026.png"
                   alt="NA TOPUP Logo"
                   className="h-full w-full object-contain drop-shadow-md"
                 />
               </div>
-              <div className="flex min-w-0 flex-col items-start text-left">
-                <span className="font-heading text-2xl font-black leading-none tracking-tight text-[#1C172B] sm:text-3xl">
-                  NA <span className="text-brand-violet font-black">TOPUP</span>
-                </span>
-                <span className="mt-2 whitespace-nowrap text-[10px] font-semibold tracking-wide text-gray-500 sm:text-sm">
+              <div className="flex min-w-0 flex-col items-center text-center">
+                <span className="mt-2 text-[10px] font-semibold tracking-wide text-gray-500 sm:text-sm">
                   Cambodian Premier Game Top-Up
                 </span>
               </div>

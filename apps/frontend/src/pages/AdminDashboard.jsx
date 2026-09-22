@@ -39,7 +39,7 @@ const pageDescriptions = {
 const money = (value) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Number(value) || 0);
 
 function Brand() {
-  return <div className="admin-brand"><img src="/na-topup-logo.png" alt="NA TOPUP" /><span><strong>NA TOPUP</strong><small>Admin Dashboard</small></span></div>;
+  return <div className="admin-brand"><img src="/na-topup-icon-2026.png" alt="NA TOPUP" /><span><small>Admin Dashboard</small></span></div>;
 }
 
 function Empty({ children }) {

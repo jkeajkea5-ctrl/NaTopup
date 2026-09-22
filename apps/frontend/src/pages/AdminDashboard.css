@@ -17,7 +17,7 @@
 .admin-brand img { width: 48px; height: 48px; object-fit: contain; border-radius: 12px; }
 .admin-brand > span { display: grid; padding-right: 20px; border-right: 1px solid #b8d8eb; }
 .admin-brand strong { color: var(--admin-navy); font-size: 15px; letter-spacing: .13em; }
-.admin-brand small { color: #55738f; font-size: 10px; letter-spacing: .06em; }
+.admin-brand small { color: #55738f; font-size: 11px; font-weight: 750; letter-spacing: .06em; }
 .admin-desktop-tabs { min-width: 0; display: flex; align-self: stretch; overflow-x: auto; scrollbar-width: none; }
 .admin-desktop-tabs::-webkit-scrollbar { display: none; }
 .admin-desktop-tabs button { position: relative; padding: 0 13px; display: flex; align-items: center; gap: 7px; flex: 0 0 auto; border: 0; background: transparent; color: #45607e; font-size: 12px; font-weight: 700; cursor: pointer; }
@@ -401,8 +401,8 @@
   background: transparent;
 }
 .admin-login-logo {
-  width: 88px;
-  height: 88px;
+  width: 132px;
+  height: 132px;
   margin: 0 auto 10px;
   filter: drop-shadow(0 7px 12px #8e78d832);
 }
@@ -566,7 +566,7 @@
   .admin-login-page { align-items: start; padding-block: 12px; }
   .admin-login-card { margin-block: auto; }
   .admin-login-form-panel { padding-block: 22px; }
-  .admin-login-logo { width: 66px; height: 66px; margin-bottom: 6px; }
+  .admin-login-logo { width: 96px; height: 96px; margin-bottom: 6px; }
   .admin-login-heading { margin-bottom: 18px; }
   .admin-login-heading h1 { font-size: 24px; }
   .admin-login-field { margin-bottom: 12px; }
