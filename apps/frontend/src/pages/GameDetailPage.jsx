@@ -280,10 +280,17 @@ export const GameDetailPage = () => {
     }
   };
 
-  const packageGroups = [
-    { id: "best-selling", title: "Best Selling", products: products.filter((product) => product.isPopular) },
-    { id: "normal", title: "Normal", products: products.filter((product) => !product.isPopular) },
-  ];
+  const isFreeFireMy = game.slug === "free-fire" || game.slug === "free-fire-khsgmy";
+  const packageGroups = isFreeFireMy
+    ? [
+        { id: "pass", title: "Pass", products: products.filter((product) => product.isPopular) },
+        { id: "normal", title: "Normal", products: products.filter((product) => !product.isPopular && !product.isFeatured) },
+        { id: "other", title: "Other", products: products.filter((product) => product.isFeatured) },
+      ]
+    : [
+        { id: "best-selling", title: "Best Selling", products: products.filter((product) => product.isPopular) },
+        { id: "normal", title: "Normal", products: products.filter((product) => !product.isPopular) },
+      ];
 
   const handleSelectPackage = (product) => {
     setSelectedProduct(product);
@@ -653,7 +660,7 @@ export const GameDetailPage = () => {
                 type="button"
                 onClick={handleProceedToPayment}
                 disabled={isSubmittingOrder}
-                className="w-full py-3.5 px-4 rounded-xl text-sm font-kulen font-bold bg-brand-violet hover:bg-[#7D67C7] text-white shadow-md hover:shadow-lg active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                className="hidden w-full items-center justify-center gap-2 rounded-xl bg-brand-violet px-4 py-3.5 font-kulen text-sm font-bold text-white shadow-md transition-all hover:bg-[#7D67C7] hover:shadow-lg active:scale-98 lg:flex cursor-pointer"
               >
                 {isSubmittingOrder ? (
                   <>

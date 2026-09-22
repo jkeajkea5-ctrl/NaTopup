@@ -327,6 +327,22 @@ export class VizoAdapter implements ISupplierAdapter {
     }
     return [];
   }
+
+  async getGameCatalogue(gameCode: string): Promise<any[]> {
+    if (!this.apiKey) return [];
+    const game = this.mapGameCode(gameCode);
+    try {
+      const res = await fetch(`${this.baseUrl}/api/v1/catalogue/products/${game}`, {
+        headers: this.getHeaders(),
+        signal: AbortSignal.timeout(15000),
+      });
+      const data = await res.json();
+      if (res.ok && Array.isArray(data.products)) return data.products;
+    } catch (err: any) {
+      logger.error("Failed to fetch Vizo game catalogue", { error: err.message, provider: "VIZO", game });
+    }
+    return [];
+  }
 }
 
 export const vizoAdapter = new VizoAdapter();

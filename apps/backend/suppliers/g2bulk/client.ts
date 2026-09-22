@@ -56,9 +56,7 @@ export class G2BulkAdapter implements ISupplierAdapter {
   }
 
   private mapCatalogueGameCode(gameCode: string): string {
-    const code = this.mapGameCode(gameCode);
-    if (code === "mlbb") return "mlbb_global";
-    return code;
+    return this.mapGameCode(gameCode);
   }
 
   private mapCatalogueName(supplierProductCode: string): string {
@@ -111,12 +109,12 @@ export class G2BulkAdapter implements ISupplierAdapter {
   }
 
   /**
-   * Fetches real live catalogue items for Mobile Legends Global from G2Bulk API.
+   * Fetches real live catalogue items for standard Mobile Legends from G2Bulk API.
    */
-  async getMlbbGlobalCatalogue(): Promise<any[]> {
+  async getMlbbCatalogue(): Promise<any[]> {
     if (!this.apiKey) return [];
     try {
-      const res = await fetch(`${this.baseUrl}/games/mlbb_global/catalogue`, {
+      const res = await fetch(`${this.baseUrl}/games/mlbb/catalogue`, {
         headers: this.getHeaders(),
         signal: AbortSignal.timeout(6000),
       });
@@ -125,7 +123,7 @@ export class G2BulkAdapter implements ISupplierAdapter {
         return data.catalogues;
       }
     } catch (err: any) {
-      logger.error("Failed to fetch G2Bulk mlbb_global catalogue", { error: err.message });
+      logger.error("Failed to fetch G2Bulk mlbb catalogue", { error: err.message });
     }
     return [];
   }

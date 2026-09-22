@@ -48,6 +48,18 @@ export const InstallPrompt = () => {
     };
   }, []);
 
+  // Keep the install banner on screen for five seconds per session.
+  useEffect(() => {
+    if (!isVisible || showIosGuide) return undefined;
+
+    const autoDismissTimer = window.setTimeout(() => {
+      setIsVisible(false);
+      sessionStorage.setItem("install_prompt_dismissed", "true");
+    }, 5000);
+
+    return () => window.clearTimeout(autoDismissTimer);
+  }, [isVisible, showIosGuide]);
+
   const handleInstallClick = async () => {
     if (deferredPrompt) {
       // Trigger native browser install prompt

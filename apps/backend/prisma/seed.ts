@@ -79,7 +79,7 @@ async function main() {
       category: "MOBA",
       logoUrl: "/games/mobile-legends.jpg",
       bannerUrl: "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1200&auto=format&fit=crop&q=80",
-      region: "Cambodia & Global",
+      region: "All Regions",
       instructions: "Enter your User ID and Zone ID. Example: User ID 123456789, Zone ID 1234. Your Player Name will be verified instantly.",
       deliveryTime: "Instant (30 seconds)",
       isPopular: true,
@@ -99,11 +99,11 @@ async function main() {
     },
     {
       slug: "free-fire",
-      name: "Free Fire",
+      name: "FreeFire MY",
       category: "Battle Royale",
       logoUrl: "/games/free-fire.png",
       bannerUrl: "https://images.unsplash.com/photo-1563089145-599997674d42?w=1200&auto=format&fit=crop&q=80",
-      region: "Global",
+      region: "Malaysia",
       instructions: "Enter your Free Fire Player ID. You can find it on your in-game profile.",
       deliveryTime: "Instant (1-2 mins)",
       isPopular: true,
@@ -111,12 +111,7 @@ async function main() {
       fields: [
         { fieldKey: "playerId", fieldLabel: "Player ID", placeholder: "e.g. 987654321", fieldType: "text", isRequired: true, sortOrder: 1 },
       ],
-      products: [
-        { sku: "FF_100", name: "100 Diamonds + 10 Bonus", amount: "110", cost: 0.90, markup: 0.15, popular: false },
-        { sku: "FF_310", name: "310 Diamonds + 31 Bonus", amount: "341", cost: 2.70, markup: 0.35, popular: true },
-        { sku: "FF_520", name: "520 Diamonds", amount: "520", cost: 4.50, markup: 0.50, popular: true },
-        { sku: "FF_WEEKLY", name: "Weekly Membership", amount: "1 Week", cost: 1.80, markup: 0.30, popular: false },
-      ],
+      products: [],
     },
     {
       slug: "pubg-mobile",

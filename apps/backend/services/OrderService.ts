@@ -41,7 +41,7 @@ export class OrderService {
       );
     }
 
-    if (!product && !["mobile-legends", "mlbb", "pubg-mobile", "valorant", "zepeto", "delta-force", "blood-strike", "magic-chess-gogo", "crossfire-legend"].includes(input.gameSlug)) {
+    if (!product && !["mobile-legends", "mlbb", "free-fire", "free-fire-khsgmy", "pubg-mobile", "valorant", "zepeto", "delta-force", "blood-strike", "magic-chess-gogo", "crossfire-legend"].includes(input.gameSlug)) {
       const fallbackGame = FALLBACK_GAMES.find((g) => g.slug === input.gameSlug);
       const fallbackProd = fallbackGame?.products.find((p: any) => p.id === input.productId || p.sku === input.productId);
       if (fallbackProd) {
@@ -104,14 +104,14 @@ export class OrderService {
                 },
               },
               update: {
-                supplierGameCode: "mlbb_global",
+                supplierGameCode: "mlbb",
                 supplierProductName: fallbackProd.name,
                 currentCost: supplierCost,
                 isAvailable: true,
               },
               create: {
                 supplierId: supplier.id,
-                supplierGameCode: "mlbb_global",
+                supplierGameCode: "mlbb",
                 supplierProductCode,
                 supplierProductName: fallbackProd.name,
                 currentCost: supplierCost,
@@ -147,8 +147,9 @@ export class OrderService {
       }
     }
 
-    const isCatalogGame = ["mobile-legends", "mlbb", "pubg-mobile", "valorant", "zepeto", "delta-force", "blood-strike", "magic-chess-gogo", "crossfire-legend"].includes(input.gameSlug);
-    if (!product || !product.isActive || (isCatalogGame && (!product.game?.isActive || product.game.slug !== (input.gameSlug === "mlbb" ? "mobile-legends" : input.gameSlug)))) {
+    const isCatalogGame = ["mobile-legends", "mlbb", "free-fire", "free-fire-khsgmy", "pubg-mobile", "valorant", "zepeto", "delta-force", "blood-strike", "magic-chess-gogo", "crossfire-legend"].includes(input.gameSlug);
+    const normalizedGameSlug = input.gameSlug === "mlbb" ? "mobile-legends" : input.gameSlug === "free-fire-khsgmy" ? "free-fire" : input.gameSlug;
+    if (!product || !product.isActive || (isCatalogGame && (!product.game?.isActive || product.game.slug !== normalizedGameSlug))) {
       throw new Error("Invalid game or product package selected.");
     }
 

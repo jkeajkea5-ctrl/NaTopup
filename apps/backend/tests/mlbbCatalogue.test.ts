@@ -15,7 +15,7 @@ test("preserves supplier names and prices with the existing markup", () => {
     { id: 5917, name: "Weekly Elite Pack", amount: 0.938 },
   ]);
   assert.equal(small.price.sellingPrice, 0.14);
-  assert.equal(small.product.sku, "G2B_MLBB_GLOBAL_1942");
+  assert.equal(small.product.sku, "G2B_MLBB_1942");
   assert.equal(small.product.isPopular, false);
   assert.equal(weekly.price.sellingPrice, 2.01);
   assert.equal(weekly.product.name, "Weekly Diamond Pass");
@@ -23,4 +23,24 @@ test("preserves supplier names and prices with the existing markup", () => {
   assert.equal(weekly.supplierProductCode, "G2B_MLBB_Weekly");
   assert.equal(pack.product.name, "Weekly Elite Pack");
   assert.equal(pack.product.amount, "1 Pack");
+  assert.equal(pack.product.isPopular, true);
+});
+
+test("uses only the requested passes and elite packs for Best Selling", () => {
+  const entries = prepareMlbbCatalogue([
+    { id: 1, name: "85", amount: 1.448 },
+    { id: 2, name: "Weekly Elite Pack", amount: 0.938 },
+    { id: 3, name: "Weekly", amount: 1.826 },
+    { id: 4, name: "Monthly Elite Pack", amount: 4.682 },
+    { id: 5, name: "Twilight", amount: 9.425 },
+    { id: 6, name: "875", amount: 14.494 },
+  ]);
+
+  assert.deepEqual(
+    entries.filter((entry) => entry.product.isPopular).map((entry) => entry.catalogueName),
+    ["Weekly Elite Pack", "Weekly", "Monthly Elite Pack", "Twilight"]
+  );
+  assert.equal(entries.find((entry) => entry.catalogueName === "85")?.product.isPopular, false);
+  assert.equal(entries.find((entry) => entry.catalogueName === "875")?.product.isPopular, false);
+  assert.ok(entries.every((entry) => entry.product.description.startsWith("MLBB (")));
 });
