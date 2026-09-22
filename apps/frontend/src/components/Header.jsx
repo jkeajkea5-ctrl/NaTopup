@@ -50,13 +50,9 @@ export const Header = () => {
         <div className="mx-auto max-w-[1440px] px-3 sm:px-6 lg:px-8">
           <div className="flex flex-wrap items-center justify-between gap-x-2 sm:gap-x-4 lg:flex-nowrap lg:gap-x-6">
             <div className="flex h-[68px] shrink-0 items-center sm:h-20 lg:h-24">
-              <Link to="/" className="na-brand group flex min-w-0 select-none items-center gap-1.5 sm:gap-2.5 lg:gap-3" aria-label="NA TOPUP home">
-                <div className="na-brand-emblem relative flex h-[52px] w-[52px] shrink-0 items-center justify-center sm:h-16 sm:w-16 lg:h-20 lg:w-20">
+              <Link to="/" className="na-brand group flex min-w-0 select-none items-center" aria-label="NA TOPUP home">
+                <div className="na-brand-emblem relative flex h-16 w-16 shrink-0 items-center justify-center sm:h-[72px] sm:w-[72px] lg:h-[88px] lg:w-[88px]">
                   <img src="/na-topup-brand-2026.png" alt="NA TOPUP" className="h-full w-full object-contain animate-logo-box" />
-                </div>
-                <div className="flex items-center gap-1 sm:gap-1.5" aria-hidden="true">
-                  <span className="font-heading text-lg font-black tracking-tight text-[#30213f] sm:text-2xl lg:text-3xl">NA</span>
-                  <span className="na-brand-word font-heading text-lg font-black tracking-tight sm:text-2xl lg:text-3xl">TOPUP</span>
                 </div>
               </Link>
             </div>
