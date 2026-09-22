@@ -77,7 +77,7 @@ export const HeroSlider = ({ promotions }) => {
 
   return (
     <div
-      className="relative -mx-4 -mt-6 sm:mx-0 sm:mt-0 p-0 sm:p-1 rounded-none sm:rounded-3xl overflow-hidden border-0 sm:border sm:border-brand-border/80 shadow-sm hover:shadow-glow transition-all duration-300 group"
+      className="relative -mx-4 -mt-5 sm:mx-0 sm:mt-0 p-0 sm:p-1 rounded-none sm:rounded-3xl overflow-hidden border-0 sm:border sm:border-brand-border/80 shadow-sm hover:shadow-glow transition-all duration-300 group"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
       onTouchStart={handleTouchStart}
@@ -88,7 +88,7 @@ export const HeroSlider = ({ promotions }) => {
         {/* Clickable Image Banner (No text, no button - Bigger Display) */}
         <Link
           to={currentSlide.targetUrl}
-          className="block relative w-full h-[220px] sm:h-[340px] md:h-[440px] lg:h-[520px] xl:h-[560px] overflow-hidden"
+          className="block relative w-full aspect-[16/9] min-[480px]:aspect-[16/8] md:aspect-[16/7] xl:aspect-[16/6] overflow-hidden"
         >
           <img
             src={currentSlide.bannerUrl}

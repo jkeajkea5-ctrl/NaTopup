@@ -150,7 +150,7 @@ export const CheckOrderPage = () => {
       </div>
 
       {/* Search Bar */}
-      <form onSubmit={handleSubmit} className="relative max-w-xl mx-auto flex items-center gap-2">
+      <form onSubmit={handleSubmit} className="relative max-w-xl mx-auto flex flex-col min-[430px]:flex-row min-[430px]:items-center gap-2">
         <div className="relative flex-1">
           <Search className="w-4 h-4 text-brand-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
@@ -164,7 +164,7 @@ export const CheckOrderPage = () => {
         <button
           type="submit"
           disabled={isLoading || !orderCode.trim()}
-          className="gradient-button text-white px-6 py-3 rounded-button font-semibold text-sm shadow-soft hover:opacity-95 active:scale-98 transition-all flex items-center gap-2"
+          className="gradient-button w-full min-[430px]:w-auto justify-center text-white px-6 py-3 rounded-button font-semibold text-sm shadow-soft hover:opacity-95 active:scale-98 transition-all flex items-center gap-2"
         >
           {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "ស្វែងរក"}
         </button>

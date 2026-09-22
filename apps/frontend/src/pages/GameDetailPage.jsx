@@ -398,7 +398,7 @@ export const GameDetailPage = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 pb-28 lg:pb-12">
+    <div className="w-full min-w-0 max-w-6xl mx-auto space-y-5 sm:space-y-6 pb-28 lg:pb-12">
       <SuccessInvoiceModal
         order={successInvoice?.order}
         status={successInvoice?.status}
@@ -824,7 +824,7 @@ export const GameDetailPage = () => {
                     {group.title}
                   </h3>
                   {group.products.length > 0 ? (
-                    <div className="grid grid-cols-3 min-[560px]:grid-cols-4 xl:grid-cols-5 gap-1.5 sm:gap-3">
+                    <div className="grid grid-cols-2 min-[360px]:grid-cols-3 min-[560px]:grid-cols-4 xl:grid-cols-5 gap-1.5 sm:gap-3">
                       {group.products.map((prod) => (
                         <ProductCard
                           key={prod.id}

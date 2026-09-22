@@ -57,7 +57,7 @@ export const NavbarSearch = () => {
   }, []);
 
   return (
-    <div ref={container} className="relative order-3 w-full pb-3 md:order-none md:max-w-md md:flex-1 md:pb-0"
+    <div ref={container} className="relative order-3 w-full pb-3 lg:order-none lg:max-w-md lg:flex-1 lg:pb-0"
       onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false); }}
       onKeyDown={(event) => { if (event.key === "Escape") { setOpen(false); input.current?.focus(); } }}>
       <form role="search" className="flex h-11 items-center gap-2 rounded-2xl border border-brand-border bg-white/90 px-3 text-brand-muted transition-shadow focus-within:border-brand-violet focus-within:ring-4 focus-within:ring-brand-violet/10"

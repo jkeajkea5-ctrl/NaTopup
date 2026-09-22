@@ -12,6 +12,56 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Responsive foundation shared by every public page. */
+html {
+  min-width: 280px;
+  overflow-x: clip;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body, #root {
+  width: 100%;
+  min-height: 100%;
+  margin: 0;
+}
+
+body { overflow-x: clip; }
+
+img, picture, video, canvas {
+  display: block;
+  max-width: 100%;
+}
+
+button, input, select, textarea { min-width: 0; font: inherit; }
+
+dialog {
+  max-width: calc(100vw - 24px);
+  max-height: calc(100dvh - 24px);
+  overscroll-behavior: contain;
+}
+
+.app-shell, .app-main, .app-main > * { min-width: 0; }
+
+@media (max-width: 479px) {
+  .mobile-checkout { padding-inline: 8px; }
+  .mobile-checkout-panel { padding: 11px 12px; border-radius: 19px; }
+}
+
+@media (max-width: 339px) {
+  .responsive-game-grid { gap: 8px; }
+  .popular-games-header { gap: 10px; }
+  .popular-games-count { min-width: 27px; padding-inline: 6px; }
+}
+
+@media (max-width: 900px) {
+  body { background-attachment: scroll; }
+}
+
+@media (hover: none) {
+  .contact-icon:hover, .support-contact:hover, .featured-game-card:hover { transform: none; }
+}
+
 .contact-icon {
   display: inline-flex;
   align-items: center;

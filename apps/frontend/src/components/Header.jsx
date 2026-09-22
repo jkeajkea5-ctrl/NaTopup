@@ -48,15 +48,15 @@ export const Header = () => {
     <>
       <header className={`sticky top-0 z-40 border-b transition-all duration-200 ${isScrolled ? "border-brand-border bg-white/95 shadow-soft backdrop-blur-md" : "border-brand-border/60 bg-white/85 backdrop-blur-sm"}`}>
         <div className="mx-auto max-w-[1440px] px-3 sm:px-6 lg:px-8">
-          <div className="flex flex-wrap items-center justify-between gap-x-3 md:flex-nowrap md:gap-x-6">
-            <div className="flex h-20 shrink-0 items-center sm:h-24">
-              <Link to="/" className="na-brand group flex select-none items-center gap-2.5 sm:gap-3">
-                <div className="na-brand-emblem relative flex h-16 w-16 shrink-0 items-center justify-center sm:h-20 sm:w-20">
+          <div className="flex flex-wrap items-center justify-between gap-x-2 sm:gap-x-4 lg:flex-nowrap lg:gap-x-6">
+            <div className="flex h-[68px] shrink-0 items-center sm:h-20 lg:h-24">
+              <Link to="/" className="na-brand group flex min-w-0 select-none items-center gap-1.5 sm:gap-2.5 lg:gap-3">
+                <div className="na-brand-emblem relative flex h-[52px] w-[52px] shrink-0 items-center justify-center sm:h-16 sm:w-16 lg:h-20 lg:w-20">
                   <img src="/na-topup-logo.png" alt="NA TOPUP Logo" className="h-full w-full object-contain animate-logo-box" />
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="font-heading text-2xl font-extrabold tracking-tight text-[#30213f] sm:text-3xl">NA</span>
-                  <span className="na-brand-word font-heading text-2xl font-extrabold tracking-tight sm:text-3xl">TOPUP</span>
+                  <span className="font-heading text-xl font-extrabold tracking-tight text-[#30213f] sm:text-2xl lg:text-3xl">NA</span>
+                  <span className="na-brand-word font-heading text-xl font-extrabold tracking-tight sm:text-2xl lg:text-3xl">TOPUP</span>
                 </div>
               </Link>
             </div>
@@ -64,9 +64,9 @@ export const Header = () => {
             <div className="flex items-center gap-2 sm:gap-3">
               <a href="https://t.me/LukasTopupSupport" target="_blank" rel="noopener noreferrer" className="navbar-contact flex shrink-0 items-center justify-center gap-2 rounded-2xl p-2 md:px-4 md:py-2.5" title="ទាក់ទង Telegram" aria-label="ទាក់ទង Telegram">
                 <Send className="h-5 w-5" aria-hidden="true" />
-                <span className="relative z-10 hidden whitespace-nowrap pr-0.5 font-kulen text-xs font-bold tracking-tight text-[#2489b6] md:inline sm:text-sm">ទាក់ទង Telegram</span>
+                <span className="relative z-10 hidden whitespace-nowrap pr-0.5 font-kulen text-xs font-bold tracking-tight text-[#2489b6] lg:inline lg:text-sm">ទាក់ទង Telegram</span>
               </a>
-              <button type="button" onClick={() => setIsMenuOpen(true)} className="shrink-0 cursor-pointer rounded-xl p-2 text-gray-700 transition-all hover:bg-brand-violet/10 hover:text-brand-violet active:scale-90 md:hidden" aria-label="បើកម៉ឺនុយ" aria-expanded={isMenuOpen} aria-controls="mobile-navigation">
+              <button type="button" onClick={() => setIsMenuOpen(true)} className="shrink-0 cursor-pointer rounded-xl p-2 text-gray-700 transition-all hover:bg-brand-violet/10 hover:text-brand-violet active:scale-90 lg:hidden" aria-label="បើកម៉ឺនុយ" aria-expanded={isMenuOpen} aria-controls="mobile-navigation">
                 <Menu className="h-6 w-6 stroke-[2.3]" />
               </button>
             </div>
@@ -74,9 +74,9 @@ export const Header = () => {
         </div>
       </header>
 
-      <button type="button" className={`mobile-drawer-backdrop fixed inset-0 z-50 md:hidden ${isMenuOpen ? "is-open" : ""}`} onClick={() => setIsMenuOpen(false)} aria-label="បិទម៉ឺនុយ" tabIndex={isMenuOpen ? 0 : -1} />
+      <button type="button" className={`mobile-drawer-backdrop fixed inset-0 z-50 lg:hidden ${isMenuOpen ? "is-open" : ""}`} onClick={() => setIsMenuOpen(false)} aria-label="បិទម៉ឺនុយ" tabIndex={isMenuOpen ? 0 : -1} />
 
-      <aside id="mobile-navigation" className={`mobile-nav-rail fixed inset-y-0 right-0 z-[51] md:hidden ${isMenuOpen ? "is-open" : ""}`} aria-label="Mobile navigation" aria-hidden={!isMenuOpen}>
+      <aside id="mobile-navigation" className={`mobile-nav-rail fixed inset-y-0 right-0 z-[51] lg:hidden ${isMenuOpen ? "is-open" : ""}`} aria-label="Mobile navigation" aria-hidden={!isMenuOpen}>
         <div className="mobile-nav-rail-scroll">
           <button ref={closeButtonRef} type="button" onClick={() => setIsMenuOpen(false)} className="mobile-rail-close" aria-label="បិទម៉ឺនុយ"><X /></button>
           <Link to="/" onClick={() => setIsMenuOpen(false)} className="mobile-rail-link mobile-rail-home" aria-label="ទំព័រដើម"><Home /></Link>

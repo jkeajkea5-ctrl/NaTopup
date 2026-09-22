@@ -33,9 +33,9 @@ function AppFrame() {
   return (
     <>
       <ScrollToTop />
-      <div className="min-h-screen flex flex-col bg-transparent text-brand-text font-sans overflow-x-hidden">
+      <div className="app-shell min-h-screen flex flex-col bg-transparent text-brand-text font-sans overflow-x-hidden">
           {!minimalRoute && <Header />}
-          <main className={minimalRoute ? "flex-1 w-full" : "flex-1 max-w-[1440px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8"}>
+          <main className={minimalRoute ? "flex-1 w-full min-w-0" : "app-main flex-1 min-w-0 max-w-[1440px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-8"}>
             <ErrorBoundary>
               <Routes>
                 <Route path="/" element={<HomePage />} />

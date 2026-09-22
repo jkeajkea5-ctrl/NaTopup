@@ -988,3 +988,29 @@
 /* Keep package cards compact after the shared entity-card rules above. */
 .admin-shell .admin-package-card { min-height: 210px; padding: 14px; gap: 9px; }
 @media (max-width: 700px) { .admin-shell .admin-package-card { min-height: 205px; } }
+
+/* Small-screen and landscape safety rules for the complete admin workspace. */
+@media (max-width: 420px) {
+  .admin-page { width: calc(100% - 12px); }
+  .admin-package-grid { gap: 8px; }
+  .admin-shell .admin-package-card { min-height: 190px; padding: 11px; }
+  .admin-package-card .admin-thumb { width: 40px; height: 40px; }
+  .admin-package-card .admin-card-title h3 { font-size: 10px; }
+  .admin-package-card .admin-price-block > strong { font-size: 15px; }
+  .admin-package-dialog { width: calc(100% - 8px); max-height: calc(100dvh - 8px); padding: 14px; }
+  .admin-package-dialog > form { gap: 14px; }
+  .admin-package-fields { gap: 12px; }
+  .admin-package-fields .admin-field input,
+  .admin-package-fields .admin-field select { height: 44px; padding-inline: 13px; }
+  .admin-package-dialog .admin-dialog-actions .admin-btn { min-height: 46px; }
+}
+
+@media (max-width: 319px) {
+  .admin-package-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-height: 560px) and (orientation: landscape) {
+  .admin-dialog, .admin-package-dialog { max-height: calc(100dvh - 8px); }
+  .admin-package-preview { min-height: 72px; padding: 9px 12px; }
+  .admin-package-preview .admin-thumb { width: 48px; height: 48px; }
+}
