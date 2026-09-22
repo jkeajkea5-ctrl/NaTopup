@@ -5,6 +5,7 @@ import { prisma, safeDbQuery } from "../lib/prisma";
 import { FALLBACK_GAMES } from "../lib/fallbackData";
 import { generateLookupToken, generatePublicOrderId } from "../lib/security";
 import { supplierManager } from "../suppliers/supplierManager";
+import { telegramAlertService } from "./TelegramAlertService";
 
 export const inMemoryOrders: Map<string, any> =
   (global as any).__inMemoryOrders || ((global as any).__inMemoryOrders = new Map<string, any>());
@@ -406,6 +407,18 @@ export class OrderService {
       status: toStatus,
       metadata: { from: currentStatus, reason },
     });
+
+    // Await the send so serverless runtimes do not terminate it after the
+    // response, while keeping it best-effort so Telegram cannot fail an order.
+    try {
+      await telegramAlertService.notifyOrderStatus(order.id, order.publicOrderId, toStatus, reason);
+    } catch (error) {
+      logger.error("Telegram order alert failed", {
+        orderId: order.publicOrderId,
+        status: toStatus,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
 
     return updated || order;
   }

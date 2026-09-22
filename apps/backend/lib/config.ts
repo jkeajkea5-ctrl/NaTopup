@@ -51,6 +51,20 @@ export const config = {
     baseUrl: process.env.VIZO_BASE_URL || "https://api.vizoapp.store",
     apiKey: process.env.VIZO_API_KEY || "",
   },
+
+  telegram: {
+    // Keep bot credentials server-side. The topic bot is preferred, while the
+    // older variables remain supported for existing deployments.
+    botToken:
+      process.env.TELEGRAM_BOT_TOKEN_TOPIC ||
+      process.env.TELEGRAM_BOT_TOKEN_NOTIFICATION ||
+      process.env.TELEGRAM_BOT_TOKEN_ADMIN ||
+      "",
+    adminChatId: process.env.TELEGRAM_ADMIN_CHAT_ID || "",
+    paidThreadId: parseInt(process.env.TELEGRAM_PAID_THREAD_ID || "0", 10),
+    completedThreadId: parseInt(process.env.TELEGRAM_COMPLETED_THREAD_ID || "0", 10),
+    systemThreadId: parseInt(process.env.TELEGRAM_SYSTEM_THREAD_ID || "0", 10),
+  },
   
   business: {
     maxPriceSurgePercent: parseFloat(process.env.MAX_SUPPLIER_PRICE_SURGE_PERCENT || "5.0"),
