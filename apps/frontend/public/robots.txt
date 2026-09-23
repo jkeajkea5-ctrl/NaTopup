@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /payment-return
+
+Sitemap: https://natopup.com/sitemap.xml

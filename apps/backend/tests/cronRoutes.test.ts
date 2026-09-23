@@ -5,6 +5,7 @@ import { config } from "../lib/config";
 import { reconciliationService } from "../services/ReconciliationService";
 import { GET as reconcilePayments } from "../app/api/internal/cron/payments/route";
 import { GET as reconcileFulfilments } from "../app/api/internal/cron/fulfilments/route";
+import { GET as reconcileAll } from "../app/api/internal/cron/all/route";
 
 function cronRequest(path: string) {
   return new Request(`http://localhost:3001${path}`, {
@@ -30,13 +31,42 @@ test("Vercel GET cron independently reconciles payments and fulfilments", async 
   assert.equal(fulfilments.mock.callCount(), 1);
 });
 
-test("Vercel schedules both customer-independent recovery jobs", async () => {
+test("all-in-one cron reconciles ABA payments before supplier fulfilments", async (t) => {
+  const calls: string[] = [];
+  t.mock.method(reconciliationService, "reconcilePendingPayments", async () => {
+    calls.push("payments");
+    return { checked: 1, resolved: 1 };
+  });
+  t.mock.method(reconciliationService, "reconcilePendingFulfilments", async () => {
+    calls.push("fulfilments");
+    return { checked: 1, updated: 1 };
+  });
+
+  const response = await reconcileAll(cronRequest("/api/internal/cron/all"));
+  assert.equal(response.status, 200);
+  assert.deepEqual(calls, ["payments", "fulfilments"]);
+  assert.deepEqual(await response.json(), {
+    success: true,
+    data: {
+      payments: { checked: 1, resolved: 1 },
+      fulfilments: { checked: 1, updated: 1 },
+    },
+  });
+});
+
+test("all-in-one cron rejects requests without the shared secret", async () => {
+  const response = await reconcileAll(
+    new Request("http://localhost:3001/api/internal/cron/all")
+  );
+  assert.equal(response.status, 401);
+});
+
+test("Vercel schedules the all-in-one customer-independent recovery job", async () => {
   const vercelConfig = JSON.parse(
     await readFile(new URL("../../../vercel.json", import.meta.url), "utf8")
   );
   const paths = vercelConfig.crons.map((cron: { path: string }) => cron.path);
-  assert.ok(paths.includes("/api/internal/cron/payments"));
-  assert.ok(paths.includes("/api/internal/cron/fulfilments"));
+  assert.ok(paths.includes("/api/internal/cron/all"));
 });
 
 test("explicit supplier callback URLs remain authoritative", () => {

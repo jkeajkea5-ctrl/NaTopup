@@ -12,6 +12,7 @@
     "prisma:db:push": "prisma db push",
     "prisma:seed": "tsx prisma/seed.ts",
     "admin:invite": "tsx scripts/create-admin-invite.ts",
+    "cron:setup": "tsx scripts/setup-cron-job-org.ts",
     "test:mongo": "tsx scripts/test-mongo.ts",
     "test": "node --test tests/**/*.test.js || tsx --test tests/**/*.test.ts",
     "catalogue:mlbb": "tsx scripts/replace-mlbb-global.ts",
