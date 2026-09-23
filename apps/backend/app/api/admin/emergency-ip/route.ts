@@ -49,6 +49,9 @@ export async function GET(request: Request) {
         success: true,
         message: "Success! Your exact IP address has been added to the whitelist.",
         saved_ip: ipAddress,
+        your_original_ip: ipAddress,
+        admin_login_url: loginUrl,
+        restriction: "exact-ip",
       },
       {
         headers: {
