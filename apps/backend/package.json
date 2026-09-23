@@ -22,6 +22,7 @@
     "catalogue:pubg": "tsx scripts/replace-pubg-global.ts",
     "catalogue:pubg-images": "tsx scripts/update-pubg-images.ts",
     "catalogue:valorant-kh": "tsx scripts/replace-valorant-kh.ts",
+    "catalogue:valorant-images": "tsx scripts/update-valorant-images.ts",
     "catalogue:zepeto": "tsx scripts/replace-zepeto.ts",
     "catalogue:delta-force": "tsx scripts/replace-delta-force.ts",
     "catalogue:blood-strike": "tsx scripts/replace-blood-strike.ts",

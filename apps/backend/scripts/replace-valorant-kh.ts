@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 import path from "node:path";
 import { mkdir, writeFile } from "node:fs/promises";
 import { PrismaClient } from "@prisma/client";
-import { prepareGameCatalogue } from "../lib/mlbbCatalogue";
+import { prepareValorantCatalogue } from "../lib/valorantCatalogue";
 
 dotenv.config({ path: path.resolve(__dirname, "../.env.local") });
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
@@ -12,11 +12,7 @@ async function main() {
   const { g2bulkAdapter } = await import("../suppliers/g2bulk/client");
   const { config } = await import("../lib/config");
   const { FALLBACK_GAMES } = await import("../lib/fallbackData");
-  const packages = prepareGameCatalogue(await g2bulkAdapter.getValorantKhCatalogue(), "VAL", ["1000", "5350"]);
-  for (const entry of packages) {
-    entry.product.name = `${entry.catalogueName} Valorant Points`;
-    entry.product.description = `Valorant Cambodia Server (${entry.catalogueName} VP)`;
-  }
+  const packages = prepareValorantCatalogue(await g2bulkAdapter.getValorantKhCatalogue());
   console.log(`Validated ${packages.length} Valorant Cambodia packages.`);
   const db = new PrismaClient({ log: [] });
   try {
