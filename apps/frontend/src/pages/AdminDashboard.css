@@ -863,6 +863,8 @@
 .admin-package-fields .admin-field select { width: 100%; height: 47px; padding: 0 20px; border: 1px solid #bdd5ff; border-radius: 14px; color: #17275e; background: #fff; font-size: 14px; font-weight: 750; letter-spacing: 0; outline: 0; text-transform: none; }
 .admin-package-fields .admin-field input:focus,
 .admin-package-fields .admin-field select:focus { border-color: #4f83ff; box-shadow: 0 0 0 3px #4f83ff18; }
+.admin-package-fields .admin-field input[aria-invalid="true"] { border-color: #df7180; box-shadow: 0 0 0 3px #df718018; }
+.admin-cost-reference { color: #7184a5; font-size: 10px; font-weight: 700; letter-spacing: 0; text-transform: none; }
 .admin-package-wide { grid-column: 1 / -1; }
 .admin-selling-field > span { position: relative; display: block; }
 .admin-selling-field > span input { padding-right: 122px; }

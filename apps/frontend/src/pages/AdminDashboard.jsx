@@ -102,13 +102,15 @@ function Editor({ editor, saving, error, onClose, onSave }) {
   const toggle = (name, label) => <label className="admin-check" key={name}><input type="checkbox" checked={!!form[name]} onChange={(e) => setForm({ ...form, [name]: e.target.checked })} />{label}</label>;
   if (editor.entity === "package") {
     const supplierCost = Number(form.supplierCost || 0);
+    const importCost = typeof editor.importCost === "number" && Number.isFinite(editor.importCost) ? editor.importCost : null;
     const discount = Number(form.discount || 0);
     const customerPrice = Number(form.sellingPrice || 0) - discount;
     const profit = customerPrice - supplierCost;
     const minimumSellingPrice = Math.ceil((supplierCost + discount - 1e-9) * 100) / 100;
     const isBelowCost = profit < -Number.EPSILON;
+    const isBelowImportCost = importCost !== null && supplierCost + 1e-9 < importCost;
     return <dialog ref={dialog} className="admin-dialog admin-package-dialog" onCancel={(e) => { e.preventDefault(); if (!saving) onClose(); }}>
-      <form onSubmit={(e) => { e.preventDefault(); if (!isBelowCost) onSave({ entity: editor.entity, id: editor.id, data: form }); }}>
+      <form onSubmit={(e) => { e.preventDefault(); if (!isBelowCost && !isBelowImportCost) onSave({ entity: editor.entity, id: editor.id, data: form }); }}>
         <div className="admin-dialog-head"><h2>Edit Package</h2><button type="button" className="admin-icon-btn" onClick={onClose} aria-label="Close"><X size={20} /></button></div>
         <div className="admin-package-preview"><Picture url={form.iconUrl} name={form.name} /><span><strong>{form.name || "Package name"}</strong><small>{form.amount || "0"}</small></span></div>
         <fieldset disabled={saving} className="admin-package-fields">
@@ -116,15 +118,16 @@ function Editor({ editor, saving, error, onClose, onSave }) {
           <label className="admin-field">Amount (diamonds)<input required value={form.amount ?? ""} onChange={(e) => setForm({ ...form, amount: e.target.value })} /></label>
           <label className="admin-field">Custom image URL (optional)<input value={form.iconUrl ?? ""} placeholder="/packages/game/item.png" onChange={(e) => setForm({ ...form, iconUrl: e.target.value })} /></label>
           <label className="admin-field admin-package-wide">Category<select value={form.category || "normal"} onChange={(e) => setForm({ ...form, category: e.target.value })}><option value="pass">Passes &amp; Deal</option><option value="normal">Normal</option><option value="other">Other</option></select></label>
-          <label className="admin-field">Cost price (USD)<input required type="number" min="0" step="0.001" value={form.supplierCost ?? 0} onChange={(e) => setForm({ ...form, supplierCost: Number(e.target.value) })} /></label>
+          <label className="admin-field">Cost price (USD)<input required type="number" min={importCost ?? 0} step="0.001" aria-invalid={isBelowImportCost} value={form.supplierCost ?? 0} onChange={(e) => setForm({ ...form, supplierCost: Number(e.target.value) })} /><small className="admin-cost-reference">{importCost === null ? "No active supplier import cost" : `Imported: $${importCost.toFixed(3)}${editor.importSupplier ? ` · ${editor.importSupplier}` : ""}`}</small></label>
           <label className="admin-field admin-selling-field">Selling price (USD)<span><input required type="number" min={Math.max(0.01, minimumSellingPrice)} step="0.01" aria-invalid={isBelowCost} value={form.sellingPrice ?? 0} onChange={(e) => setForm({ ...form, sellingPrice: Number(e.target.value) })} /><em className={profit >= 0 ? "positive" : "negative"}>Profit: {profit >= 0 ? "+" : "-"}${Math.abs(profit).toFixed(2)}</em></span></label>
           <label className="admin-field">Custom badge<input maxLength="40" value={form.customBadge ?? ""} placeholder="e.g., 50% Off" onChange={(e) => setForm({ ...form, customBadge: e.target.value })} /></label>
           <label className="admin-field">Display order (0 is first)<input required type="number" min="0" step="1" value={form.sortOrder ?? 0} onChange={(e) => setForm({ ...form, sortOrder: Number(e.target.value) })} /></label>
           <div className="admin-package-wide">{toggle("isActive", "Active")}</div>
         </fieldset>
+        {isBelowImportCost && <p className="admin-alert error">Cost price cannot be below the imported cost of ${importCost.toFixed(3)}{editor.importSupplier ? ` from ${editor.importSupplier}` : ""}.</p>}
         {isBelowCost && <p className="admin-alert error">Customer price cannot be below cost. Set the selling price to at least ${minimumSellingPrice.toFixed(2)}.</p>}
         {error && <p className="admin-alert error">{error}</p>}
-        <div className="admin-dialog-actions"><button type="button" className="admin-btn secondary" onClick={onClose}>Cancel</button><button className="admin-btn primary" disabled={saving || isBelowCost}>{saving ? "Saving…" : "Save Package"}</button></div>
+        <div className="admin-dialog-actions"><button type="button" className="admin-btn secondary" onClick={onClose}>Cancel</button><button className="admin-btn primary" disabled={saving || isBelowCost || isBelowImportCost}>{saving ? "Saving…" : "Save Package"}</button></div>
       </form>
     </dialog>;
   }
@@ -237,7 +240,7 @@ export const AdminDashboard = () => {
   function edit(entity, item) {
     const fields = { game: ["name", "category", "logoUrl", "bannerUrl", "sortOrder", "isActive", "isPopular"], package: ["name", "amount", "iconUrl", "customBadge", "category", "sortOrder", "isActive", "supplierCost", "sellingPrice", "discount"], slide: ["title", "bannerUrl", "targetUrl", "sortOrder", "isActive"], supplier: ["priority", "isEnabled"] };
     const source = entity === "package" ? { ...item, category: item.isPopular ? "pass" : item.isFeatured ? "other" : "normal", supplierCost: item.price?.supplierCost || 0, sellingPrice: item.price?.sellingPrice || 0, discount: item.price?.discount || 0 } : item;
-    setSaveError(""); setEditor({ entity, id: item.id, title: `${item.id ? "Edit" : "Add"} ${entity}`, data: Object.fromEntries(fields[entity].map((name) => [name, source[name] ?? ""])) });
+    setSaveError(""); setEditor({ entity, id: item.id, title: `${item.id ? "Edit" : "Add"} ${entity}`, importCost: entity === "package" ? item.importCost : null, importSupplier: entity === "package" ? item.importSupplier : null, data: Object.fromEntries(fields[entity].map((name) => [name, source[name] ?? ""])) });
   }
   async function save(mutation) {
     if (mutation.entity === "package") {

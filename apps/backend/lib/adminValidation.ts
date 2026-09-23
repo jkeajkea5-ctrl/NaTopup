@@ -5,6 +5,17 @@ const text = z.string().trim().min(1).max(200);
 const image = z.string().trim().max(2000).refine((value) => /^https?:\/\//i.test(value) || /^\/(?!\/)/.test(value), "Use an HTTPS URL or a local /image path");
 const sort = z.number().int().min(0).max(100000);
 
+export function isCostBelowImportCost(cost: number, importCost: number | null | undefined) {
+  return typeof importCost === "number" &&
+    Number.isFinite(importCost) &&
+    cost + 1e-9 < importCost;
+}
+
+export function importCostFloorMessage(importCost: number, supplier?: string | null) {
+  const source = supplier ? ` from ${supplier}` : "";
+  return `Cost price cannot be below the imported cost of $${importCost.toFixed(3)}${source}.`;
+}
+
 export const adminMutation = z.discriminatedUnion("entity", [
   z.object({ entity: z.literal("game"), id, data: z.object({
     name: text, category: text, logoUrl: image, bannerUrl: image.or(z.literal("")).optional(),

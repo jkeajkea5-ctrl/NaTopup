@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "../../../../lib/prisma";
 import { requireAdminWithIp } from "../../../../lib/adminAuth";
-import { adminMutation } from "../../../../lib/adminValidation";
+import { adminMutation, importCostFloorMessage, isCostBelowImportCost } from "../../../../lib/adminValidation";
 
 export const dynamic = "force-dynamic";
+
+class AdminInputError extends Error {}
 
 export async function GET(request: Request) {
   const denied = await requireAdminWithIp(request);
@@ -22,6 +24,15 @@ export async function GET(request: Request) {
       prisma.product.findMany({ orderBy: { sortOrder: "asc" }, select: {
         id: true, name: true, amount: true, sku: true, gameId: true, iconUrl: true, customBadge: true, isActive: true, isPopular: true, isFeatured: true, sortOrder: true,
         price: { select: { sellingPrice: true, discount: true, supplierCost: true } },
+        mappings: {
+          where: { isEnabled: true },
+          orderBy: { priority: "asc" },
+          take: 1,
+          select: {
+            supplier: { select: { code: true } },
+            supplierProduct: { select: { currentCost: true } },
+          },
+        },
         _count: { select: { mappings: true } },
       } }),
       prisma.promotion.findMany({ orderBy: { sortOrder: "asc" } }),
@@ -49,7 +60,13 @@ export async function GET(request: Request) {
           iconUrl: productMap.get(order.productId)?.iconUrl || "",
         },
       })),
-      orderCount, games, products: products.map((product) => ({ ...product, game: gameMap.get(product.gameId) || missingGame, orphaned: !gameMap.has(product.gameId) })), slides, users, suppliers,
+      orderCount, games, products: products.map(({ mappings, ...product }) => ({
+        ...product,
+        game: gameMap.get(product.gameId) || missingGame,
+        orphaned: !gameMap.has(product.gameId),
+        importCost: mappings[0]?.supplierProduct.currentCost ?? null,
+        importSupplier: mappings[0]?.supplier.code ?? null,
+      })), slides, users, suppliers,
       orphanedProducts: products.filter((product) => !gameMap.has(product.gameId)).length,
       metrics: { revenue: totals._sum.total || 0, cost: totals._sum.supplierCostSnapshot || 0, paidOrders: totals._count, completed },
       updatedAt: new Date().toISOString(),
@@ -73,6 +90,18 @@ export async function PATCH(request: Request) {
         await tx.game.update({ where: { id: mutation.id }, data: mutation.data });
       } else if (mutation.entity === "package") {
         const { sellingPrice, supplierCost, discount, category, ...data } = mutation.data;
+        const primaryMapping = await tx.supplierMapping.findFirst({
+          where: { productId: mutation.id, isEnabled: true },
+          orderBy: { priority: "asc" },
+          select: {
+            supplier: { select: { code: true } },
+            supplierProduct: { select: { currentCost: true } },
+          },
+        });
+        const importCost = primaryMapping?.supplierProduct.currentCost;
+        if (isCostBelowImportCost(supplierCost, importCost)) {
+          throw new AdminInputError(importCostFloorMessage(importCost!, primaryMapping?.supplier.code));
+        }
         await tx.product.update({ where: { id: mutation.id }, data: {
           ...data,
           customBadge: data.customBadge || null,
@@ -93,7 +122,10 @@ export async function PATCH(request: Request) {
       } });
     });
     return NextResponse.json({ success: true, data: { saved: true } });
-  } catch {
+  } catch (error) {
+    if (error instanceof AdminInputError) {
+      return NextResponse.json({ success: false, error: error.message }, { status: 400 });
+    }
     return NextResponse.json({ success: false, error: "Changes could not be saved. The record may be unavailable; refresh and try again." }, { status: 409 });
   }
 }
