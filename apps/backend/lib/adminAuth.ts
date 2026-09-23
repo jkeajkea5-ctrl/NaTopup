@@ -134,7 +134,7 @@ export function requireAdmin(request: Request) {
 export async function requireAdminWithIp(request: Request) {
   if (!trustedAdminOrigin(request)) return NextResponse.json({ success: false, error: "Untrusted request origin." }, { status: 403 });
   if (!(await getActiveAdminSession(request))) return NextResponse.json({ success: false, error: "Please sign in to the admin dashboard." }, { status: 401 });
-  if (!(await isAdminIpAllowed(request))) return NextResponse.json({ success: false, error: "This network is not approved for admin access." }, { status: 403 });
+  if (!(await isAdminIpAllowed(request))) return NextResponse.json({ success: false, code: "ADMIN_IP_DENIED", error: "This network is not approved for admin access." }, { status: 403 });
   return null;
 }
 

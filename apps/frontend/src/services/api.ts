@@ -5,6 +5,11 @@ const API_BASE = "/api";
 async function adminJson(path: string, options?: RequestInit) {
   const res = await fetch(`${API_BASE}${path}`, { credentials: "include", ...options });
   const json = await res.json().catch(() => ({}));
+  if (json.code === "ADMIN_IP_DENIED" && typeof window !== "undefined") {
+    window.location.replace("/");
+  } else if (res.status === 401 && typeof window !== "undefined" && window.location.pathname.startsWith("/admin") && window.location.pathname !== "/admin/login") {
+    window.location.replace("/admin/login");
+  }
   if (!res.ok || !json.success) throw new Error(json.error || json.error?.message || "Admin request failed");
   return json.data;
 }
@@ -147,24 +152,14 @@ export async function fetchOrderDetail(publicOrderId: string): Promise<OrderDeta
 }
 
 export async function fetchAdminOverview(): Promise<any> {
-  const res = await fetch(`${API_BASE}/admin/overview`);
-  const json = await res.json();
-  if (!res.ok || !json.success) {
-    throw new Error(json.error?.message || "Failed to load admin overview");
-  }
-  return json.data;
+  return adminJson("/admin/overview");
 }
 
 export async function fetchAdminOrders(query?: string, status?: string): Promise<any[]> {
   const params = new URLSearchParams();
   if (query) params.set("q", query);
   if (status) params.set("status", status);
-  const res = await fetch(`${API_BASE}/admin/orders?${params.toString()}`);
-  const json = await res.json();
-  if (!res.ok || !json.success) {
-    throw new Error(json.error?.message || "Failed to load orders");
-  }
-  return json.data;
+  return adminJson(`/admin/orders?${params.toString()}`);
 }
 
 export async function fetchAdminSuppliers(): Promise<any> {
@@ -172,24 +167,17 @@ export async function fetchAdminSuppliers(): Promise<any> {
 }
 
 export async function updateAdminSupplier(id: string, isEnabled: boolean, priority?: number): Promise<any> {
-  const res = await fetch(`${API_BASE}/admin/suppliers`, {
+  return adminJson("/admin/suppliers", {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ id, isEnabled, priority }),
   });
-  const json = await res.json();
-  return json.data;
 }
 
 export async function uploadAdminImage(file: File): Promise<{ url: string }> {
   const form = new FormData();
   form.append("image", file);
-  const res = await fetch(`${API_BASE}/admin/uploads`, { method: "POST", body: form });
-  const json = await res.json();
-  if (!res.ok || !json.success) {
-    throw new Error(json.error || "Failed to upload image");
-  }
-  return json.data;
+  return adminJson("/admin/uploads", { method: "POST", body: form });
 }
 
 export async function updateAdminGame(id: string, data: {
@@ -201,14 +189,9 @@ export async function updateAdminGame(id: string, data: {
   isActive: boolean;
   isPopular: boolean;
 }): Promise<any> {
-  const res = await fetch(`${API_BASE}/admin/dashboard`, {
+  return adminJson("/admin/dashboard", {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ entity: "game", id, data }),
   });
-  const json = await res.json();
-  if (!res.ok || !json.success) {
-    throw new Error(json.error || "Failed to update game");
-  }
-  return json.data;
 }

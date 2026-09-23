@@ -193,7 +193,7 @@ function SecurityPanel() {
   </div>;
 }
 
-export const AdminDashboard = () => {
+export const AdminDashboard = ({ adminSession }) => {
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [activeTab, setActiveTab] = useState("orders");
@@ -212,6 +212,7 @@ export const AdminDashboard = () => {
   const [profitLoading, setProfitLoading] = useState(false);
   const [profitError, setProfitError] = useState("");
   const [profitUpdatedAt, setProfitUpdatedAt] = useState("");
+  const visibleTabs = adminSession?.role === "SUPERADMIN" ? tabs : tabs.filter(([id]) => id !== "security");
 
   const refresh = useCallback(async () => { setLoading(true); setError(""); try { setData(await fetchAdminDashboard()); } catch (err) { setError(err.message); } finally { setLoading(false); } }, []);
   const refreshProfit = useCallback(async () => {
@@ -278,10 +279,10 @@ export const AdminDashboard = () => {
   const filteredSlides = filtered(data?.slides);
   const filteredUsers = filtered(data?.users);
   const filteredSuppliers = filtered(data?.suppliers);
-  const current = tabs.find(([id]) => id === activeTab) || tabs[0];
+  const current = visibleTabs.find(([id]) => id === activeTab) || visibleTabs[0];
   const CurrentIcon = current[2];
   const metrics = data?.metrics || {};
-  const nav = tabs.map(([id, label, Icon]) => <button key={id} className={activeTab === id ? "active" : ""} onClick={() => selectTab(id)}><Icon size={17} /><span>{label}</span></button>);
+  const nav = visibleTabs.map(([id, label, Icon]) => <button key={id} className={activeTab === id ? "active" : ""} onClick={() => selectTab(id)}><Icon size={17} /><span>{label}</span></button>);
 
   return <div className="admin-shell">
     <header className="admin-topbar"><div className="admin-topbar-inner"><button className="admin-mobile-menu" onClick={() => setMobileOpen(true)} aria-label="Open navigation"><Menu size={20} /></button><Brand /><nav className="admin-desktop-tabs">{nav}</nav><button className="admin-icon-btn admin-logout" onClick={signOut} aria-label="Sign out"><LogOut size={18} /></button></div></header>

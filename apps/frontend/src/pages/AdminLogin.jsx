@@ -12,55 +12,36 @@ export const AdminLogin = () => {
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState("error");
   const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     let active = true;
     const invite = params.get("invite");
     (async () => {
+      let inviteError = "";
       try {
         if (invite) {
-          const redeemed = await redeemAdminInvite(invite);
-          if (active) { setMessageType("success"); setMessage(`This device (${redeemed.ip}) is now approved. You can sign in.`); }
+          try {
+            const redeemed = await redeemAdminInvite(invite);
+            window.history.replaceState({}, "", "/admin/login");
+            if (active) { setMessageType("success"); setMessage(`This network (${redeemed.ip}) is now approved. You can sign in.`); }
+          } catch (error) {
+            inviteError = error.message || "This approval link is invalid or expired.";
+          }
         }
         const session = await fetchAdminSession();
         if (!active) return;
-        if (!session.allowed) { setNotFound(true); return; }
+        if (!session.allowed) { navigate("/", { replace: true }); return; }
         if (session.authenticated) navigate("/admin", { replace: true });
+        else if (inviteError) { setMessageType("error"); setMessage(inviteError); }
       } catch {
-        if (active) setNotFound(true);
+        if (active) navigate("/", { replace: true });
       } finally {
         if (active) setLoading(false);
       }
     })();
     return () => { active = false; };
   }, [navigate, params]);
-
-  useEffect(() => {
-    if (!notFound) return undefined;
-
-    let active = true;
-    const retry = async () => {
-      try {
-        const session = await fetchAdminSession();
-        if (!active || !session.allowed) return;
-        setNotFound(false);
-        if (session.authenticated) navigate("/admin", { replace: true });
-      } catch {
-        // Keep the private 404 screen until this network becomes approved.
-      }
-    };
-
-    const onFocus = () => void retry();
-    window.addEventListener("focus", onFocus);
-    const timer = window.setInterval(retry, 5000);
-    return () => {
-      active = false;
-      window.removeEventListener("focus", onFocus);
-      window.clearInterval(timer);
-    };
-  }, [navigate, notFound]);
 
   async function submit(event) {
     event.preventDefault();
@@ -78,7 +59,6 @@ export const AdminLogin = () => {
   }
 
   if (loading) return <div className="admin-login-page"><Loader2 className="spin" /></div>;
-  if (notFound) return <main className="admin-login-not-found">404 page not found</main>;
   return (
     <main className="admin-login-page">
       <form onSubmit={submit} className="admin-login-card">

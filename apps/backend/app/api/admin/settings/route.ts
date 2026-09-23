@@ -20,7 +20,7 @@ export async function GET(request: Request) {
       prisma.adminIpAllowlist.findMany({ orderBy: { createdAt: "asc" }, select: { id: true, ipAddress: true, label: true, isActive: true, lastUsedAt: true, createdAt: true } }),
     ]);
     const databaseIps = new Set(databaseAllowlist.map((entry) => entry.ipAddress));
-    const environmentAllowlist = (process.env.ADMIN_ALLOWED_IPS || "")
+    const environmentAllowlist = (process.env.ADMIN_ALLOWED_IPS || process.env.ADMIN_IP_ALLOWLIST || "")
       .split(",")
       .map((ipAddress) => ipAddress.trim().replace(/^::ffff:/i, ""))
       .filter((ipAddress) => isAdminIpRule(ipAddress) && !databaseIps.has(ipAddress))

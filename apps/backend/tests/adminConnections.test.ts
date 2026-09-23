@@ -1,16 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { ADMIN_COOKIE, adminIpRuleMatches, createAdminSession, hasAdminSession, isAdminIpRule, requireAdmin, validAdminKey } from "../lib/adminAuth";
+import { ADMIN_COOKIE, adminIpRuleMatches, createAdminSession, hasAdminSession, isAdminIpRule, requireAdmin, requireAdminWithIp, validAdminKey } from "../lib/adminAuth";
 import { adminMutation } from "../lib/adminValidation";
 import { prisma } from "../lib/prisma";
 import { PATCH } from "../app/api/admin/dashboard/route";
 
 process.env.ADMIN_DASHBOARD_KEY = "test-only-key-with-at-least-32-characters";
 process.env.ADMIN_DASHBOARD_ORIGIN = "http://localhost:5200";
+const TEST_ADMIN_ID = "a".repeat(24);
 
 function request(body: unknown, origin = "http://localhost:5200") {
   return new Request("http://localhost:3001/api/admin/dashboard", {
-    method: "PATCH", headers: { cookie: `${ADMIN_COOKIE}=${createAdminSession()}`, origin, "Content-Type": "application/json" }, body: JSON.stringify(body),
+    method: "PATCH", headers: { cookie: `${ADMIN_COOKIE}=${createAdminSession({ id: TEST_ADMIN_ID, username: "admin", role: "SUPERADMIN" })}`, origin, "Content-Type": "application/json" }, body: JSON.stringify(body),
   });
 }
 const game = { entity: "game", id: "a".repeat(24), data: { name: "Game", category: "Mobile", logoUrl: "/game.png", sortOrder: 0, isActive: true, isPopular: false } };
@@ -45,6 +46,27 @@ test("admin allowlists accept exact IPs only", () => {
   assert.equal(adminIpRuleMatches("203.0.113.99", "203.0.113.0/24"), false);
 });
 
+test("protected admin APIs identify an unapproved network", async () => {
+  const originalFindAdmin = prisma.adminUser.findUnique;
+  const originalFindIps = prisma.adminIpAllowlist.findMany;
+  (prisma.adminUser as any).findUnique = async () => ({ username: "admin", role: "SUPERADMIN", isActive: true });
+  (prisma.adminIpAllowlist as any).findMany = async () => [];
+  try {
+    const denied = await requireAdminWithIp(new Request("http://localhost:3001/api/admin/dashboard", {
+      headers: {
+        cookie: `${ADMIN_COOKIE}=${createAdminSession({ id: TEST_ADMIN_ID, username: "admin", role: "SUPERADMIN" })}`,
+        origin: "http://localhost:5200",
+        "x-forwarded-for": "203.0.113.250",
+      },
+    }));
+    assert.equal(denied?.status, 403);
+    assert.equal((await denied?.json()).code, "ADMIN_IP_DENIED");
+  } finally {
+    (prisma.adminUser as any).findUnique = originalFindAdmin;
+    (prisma.adminIpAllowlist as any).findMany = originalFindIps;
+  }
+});
+
 test("validation rejects mass assignment, unsafe URLs and invalid prices", () => {
   assert.equal(adminMutation.safeParse(game).success, true);
   assert.equal(adminMutation.safeParse({ ...game, data: { ...game.data, slug: "overwrite" } }).success, false);
@@ -56,7 +78,9 @@ test("validation rejects mass assignment, unsafe URLs and invalid prices", () =>
 
 test("save route validates before writing, and wraps updates with the audit in a transaction", async () => {
   const original = prisma.$transaction;
+  const originalFindAdmin = prisma.adminUser.findUnique;
   const calls: string[] = [];
+  (prisma.adminUser as any).findUnique = async () => ({ username: "admin", role: "SUPERADMIN", isActive: true });
   (prisma as any).$transaction = async (callback: any) => callback({
     game: { update: async () => { calls.push("update"); } },
     auditLog: { create: async () => { calls.push("audit"); } },
@@ -70,5 +94,8 @@ test("save route validates before writing, and wraps updates with the audit in a
     assert.deepEqual(calls, ["update", "audit"]);
     (prisma as any).$transaction = async () => { throw new Error("Database unavailable"); };
     assert.equal((await PATCH(request(game))).status, 409);
-  } finally { prisma.$transaction = original; }
+  } finally {
+    prisma.$transaction = original;
+    (prisma.adminUser as any).findUnique = originalFindAdmin;
+  }
 });

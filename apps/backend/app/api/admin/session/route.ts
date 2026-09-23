@@ -13,7 +13,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   if (!trustedAdminOrigin(request)) return NextResponse.json({ success: false, error: "Untrusted request origin." }, { status: 403 });
-  if (!(await isAdminIpAllowed(request))) return NextResponse.json({ success: false, error: "This network is not approved for admin access." }, { status: 403 });
+  if (!(await isAdminIpAllowed(request))) return NextResponse.json({ success: false, code: "ADMIN_IP_DENIED", error: "This network is not approved for admin access." }, { status: 403 });
   const ip = getClientIp(request);
   const now = Date.now();
   const recent = (attempts.get(ip) || []).filter((time) => time >= now - 60_000);
