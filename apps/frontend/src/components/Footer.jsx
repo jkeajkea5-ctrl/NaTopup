@@ -36,7 +36,7 @@ export const Footer = () => {
                 href="https://t.me/LukasTopupSupport"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="contact-icon contact-icon--telegram"
+                className="contact-icon contact-icon--telegram !border-0 !bg-transparent !shadow-none"
                 title="Telegram Channel"
                 aria-label="Telegram Channel"
               >
@@ -47,7 +47,7 @@ export const Footer = () => {
                 href="https://facebook.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="contact-icon contact-icon--facebook"
+                className="contact-icon contact-icon--facebook !border-0 !bg-transparent !shadow-none"
                 title="Facebook"
                 aria-label="Facebook"
               >
@@ -65,7 +65,7 @@ export const Footer = () => {
                 href="https://t.me/LukasTopupSupport"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="contact-icon contact-icon--telegram"
+                className="contact-icon contact-icon--telegram !border-0 !bg-transparent !shadow-none"
                 title="Telegram"
                 aria-label="Telegram"
               >
@@ -74,7 +74,7 @@ export const Footer = () => {
 
               <a
                 href="mailto:support@lukastopup.com"
-                className="contact-icon contact-icon--email"
+                className="contact-icon contact-icon--email !border-0 !bg-transparent !shadow-none"
                 title="Email Support"
                 aria-label="Email Support"
               >

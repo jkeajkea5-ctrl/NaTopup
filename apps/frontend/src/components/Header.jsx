@@ -15,7 +15,7 @@ const YouTubeIcon = () => (
 );
 
 const RailLink = ({ href, label, className, children }) => (
-  <a href={href} target={href.startsWith("http") ? "_blank" : undefined} rel={href.startsWith("http") ? "noopener noreferrer" : undefined} className={`mobile-rail-link ${className || ""}`} aria-label={label} title={label}>
+  <a href={href} target={href.startsWith("http") ? "_blank" : undefined} rel={href.startsWith("http") ? "noopener noreferrer" : undefined} className={`mobile-rail-link hover:!bg-transparent ${className || ""}`} aria-label={label} title={label}>
     {children}
   </a>
 );
@@ -63,7 +63,7 @@ export const Header = () => {
             </div>
             <NavbarSearch />
             <div className="flex items-center gap-2 sm:gap-3">
-              <a href="https://t.me/LukasTopupSupport" target="_blank" rel="noopener noreferrer" className="navbar-contact flex shrink-0 items-center justify-center gap-2 rounded-2xl p-2 md:px-4 md:py-2.5" title="ទាក់ទង Telegram" aria-label="ទាក់ទង Telegram">
+              <a href="https://t.me/LukasTopupSupport" target="_blank" rel="noopener noreferrer" className="navbar-contact flex shrink-0 items-center justify-center gap-2 rounded-2xl !border-0 !bg-transparent p-2 !shadow-none md:px-4 md:py-2.5" title="ទាក់ទង Telegram" aria-label="ទាក់ទង Telegram">
                 <TelegramBrandIcon className="h-10 w-10" />
                 <span className="relative z-10 hidden whitespace-nowrap pr-0.5 font-kulen text-xs font-bold tracking-tight text-[#2489b6] lg:inline lg:text-sm">ទាក់ទង Telegram</span>
               </a>
