@@ -56,7 +56,7 @@ export const Header = () => {
                   <img src="/na-topup-brand-uppercase-2026.png" alt="NA TOPUP" className="h-full w-full object-contain animate-logo-box" />
                 </div>
                 <div className="flex items-center gap-1 sm:gap-1.5" aria-hidden="true">
-                  <span className="font-heading text-lg font-black tracking-tight text-[#30213f] sm:text-2xl lg:text-3xl">NA</span>
+                  <span className="font-heading text-lg font-black tracking-tight text-[#ffdf51] sm:text-2xl lg:text-3xl">NA</span>
                   <span className="na-brand-word font-heading text-lg font-black tracking-tight sm:text-2xl lg:text-3xl">TOPUP</span>
                 </div>
               </Link>
