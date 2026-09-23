@@ -386,6 +386,15 @@ model AppSetting {
   updatedAt DateTime @updatedAt
 }
 
+model MediaAsset {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  filename    String   @unique
+  data        Bytes    @db.BinData
+  contentType String   @default("image/webp")
+  size        Int
+  createdAt   DateTime @default(now())
+}
+
 model Promotion {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
   title       String

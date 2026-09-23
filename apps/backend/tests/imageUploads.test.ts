@@ -6,6 +6,7 @@ import path from "node:path";
 import sharp from "sharp";
 import { MAX_IMAGE_BYTES, prepareImage, validImageFilename } from "../lib/imageUploads";
 import { ADMIN_COOKIE, createAdminSession } from "../lib/adminAuth";
+import { prisma } from "../lib/prisma";
 import { POST } from "../app/api/admin/uploads/route";
 import { GET } from "../app/api/media/[filename]/route";
 
@@ -14,8 +15,12 @@ test("uploads require a session and validate images, then serve a normalized ima
   process.env.UPLOAD_DIRECTORY = directory;
   process.env.ADMIN_DASHBOARD_KEY = "test-upload-key-at-least-32-characters-long";
   process.env.ADMIN_DASHBOARD_ORIGIN = "http://localhost:5200";
+  (prisma as any).adminUser.findUnique = async () => ({ username: "admin", role: "SUPERADMIN", isActive: true });
+  (prisma as any).adminIpAllowlist.findMany = async () => [{ ipAddress: "127.0.0.1" }];
   try {
-    const unauthorized = await POST(new Request("http://localhost/api/admin/uploads", { method: "POST" }));
+    const unauthorized = await POST(new Request("http://localhost/api/admin/uploads", {
+      method: "POST", headers: { origin: "http://localhost:5200" },
+    }));
     assert.equal(unauthorized.status, 401);
     await assert.rejects(prepareImage(Buffer.from("not an image"), "image/png"));
     await assert.rejects(prepareImage(Buffer.from("<svg></svg>"), "image/svg+xml"));

@@ -1,9 +1,8 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
-import path from "node:path";
 import { NextResponse } from "next/server";
 import { requireAdminWithIp } from "../../../../lib/adminAuth";
-import { MAX_IMAGE_BYTES, prepareImage, uploadDirectory } from "../../../../lib/imageUploads";
+import { MAX_IMAGE_BYTES, prepareImage } from "../../../../lib/imageUploads";
+import { storeMedia } from "../../../../lib/mediaStorage";
 
 export const runtime = "nodejs";
 
@@ -40,8 +39,7 @@ export async function POST(request: Request) {
   }
   try {
     const filename = `${randomUUID()}.webp`;
-    await mkdir(uploadDirectory(), { recursive: true });
-    await writeFile(path.join(uploadDirectory(), filename), image, { flag: "wx" });
+    await storeMedia(filename, image);
     return NextResponse.json({ success: true, data: { url: `/api/media/${filename}` } }, { status: 201 });
   } catch {
     return NextResponse.json({ success: false, error: "The image could not be stored. Please try again." }, { status: 500 });
