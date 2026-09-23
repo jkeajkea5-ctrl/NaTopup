@@ -11,6 +11,7 @@ export function getHokCategory(name: string): HokCategory {
 
 export function getHokIconUrl(name: string) {
   const normalized = name.trim().toLowerCase();
+  if (normalized.includes("weekly card plus")) return "/packages/hok/weekly-plus.webp";
   if (normalized.includes("weekly")) return "/packages/hok/weekly.webp";
   if (normalized.includes("monthly")) return "/packages/hok/monthly.webp";
   if (normalized.includes("lucky")) return "/packages/hok/lucky-bag.webp";

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { getHokCategory, prepareHokCatalogue } from "../lib/hokCatalogue";
+import { getHokCategory, getHokIconUrl, prepareHokCatalogue } from "../lib/hokCatalogue";
 
 test("classifies Honor of Kings products into Pass, Normal, and Other", () => {
   assert.equal(getHokCategory("Weekly Card"), "pass");
@@ -23,4 +23,13 @@ test("prepares HOK token labels and storefront flags", () => {
   assert.equal(entries[1].product.isFeatured, false);
   assert.equal(entries[2].product.isFeatured, true);
   assert.ok(entries.every((entry) => entry.product.description.startsWith("Honor of Kings | ")));
+});
+
+test("maps HOK package artwork, including a distinct Weekly Card Plus icon", () => {
+  assert.equal(getHokIconUrl("Weekly Card"), "/packages/hok/weekly.webp");
+  assert.equal(getHokIconUrl("Weekly Card Plus"), "/packages/hok/weekly-plus.webp");
+  assert.equal(getHokIconUrl("Double Token Lucky Bag"), "/packages/hok/lucky-bag.webp");
+  assert.equal(getHokIconUrl("Standard Purchase Rebate Pack"), "/packages/hok/purchase-rebate-pack.webp");
+  assert.equal(getHokIconUrl("Honor Point Value Pack"), "/packages/hok/honor-point-value-pack.webp");
+  assert.equal(getHokIconUrl("80"), "/packages/hok/tokens.webp");
 });
