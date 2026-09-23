@@ -199,22 +199,10 @@ dialog {
   .mobile-drawer-backdrop, .mobile-nav-rail, .mobile-rail-link, .mobile-rail-close { transition: none; }
 }
 .support-contact {
-  isolation: isolate;
   border: 0;
   background: transparent;
   box-shadow: none;
   transition: transform 200ms ease, box-shadow 200ms ease;
-}
-.support-contact::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  border: 2px solid #7E8FEF;
-  border-radius: inherit;
-  box-shadow: 0 0 0 0 rgba(126, 143, 239, 0.2), 0 0 12px rgba(126, 143, 239, 0.3);
-  animation: support-border-glow 2.2s ease-in-out infinite;
 }
 .support-contact-label {
   padding: 5px 12px;
@@ -229,13 +217,15 @@ dialog {
   flex: 0 0 auto;
   place-items: center;
   overflow: hidden;
-  border: 0;
-  border-radius: 16px;
+  border: 2px solid #7E8FEF;
+  border-radius: 999px;
   background: transparent;
-  box-shadow: none;
+  box-shadow: 0 0 12px rgba(126, 143, 239, 0.3);
 }
 .support-contact-logo img { width: 100%; height: 100%; object-fit: contain; }
-.support-contact-logo { animation: support-logo-bob 2.8s ease-in-out infinite; }
+.support-contact-logo {
+  animation: support-logo-bob 2.8s ease-in-out infinite, support-border-glow 2.2s ease-in-out infinite;
+}
 
 @keyframes support-label-pulse {
   0%, 100% { transform: translateY(0) scale(1); }
@@ -257,7 +247,7 @@ dialog {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .support-contact::before, .support-contact-label, .support-contact-logo { animation: none; }
+  .support-contact-label, .support-contact-logo { animation: none; }
 }
 .support-contact-symbol { color: white; background: linear-gradient(135deg, #6bbadd, #8b82d2); }
 .support-contact:hover { transform: translateY(-3px); box-shadow: 0 10px 28px #5d417338; }
