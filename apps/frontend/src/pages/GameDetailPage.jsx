@@ -298,17 +298,10 @@ export const GameDetailPage = () => {
     setPackageAlertMessage(null);
     setSubmitError(null);
 
-    // Format package title nicely in Khmer matching user's template
-    let displayName = product.name;
-    if (product.name.toLowerCase().includes("weekly") && product.name.toLowerCase().includes("pass")) {
-      displayName = "Weekly 💎 Pass X1";
-    } else if (product.name.toLowerCase().includes("monthly") && product.name.toLowerCase().includes("pass")) {
-      displayName = "Monthly 💎 Pass X1";
-    } else if (product.name.toLowerCase().includes("pass")) {
-      displayName = product.name.replace(/pass/i, "💎 Pass");
-    } else if (!displayName.includes("💎")) {
-      displayName = `${product.amount} 💎 ពេជ្រ`;
-    }
+    // Match the confirmation text to the package name visible on the card.
+    // Some legacy package names contain the purchase-limit label appended in Khmer;
+    // the card renders that separately, so the toast should omit it as well.
+    const displayName = product.name.replace(/[\u1780-\u17ff].*$/u, "").trim() || product.name;
 
     // Show top-right toast alert message matching user's screenshot: បានជ្រើសរើស: <displayName>
     if (toastTimerRef.current) {
@@ -337,7 +330,7 @@ export const GameDetailPage = () => {
 
     // 1. SELECT PACKAGE ALERT: Check if package selected
     if (!selectedProduct) {
-      setPackageAlertMessage("សូមជ្រើសរើសកញ្ចប់ដែលអ្នកចង់បញ្ចូលមុននឹងបន្តការទូទាត់!");
+      setPackageAlertMessage("Please select a package name.");
       if (step2Ref.current) {
         step2Ref.current.scrollIntoView({ behavior: "smooth", block: "center" });
       }
