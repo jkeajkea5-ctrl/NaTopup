@@ -44,15 +44,17 @@ export const ProductCard = ({ product, isSelected, onSelect }) => {
 
         {purchaseLimit && (
           <div
-            className="mx-auto mt-1.5 inline-flex max-w-[96%] items-center justify-center gap-1.5 rounded-lg border border-[#FFF089] bg-white/95 px-2 py-1 text-[#342A50] shadow-[0_3px_8px_rgba(34,29,71,0.2)] sm:gap-2 sm:rounded-xl sm:px-2.5 sm:py-1.5"
+            className="relative isolate mx-auto mt-1.5 inline-flex max-w-[96%] items-center justify-center gap-1.5 overflow-visible rounded-[13px] border-2 border-[#FFD4E3] bg-gradient-to-br from-[#FFF9FC] via-[#FFF6D9] to-[#F5EEFF] px-2 py-1 text-[#493754] shadow-[0_4px_10px_rgba(83,53,112,0.2)] transition-transform duration-200 group-hover:-translate-y-0.5 sm:gap-2 sm:rounded-2xl sm:px-2.5 sm:py-1.5"
             aria-label={purchaseLimit.label}
           >
-            <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#FFF089] text-[#C95A6E] shadow-xs sm:h-5 sm:w-5">
-              <CalendarClock className="h-2.5 w-2.5 stroke-[2.7] sm:h-3 sm:w-3" aria-hidden="true" />
+            <span className="animate-cute-sparkle absolute -left-1 -top-1 z-10 text-[8px] text-[#FFF089] drop-shadow-sm sm:text-[10px]" aria-hidden="true">✦</span>
+            <span className="animate-cute-sparkle absolute -right-1 -top-1 z-10 text-[7px] text-[#FFB8D1] drop-shadow-sm [animation-delay:0.7s] sm:text-[9px]" aria-hidden="true">✦</span>
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#FF8FB5] to-[#C95A8D] text-white shadow-[0_2px_5px_rgba(201,90,141,0.35)] ring-2 ring-white sm:h-6 sm:w-6">
+              <CalendarClock className="h-3 w-3 stroke-[2.7] sm:h-3.5 sm:w-3.5" aria-hidden="true" />
             </span>
             <span className="min-w-0 font-sans font-normal leading-none" aria-hidden="true">
-              <span className="block whitespace-nowrap text-[7px] text-[#8E78D8] sm:text-[9px]">{purchaseLimit.period}</span>
-              <span className="mt-0.5 block whitespace-nowrap text-[6px] text-[#493754] sm:text-[8px]">{purchaseLimit.restriction}</span>
+              <span className="block whitespace-nowrap text-[7px] text-[#C95A8D] sm:text-[9px]">{purchaseLimit.period}</span>
+              <span className="mt-0.5 block whitespace-nowrap text-[6px] text-[#625079] sm:text-[8px]">{purchaseLimit.restriction}</span>
             </span>
           </div>
         )}

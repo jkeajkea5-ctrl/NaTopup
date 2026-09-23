@@ -307,7 +307,11 @@ export const GameDetailPage = () => {
     if (toastTimerRef.current) {
       clearTimeout(toastTimerRef.current);
     }
-    setPackageToast({ id: ++toastSequenceRef.current, displayName });
+    setPackageToast({
+      id: ++toastSequenceRef.current,
+      displayName,
+      iconUrl: product.iconUrl || game.logoUrl || "/placeholder.png",
+    });
     toastTimerRef.current = setTimeout(() => {
       setPackageToast(null);
     }, 4500);
@@ -439,9 +443,14 @@ export const GameDetailPage = () => {
             <div className="relative z-10 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-white text-brand-violet flex items-center justify-center flex-shrink-0 shadow-sm font-bold text-xs animate-check-pop">
               <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[3]" />
             </div>
-            <span className="relative z-10 font-kulen font-bold text-xs sm:text-sm tracking-wide flex items-center gap-1.5 drop-shadow-xs">
-              <span>បានជ្រើសរើស:</span>
-              <span className="font-extrabold">{packageToast.displayName}</span>
+            <img
+              src={packageToast.iconUrl}
+              alt=""
+              className="relative z-10 h-9 w-9 shrink-0 rounded-lg bg-white/15 object-contain p-0.5 drop-shadow-md sm:h-11 sm:w-11 sm:rounded-xl"
+            />
+            <span className="relative z-10 min-w-0 flex-1 font-kulen text-xs font-bold leading-tight tracking-wide drop-shadow-xs sm:text-sm">
+              <span className="block text-[9px] font-normal text-white/80 sm:text-[11px]">បានជ្រើសរើស</span>
+              <span className="mt-0.5 block break-words font-extrabold">{packageToast.displayName}</span>
             </span>
             <button
               type="button"
