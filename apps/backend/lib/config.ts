@@ -56,6 +56,7 @@ export const config = {
     secretKey: process.env.KHQRCC_SECRET_KEY || "",
     sessionSeconds: parseInt(process.env.KHQRCC_SESSION_SECONDS || "420", 10),
     webhookTimeoutMinutes: parseInt(process.env.KHQRCC_WEBHOOK_TIMEOUT_MINUTES || "7", 10),
+    webhookMaxAgeSeconds: parseInt(process.env.KHQRCC_WEBHOOK_MAX_AGE_SECONDS || "300", 10),
   },
   
   g2bulk: {
@@ -85,6 +86,12 @@ export const config = {
     lowBalanceG2bThreadId: parseInt(process.env.TELEGRAM_LOW_BALANCE_G2B_THREAD_ID || "22", 10),
     lowBalanceVizoThreadId: parseInt(process.env.TELEGRAM_LOW_BALANCE_VIZO_THREAD_ID || "25", 10),
     lowBalanceThresholdUsd: parseFloat(process.env.TELEGRAM_LOW_BALANCE_THRESHOLD_USD || "3"),
+  },
+
+  paymentPolling: {
+    intervalSeconds: parseInt(process.env.PAYMENT_POLL_INTERVAL_SECONDS || "30", 10),
+    limit: parseInt(process.env.PAYMENT_POLL_LIMIT || "50", 10),
+    maxAgeMinutes: parseInt(process.env.PAYMENT_POLL_MAX_AGE_MINUTES || "1440", 10),
   },
   
   business: {

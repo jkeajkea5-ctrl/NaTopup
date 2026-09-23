@@ -49,6 +49,17 @@ export function verifyHmacSha256(data: string, signature: string, secret: string
   }
 }
 
+export function timingSafeEqualHex(actual: string, expected: string): boolean {
+  try {
+    if (!/^[a-f\d]+$/i.test(actual) || !/^[a-f\d]+$/i.test(expected) || actual.length !== expected.length) {
+      return false;
+    }
+    return crypto.timingSafeEqual(Buffer.from(actual, "hex"), Buffer.from(expected, "hex"));
+  } catch {
+    return false;
+  }
+}
+
 export function verifyBearerToken(authHeader: string | null | undefined, expectedToken: string): boolean {
   if (!authHeader || !expectedToken) return false;
   const parts = authHeader.split(" ");

@@ -93,7 +93,7 @@ export const InstallPrompt = () => {
           {/* Left: App Logo */}
           <div className="w-12 h-12 rounded-xl overflow-hidden shadow-xs flex-shrink-0 bg-black/5 border border-amber-400/60 p-0.5">
             <img
-              src="/na-topup-icon-2026.png"
+              src="/na-topup-icon-2026.png?v=20260924"
               alt="NA TOPUP App Logo"
               className="w-full h-full object-cover rounded-lg"
             />
@@ -138,7 +138,7 @@ export const InstallPrompt = () => {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="w-10 h-10 rounded-xl overflow-hidden shadow-xs border border-amber-400/60 bg-black/5 p-0.5">
-                  <img src="/na-topup-icon-2026.png" alt="NA TOPUP" className="w-full h-full object-cover rounded-lg" />
+                  <img src="/na-topup-icon-2026.png?v=20260924" alt="NA TOPUP" className="w-full h-full object-cover rounded-lg" />
                 </div>
                 <div>
                   <h3 className="font-heading font-extrabold text-base text-gray-900">

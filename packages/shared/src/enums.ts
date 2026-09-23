@@ -97,7 +97,9 @@ export const VALID_ORDER_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   ],
   [OrderStatus.DELIVERED]: [OrderStatus.REFUNDED],
   [OrderStatus.FAILED]: [OrderStatus.REFUNDED, OrderStatus.FULFILMENT_QUEUED],
-  [OrderStatus.EXPIRED]: [],
+  // A provider webhook or reconciliation check can confirm a payment after
+  // the local checkout timer expires. Paid funds must still be fulfilled.
+  [OrderStatus.EXPIRED]: [OrderStatus.PAID],
   [OrderStatus.REFUNDED]: [],
   [OrderStatus.CANCELLED]: [],
 };

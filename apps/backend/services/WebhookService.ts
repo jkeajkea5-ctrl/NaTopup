@@ -38,6 +38,11 @@ export function inferG2BulkGameCode(...values: unknown[]): string {
   return "";
 }
 
+export function paymentCurrencyMatches(callbackCurrency: unknown, expectedCurrency: string): boolean {
+  if (callbackCurrency === undefined || callbackCurrency === null || callbackCurrency === "") return true;
+  return String(callbackCurrency).trim().toUpperCase() === expectedCurrency.trim().toUpperCase();
+}
+
 export class WebhookService {
   /**
    * Handles incoming KHQR payment webhook idempotently.
@@ -106,7 +111,7 @@ export class WebhookService {
       payload.orderReference || payload.order_reference || payload.orderId || payload.transaction_id;
     const transactionId = payload.transactionId || payload.transaction_id;
     const amount = Number.parseFloat(payload.amount);
-    const currency = payload.currency || "USD";
+    const currency = payload.currency;
 
     const providerStatus = String(payload.status || "SUCCESS").toUpperCase();
     if (providerStatus !== "SUCCESS" && providerStatus !== "PAID") {
@@ -165,11 +170,23 @@ export class WebhookService {
       return { success: false, message: errorMsg, statusCode: 400 };
     }
 
+    if (!paymentCurrencyMatches(currency, order.payment.currency)) {
+      const errorMsg = `Currency mismatch: expected ${order.payment.currency}, received ${String(currency)}`;
+      logger.error(errorMsg, { orderId: order.publicOrderId, provider: "KHQR" });
+      if (eventRecord) {
+        await prisma.webhookEvent.update({
+          where: { id: eventRecord.id },
+          data: { error: errorMsg },
+        });
+      }
+      return { success: false, message: errorMsg, statusCode: 400 };
+    }
+
     // 5. Idempotent Payment & Order Update
     const payment = order.payment;
     if (payment.status !== PaymentStatus.PAID) {
-      await prisma.payment.update({
-        where: { id: payment.id },
+      const claimed = await prisma.payment.updateMany({
+        where: { id: payment.id, status: { not: PaymentStatus.PAID } },
         data: {
           status: PaymentStatus.PAID,
           // KHQRcc uses the merchant transaction_id as its callback ID. Keep
@@ -180,21 +197,23 @@ export class WebhookService {
         },
       });
 
-      await orderService.transitionStatus(
-        order.id,
-        OrderStatus.PAID,
-        `Payment confirmed via KHQR (Txn: ${transactionId})`
-      );
+      if (claimed.count === 1) {
+        await orderService.transitionStatus(
+          order.id,
+          OrderStatus.PAID,
+          `Payment confirmed via KHQR (Txn: ${transactionId})`
+        );
 
-      // Start fulfilment before returning. Detached callbacks are not reliable
-      // in serverless runtimes and previously delayed dispatch until the cron.
-      try {
-        await fulfilmentService.processFulfilment(order.id);
-      } catch (err: any) {
-        logger.error("Error during fulfilment after payment", {
-          orderId: order.publicOrderId,
-          error: err.message,
-        });
+        // Start fulfilment before returning. Detached callbacks are not reliable
+        // in serverless runtimes and previously delayed dispatch until the cron.
+        try {
+          await fulfilmentService.processFulfilment(order.id);
+        } catch (err: any) {
+          logger.error("Error during fulfilment after payment", {
+            orderId: order.publicOrderId,
+            error: err.message,
+          });
+        }
       }
     }
 
@@ -225,19 +244,19 @@ export class WebhookService {
     rawBody: string,
     signature?: string | null
   ): Promise<{ success: boolean; message: string; statusCode: number }> {
-    let payload: any;
-    try {
-      payload = JSON.parse(rawBody);
-    } catch {
-      return { success: false, message: "Invalid JSON", statusCode: 400 };
-    }
-
     // Vizo signs the exact raw JSON body as `sha256=<HMAC>` using the API key.
     if (supplier === "VIZO") {
       if (!verifyVizoWebhookSignature(rawBody, signature, config.vizo.apiKey)) {
         logger.warn("Vizo webhook rejected: invalid signature", { provider: supplier });
         return { success: false, message: "Invalid webhook signature", statusCode: 401 };
       }
+    }
+
+    let payload: any;
+    try {
+      payload = JSON.parse(rawBody);
+    } catch {
+      return { success: false, message: "Invalid JSON", statusCode: 400 };
     }
 
     const eventHash = sha256(`${supplier}:${rawBody}`);

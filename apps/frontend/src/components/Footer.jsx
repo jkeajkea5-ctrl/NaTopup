@@ -13,7 +13,7 @@ export const Footer = () => {
           <Link to="/" className="group flex flex-col items-center justify-center" aria-label="NA TOPUP home">
               <div className="flex h-32 w-32 flex-shrink-0 items-center justify-center transition-transform duration-300 group-hover:scale-105 sm:h-40 sm:w-40">
                 <img
-                  src="/na-topup-brand-uppercase-2026.png"
+                  src="/na-topup-brand-uppercase-2026.png?v=20260924"
                   alt="NA TOPUP Logo"
                   className="h-full w-full object-contain drop-shadow-md"
                 />

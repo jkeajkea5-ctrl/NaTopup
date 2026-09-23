@@ -63,13 +63,13 @@ class TelegramAlertService {
     );
   }
 
-  private async send(topic: TelegramAlertTopic, text: string): Promise<boolean> {
+  private async send(topic: TelegramAlertTopic, text: string, maxAttempts = 3): Promise<boolean> {
     if (!this.isConfigured(topic)) return false;
 
     const endpoint = `https://api.telegram.org/bot${config.telegram.botToken}/sendMessage`;
     let lastError = "Unknown Telegram error";
 
-    for (let attempt = 1; attempt <= 3; attempt += 1) {
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
       try {
         const response = await fetch(endpoint, {
           method: "POST",
@@ -81,7 +81,7 @@ class TelegramAlertService {
             parse_mode: "HTML",
             link_preview_options: { is_disabled: true },
           }),
-          signal: AbortSignal.timeout(7000),
+          signal: AbortSignal.timeout(4000),
         });
 
         const result = (await response.json().catch(() => null)) as
@@ -95,7 +95,7 @@ class TelegramAlertService {
         lastError = error instanceof Error ? error.message : String(error);
       }
 
-      if (attempt < 3) await wait(attempt * 300);
+      if (attempt < maxAttempts) await wait(attempt * 300);
     }
 
     logger.error("Telegram alert delivery failed", {
@@ -110,7 +110,8 @@ class TelegramAlertService {
     orderId: string,
     publicOrderId: string,
     status: OrderStatus,
-    reason: string
+    reason: string,
+    maxAttempts = 3
   ): Promise<boolean> {
     const topic = getTelegramAlertTopic(status);
     if (!topic) return false;
@@ -175,7 +176,7 @@ class TelegramAlertService {
     }
     lines.push(`<b>Time:</b> ${escapeTelegramHtml(formatCambodiaTime())}`);
 
-    const sent = await this.send(topic, lines.join("\n"));
+    const sent = await this.send(topic, lines.join("\n"), maxAttempts);
     if (sent) {
       logger.info("Telegram order alert delivered", {
         provider: "TELEGRAM",
@@ -185,6 +186,104 @@ class TelegramAlertService {
       });
     }
     return sent;
+  }
+
+  async deliverOrderEvent(eventId: string): Promise<boolean> {
+    const eventDelegate = prisma.orderEvent as any;
+    const event = await eventDelegate.findUnique({
+      where: { id: eventId },
+      select: {
+        id: true,
+        orderId: true,
+        toStatus: true,
+        reason: true,
+        telegramSentAt: true,
+        telegramAttemptCount: true,
+        order: { select: { publicOrderId: true } },
+      },
+    });
+    if (!event || event.telegramSentAt) return Boolean(event?.telegramSentAt);
+
+    const status = event.toStatus as OrderStatus;
+    if (!getTelegramAlertTopic(status)) return true;
+
+    const attemptCount = Number(event.telegramAttemptCount || 0);
+    const staleClaimBefore = new Date(Date.now() - 2 * 60 * 1000);
+    const claimed = await eventDelegate.updateMany({
+      where: {
+        id: event.id,
+        AND: [
+          { OR: [{ telegramSentAt: null }, { telegramSentAt: { isSet: false } }] },
+          { OR: [{ telegramAttemptCount: attemptCount }, { telegramAttemptCount: { isSet: false } }] },
+          {
+            OR: [
+              { telegramLastAttemptAt: null },
+              { telegramLastAttemptAt: { isSet: false } },
+              { telegramLastAttemptAt: { lt: staleClaimBefore } },
+            ],
+          },
+        ],
+      },
+      data: {
+        telegramAttemptCount: { increment: 1 },
+        telegramLastAttemptAt: new Date(),
+      },
+    });
+    if (claimed.count !== 1) return false;
+
+    let sent = false;
+    let lastError: string | null = null;
+    try {
+      sent = await this.notifyOrderStatus(
+        event.orderId,
+        event.order.publicOrderId,
+        status,
+        event.reason,
+        1
+      );
+      if (!sent) lastError = "Telegram delivery was not acknowledged";
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : String(error);
+    }
+
+    await eventDelegate.update({
+      where: { id: event.id },
+      data: sent
+        ? { telegramSentAt: new Date(), telegramLastError: null }
+        : { telegramLastError: lastError || "Telegram delivery failed" },
+    });
+    return sent;
+  }
+
+  async retryPendingOrderAlerts(limit = 10): Promise<{ checked: number; sent: number }> {
+    const eventDelegate = prisma.orderEvent as any;
+    const retryBefore = new Date(Date.now() - 2 * 60 * 1000);
+    const events = await eventDelegate.findMany({
+      where: {
+        toStatus: {
+          in: [OrderStatus.PAID, OrderStatus.DELIVERED, OrderStatus.FAILED, OrderStatus.REVIEW_REQUIRED],
+        },
+        AND: [
+          { OR: [{ telegramSentAt: null }, { telegramSentAt: { isSet: false } }] },
+          {
+            OR: [
+              { telegramLastAttemptAt: null },
+              { telegramLastAttemptAt: { isSet: false } },
+              { telegramLastAttemptAt: { lt: retryBefore } },
+            ],
+          },
+        ],
+      },
+      orderBy: { createdAt: "asc" },
+      take: limit,
+      select: { id: true },
+    });
+
+    let sent = 0;
+    for (const event of events) {
+      if (await this.deliverOrderEvent(event.id)) sent += 1;
+    }
+    return { checked: events.length, sent };
   }
 
   async notifyLowBalance(

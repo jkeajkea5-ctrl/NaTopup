@@ -1,4 +1,5 @@
 import { FulfilmentStatus, OrderStatus, PaymentStatus } from "@topup/shared";
+import { config } from "../lib/config";
 import { logger } from "../lib/logger";
 import { prisma } from "../lib/prisma";
 import { khqrClient } from "../payments/khqr/client";
@@ -12,12 +13,17 @@ export class ReconciliationService {
    */
   async reconcilePendingPayments(): Promise<{ checked: number; resolved: number }> {
     const now = new Date();
+    const retryBefore = new Date(now.getTime() - config.paymentPolling.intervalSeconds * 1000);
+    const recoveryCutoff = new Date(now.getTime() - config.paymentPolling.maxAgeMinutes * 60 * 1000);
     const pendingPayments = await prisma.payment.findMany({
       where: {
-        status: { in: [PaymentStatus.PENDING, PaymentStatus.VERIFYING] },
-        qrExpiresAt: { gt: new Date(now.getTime() - 15 * 60 * 1000) }, // within 15 min window
+        status: { in: [PaymentStatus.PENDING, PaymentStatus.VERIFYING, PaymentStatus.EXPIRED] },
+        createdAt: { gte: recoveryCutoff },
+        OR: [{ verifiedAt: null }, { verifiedAt: { lte: retryBefore } }],
       },
       include: { order: true },
+      orderBy: { createdAt: "asc" },
+      take: config.paymentPolling.limit,
     });
 
     let resolved = 0;
@@ -30,15 +36,40 @@ export class ReconciliationService {
         });
 
         if (verifyResult.paid) {
-          await prisma.payment.update({
-            where: { id: payment.id },
+          const amountMatches =
+            verifyResult.paidAmount === undefined ||
+            Math.abs(verifyResult.paidAmount - payment.amount) <= 0.01;
+          const currencyMatches =
+            !verifyResult.currency ||
+            verifyResult.currency.trim().toUpperCase() === payment.currency.trim().toUpperCase();
+          if (!amountMatches || !currencyMatches) {
+            logger.error("Reconciliation rejected mismatched payment details", {
+              paymentId: payment.id,
+              orderId: payment.order.publicOrderId,
+              metadata: {
+                expectedAmount: payment.amount,
+                paidAmount: verifyResult.paidAmount,
+                expectedCurrency: payment.currency,
+                paidCurrency: verifyResult.currency,
+              },
+            });
+            await prisma.payment.update({
+              where: { id: payment.id },
+              data: { verifiedAt: now },
+            });
+            continue;
+          }
+
+          const claimed = await prisma.payment.updateMany({
+            where: { id: payment.id, status: { not: PaymentStatus.PAID } },
             data: {
               status: PaymentStatus.PAID,
-              providerTransactionId: verifyResult.transactionId || `TXN-REC-${Date.now()}`,
+              providerTransactionId: verifyResult.transactionId || payment.order.publicOrderId,
               paidAt: new Date(),
               verifiedAt: new Date(),
             },
           });
+          if (claimed.count !== 1) continue;
 
           await orderService.transitionStatus(
             payment.order.id,
@@ -48,11 +79,11 @@ export class ReconciliationService {
 
           await fulfilmentService.processFulfilment(payment.order.id);
           resolved++;
-        } else if (now > payment.qrExpiresAt) {
+        } else if (now > payment.qrExpiresAt && payment.status !== PaymentStatus.EXPIRED) {
           // Payment expired
           await prisma.payment.update({
             where: { id: payment.id },
-            data: { status: PaymentStatus.EXPIRED },
+            data: { status: PaymentStatus.EXPIRED, verifiedAt: now },
           });
 
           await orderService.transitionStatus(
@@ -60,6 +91,11 @@ export class ReconciliationService {
             OrderStatus.EXPIRED,
             "Payment session expired"
           );
+        } else {
+          await prisma.payment.update({
+            where: { id: payment.id },
+            data: { verifiedAt: now },
+          });
         }
       } catch (err: any) {
         logger.error("Error reconciling payment", {

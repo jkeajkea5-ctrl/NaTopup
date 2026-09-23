@@ -387,6 +387,9 @@ export class OrderService {
                 },
               },
             },
+            include: {
+              events: { orderBy: { createdAt: "desc" }, take: 1, select: { id: true } },
+            },
           }),
         null,
         1200
@@ -408,10 +411,15 @@ export class OrderService {
       metadata: { from: currentStatus, reason },
     });
 
-    // Await the send so serverless runtimes do not terminate it after the
-    // response, while keeping it best-effort so Telegram cannot fail an order.
+    // The order event is a durable Telegram outbox. Delivery is attempted now
+    // and retried by the reconciliation cron if Telegram is temporarily down.
     try {
-      await telegramAlertService.notifyOrderStatus(order.id, order.publicOrderId, toStatus, reason);
+      const eventId = updated?.events?.[0]?.id;
+      if (eventId) {
+        await telegramAlertService.deliverOrderEvent(eventId);
+      } else {
+        await telegramAlertService.notifyOrderStatus(order.id, order.publicOrderId, toStatus, reason);
+      }
     } catch (error) {
       logger.error("Telegram order alert failed", {
         orderId: order.publicOrderId,

@@ -30,7 +30,7 @@ export const FloatingSupportButton = () => {
         ត្រូវការជំនួយ ?
       </span>
       <span className="support-contact-logo h-12 w-12" aria-hidden="true">
-        <img src="/na-topup-brand-uppercase-2026.png" alt="" />
+        <img src="/na-topup-brand-uppercase-2026.png?v=20260924" alt="" />
       </span>
     </a>
   );

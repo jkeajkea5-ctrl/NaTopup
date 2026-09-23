@@ -56,7 +56,7 @@ const comparePackagesSmallToLarge = (a, b) => {
 };
 
 function Brand() {
-  return <div className="admin-brand"><img src="/na-topup-icon-2026.png" alt="NA TOPUP" /><span><strong>NA TOPUP</strong><small>Admin Dashboard</small></span></div>;
+  return <div className="admin-brand"><img src="/na-topup-icon-2026.png?v=20260924" alt="NA TOPUP" /><span><strong>NA TOPUP</strong><small>Admin Dashboard</small></span></div>;
 }
 
 function Empty({ children }) {

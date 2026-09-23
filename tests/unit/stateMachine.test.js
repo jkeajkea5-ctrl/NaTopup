@@ -15,6 +15,10 @@ test("Order state machine rejects illegal shortcut transitions", () => {
   assert.strictEqual(canTransitionOrder(OrderStatus.AWAITING_PAYMENT, OrderStatus.DELIVERED), false);
   // Terminal DELIVERED cannot transition back to PROCESSING
   assert.strictEqual(canTransitionOrder(OrderStatus.DELIVERED, OrderStatus.PROCESSING), false);
-  // EXPIRED orders cannot transition to PAID
-  assert.strictEqual(canTransitionOrder(OrderStatus.EXPIRED, OrderStatus.PAID), false);
+  // EXPIRED orders cannot skip verified payment and jump to delivery.
+  assert.strictEqual(canTransitionOrder(OrderStatus.EXPIRED, OrderStatus.DELIVERED), false);
+});
+
+test("Order state machine recovers a provider-confirmed payment after local expiry", () => {
+  assert.strictEqual(canTransitionOrder(OrderStatus.EXPIRED, OrderStatus.PAID), true);
 });

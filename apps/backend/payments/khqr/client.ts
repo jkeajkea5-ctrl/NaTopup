@@ -1,8 +1,53 @@
 import { config } from "../../lib/config";
 import { logger } from "../../lib/logger";
-import { sha1, sha256, verifyHmacSha256 } from "../../lib/security";
+import { sha1, sha256, timingSafeEqualHex, verifyHmacSha256 } from "../../lib/security";
 import { mapProviderStatusToInternal } from "./mapper";
 import { KhqrGenerateInput, KhqrGenerateOutput, KhqrVerifyInput, KhqrVerifyOutput } from "./types";
+
+export function parseWebhookTimestamp(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value < 1_000_000_000_000 ? value * 1000 : value;
+  }
+  if (typeof value !== "string" || !value.trim()) return null;
+  const trimmed = value.trim();
+  if (/^\d{14}$/.test(trimmed)) {
+    const year = Number(trimmed.slice(0, 4));
+    const month = Number(trimmed.slice(4, 6));
+    const day = Number(trimmed.slice(6, 8));
+    const hour = Number(trimmed.slice(8, 10));
+    const minute = Number(trimmed.slice(10, 12));
+    const second = Number(trimmed.slice(12, 14));
+    const timestamp = Date.UTC(year, month - 1, day, hour, minute, second);
+    const parsed = new Date(timestamp);
+    if (
+      parsed.getUTCFullYear() === year && parsed.getUTCMonth() === month - 1 &&
+      parsed.getUTCDate() === day && parsed.getUTCHours() === hour &&
+      parsed.getUTCMinutes() === minute && parsed.getUTCSeconds() === second
+    ) {
+      return timestamp;
+    }
+    return null;
+  }
+  if (/^\d+(?:\.\d+)?$/.test(trimmed)) {
+    const numeric = Number(trimmed);
+    if (!Number.isFinite(numeric)) return null;
+    return numeric < 1_000_000_000_000 ? numeric * 1000 : numeric;
+  }
+  const parsed = Date.parse(trimmed);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+export function isWebhookTimestampFresh(
+  value: unknown,
+  maxAgeSeconds: number,
+  now = Date.now()
+): boolean {
+  if (!Number.isFinite(maxAgeSeconds) || maxAgeSeconds <= 0) return false;
+  const timestamp = parseWebhookTimestamp(value);
+  if (timestamp === null) return false;
+  const age = now - timestamp;
+  return age >= -60_000 && age <= maxAgeSeconds * 1000;
+}
 
 export class KhqrClient {
   private khqrccEnabled: boolean;
@@ -312,7 +357,10 @@ export class KhqrClient {
         const expectedHash = sha256(
           `${this.khqrccSecretKey}${payload.req_time}${payload.transaction_id}${payload.amount}SUCCESS`
         );
-        return payload.hash.toLowerCase() === expectedHash.toLowerCase();
+        return (
+          isWebhookTimestampFresh(payload.req_time, config.khqrcc.webhookMaxAgeSeconds) &&
+          timingSafeEqualHex(String(payload.hash), expectedHash)
+        );
       }
     } catch {
       // not JSON

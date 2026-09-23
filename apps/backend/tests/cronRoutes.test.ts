@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { config } from "../lib/config";
 import { reconciliationService } from "../services/ReconciliationService";
+import { telegramAlertService } from "../services/TelegramAlertService";
 import { GET as reconcilePayments } from "../app/api/internal/cron/payments/route";
 import { GET as reconcileFulfilments } from "../app/api/internal/cron/fulfilments/route";
 import { GET as reconcileAll } from "../app/api/internal/cron/all/route";
@@ -24,6 +25,7 @@ test("Vercel GET cron independently reconciles payments and fulfilments", async 
     "reconcilePendingFulfilments",
     async () => ({ checked: 1, updated: 1 })
   );
+  t.mock.method(telegramAlertService, "retryPendingOrderAlerts", async () => ({ checked: 0, sent: 0 }));
 
   assert.equal((await reconcilePayments(cronRequest("/api/internal/cron/payments"))).status, 200);
   assert.equal((await reconcileFulfilments(cronRequest("/api/internal/cron/fulfilments"))).status, 200);
@@ -41,15 +43,20 @@ test("all-in-one cron reconciles ABA payments before supplier fulfilments", asyn
     calls.push("fulfilments");
     return { checked: 1, updated: 1 };
   });
+  t.mock.method(telegramAlertService, "retryPendingOrderAlerts", async () => {
+    calls.push("telegram");
+    return { checked: 1, sent: 1 };
+  });
 
   const response = await reconcileAll(cronRequest("/api/internal/cron/all"));
   assert.equal(response.status, 200);
-  assert.deepEqual(calls, ["payments", "fulfilments"]);
+  assert.deepEqual(calls, ["payments", "fulfilments", "telegram"]);
   assert.deepEqual(await response.json(), {
     success: true,
     data: {
       payments: { checked: 1, resolved: 1 },
       fulfilments: { checked: 1, updated: 1 },
+      telegram: { checked: 1, sent: 1 },
     },
   });
 });

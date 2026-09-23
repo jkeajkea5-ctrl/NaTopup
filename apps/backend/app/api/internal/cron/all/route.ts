@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { config } from "../../../../../lib/config";
 import { verifyBearerToken } from "../../../../../lib/security";
 import { reconciliationService } from "../../../../../services/ReconciliationService";
+import { telegramAlertService } from "../../../../../services/TelegramAlertService";
 
 async function runAllReconciliation(request: Request) {
   if (!verifyBearerToken(request.headers.get("authorization"), config.cronSecret)) {
@@ -16,10 +17,11 @@ async function runAllReconciliation(request: Request) {
     // picked up by the same invocation if the first fulfilment attempt stopped.
     const payments = await reconciliationService.reconcilePendingPayments();
     const fulfilments = await reconciliationService.reconcilePendingFulfilments();
+    const telegram = await telegramAlertService.retryPendingOrderAlerts();
 
     return NextResponse.json({
       success: true,
-      data: { payments, fulfilments },
+      data: { payments, fulfilments, telegram },
     });
   } catch (error) {
     return NextResponse.json(

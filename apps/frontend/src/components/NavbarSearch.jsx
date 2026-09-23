@@ -69,7 +69,14 @@ export const NavbarSearch = () => {
             setQuery("");
           }
         }}>
-        <Search className="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
+        <button
+          type="submit"
+          aria-label="ស្វែងរកហ្គេម"
+          title="ស្វែងរកហ្គេម"
+          className="-ml-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors hover:bg-brand-violet/10 hover:text-brand-violet focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-violet"
+        >
+          <Search className="h-[18px] w-[18px]" aria-hidden="true" />
+        </button>
         <input ref={input} type="search" value={query} aria-label="ស្វែងរកហ្គេម" placeholder="ស្វែងរកហ្គេម..."
           aria-controls={visible ? "navbar-search-results" : undefined}
           className="min-w-0 flex-1 bg-transparent py-2 text-sm outline-none placeholder:font-kulen placeholder:text-brand-muted/70 [&::-webkit-search-cancel-button]:hidden"

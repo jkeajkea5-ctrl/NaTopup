@@ -4,12 +4,12 @@
   "description": "Instant automated game top-up platform in Cambodia via KHQR",
   "icons": [
     {
-      "src": "/pwa-icon-192.png",
+      "src": "/pwa-icon-192.png?v=20260924",
       "type": "image/png",
       "sizes": "192x192"
     },
     {
-      "src": "/pwa-icon-512.png",
+      "src": "/pwa-icon-512.png?v=20260924",
       "type": "image/png",
       "sizes": "512x512"
     }

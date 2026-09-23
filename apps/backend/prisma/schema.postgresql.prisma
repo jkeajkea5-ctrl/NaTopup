@@ -344,11 +344,16 @@ model OrderEvent {
   toStatus   String
   reason     String
   metadata   String?
+  telegramSentAt        DateTime?
+  telegramAttemptCount  Int       @default(0)
+  telegramLastError     String?
+  telegramLastAttemptAt DateTime?
   createdAt  DateTime @default(now())
 
   order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@index([orderId])
+  @@index([telegramSentAt, telegramAttemptCount])
 }
 
 model CronRun {

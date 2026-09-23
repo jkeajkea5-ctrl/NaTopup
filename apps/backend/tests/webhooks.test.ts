@@ -1,8 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
-import { extractSupplierCallback, inferG2BulkGameCode, verifyVizoWebhookSignature } from "../services/WebhookService";
-import { generatePublicOrderId } from "../lib/security";
+import { extractSupplierCallback, inferG2BulkGameCode, paymentCurrencyMatches, verifyVizoWebhookSignature } from "../services/WebhookService";
+import { generatePublicOrderId, timingSafeEqualHex } from "../lib/security";
+import { isWebhookTimestampFresh, parseWebhookTimestamp } from "../payments/khqr/client";
 import { g2bulkAdapter } from "../suppliers/g2bulk/client";
 import { vizoAdapter } from "../suppliers/vizo/client";
 
@@ -12,6 +13,30 @@ test("verifies Vizo's documented sha256 HMAC format", () => {
   assert.equal(verifyVizoWebhookSignature(body, signature, "test-key"), true);
   assert.equal(verifyVizoWebhookSignature(`${body} `, signature, "test-key"), false);
   assert.equal(verifyVizoWebhookSignature(body, null, "test-key"), false);
+});
+
+test("compares provider hashes safely and rejects malformed hex", () => {
+  assert.equal(timingSafeEqualHex("a".repeat(64), "a".repeat(64)), true);
+  assert.equal(timingSafeEqualHex("a".repeat(64), "b".repeat(64)), false);
+  assert.equal(timingSafeEqualHex("not-hex", "not-hex"), false);
+});
+
+test("accepts only fresh KHQR callback timestamps", () => {
+  const now = Date.UTC(2026, 8, 24, 12, 0, 0);
+  assert.equal(parseWebhookTimestamp("20260924120000"), now);
+  assert.equal(parseWebhookTimestamp(String(now / 1000)), now);
+  assert.equal(parseWebhookTimestamp(new Date(now).toISOString()), now);
+  assert.equal(parseWebhookTimestamp("20261399120000"), null);
+  assert.equal(isWebhookTimestampFresh("20260924120000", 300, now), true);
+  assert.equal(isWebhookTimestampFresh(String(now / 1000), 300, now), true);
+  assert.equal(isWebhookTimestampFresh(String((now - 301_000) / 1000), 300, now), false);
+  assert.equal(isWebhookTimestampFresh("invalid", 300, now), false);
+});
+
+test("validates an explicit KHQR callback currency", () => {
+  assert.equal(paymentCurrencyMatches(undefined, "USD"), true);
+  assert.equal(paymentCurrencyMatches("usd", "USD"), true);
+  assert.equal(paymentCurrencyMatches("KHR", "USD"), false);
 });
 
 test("infers the G2Bulk game required by its order status endpoint", () => {
