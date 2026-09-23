@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { getBloodStrikeCategory, prepareBloodStrikeCatalogue } from "../lib/bloodStrikeCatalogue";
+import { getBloodStrikeCategory, getBloodStrikeIconUrl, prepareBloodStrikeCatalogue } from "../lib/bloodStrikeCatalogue";
 
 test("classifies Blood Strike products into Pass, Normal, and Other", () => {
   assert.equal(getBloodStrikeCategory("Level Up Pass"), "pass");
@@ -24,4 +24,16 @@ test("prepares Gold and deal labels with storefront flags", () => {
   assert.equal(entries[2].catalogueName, "049deal");
   assert.equal(entries[2].product.isFeatured, true);
   assert.ok(entries.every((entry) => entry.product.description.startsWith("Blood Strike | ")));
+});
+
+test("maps Blood Strike packages to their artwork groups", () => {
+  assert.equal(getBloodStrikeIconUrl("Level Up Pass"), "/packages/blood-strike/level-up-pass.webp");
+  assert.equal(getBloodStrikeIconUrl("Strike Pass Elite"), "/packages/blood-strike/strike-pass-elite.webp");
+  assert.equal(getBloodStrikeIconUrl("Strike Pass Premium"), "/packages/blood-strike/premium.webp");
+  assert.equal(getBloodStrikeIconUrl("5800"), "/packages/blood-strike/gold.webp");
+  assert.equal(getBloodStrikeIconUrl("Ultra Skin Lucky Chest"), "/packages/blood-strike/lucky-chest.webp");
+  assert.equal(getBloodStrikeIconUrl("Featured Lucha Strike Stash Voucher"), "/packages/blood-strike/voucher.webp");
+  assert.equal(getBloodStrikeIconUrl("Lucha Strike Upgrade Point Chest"), "/packages/blood-strike/upgrade-point.webp");
+  assert.equal(getBloodStrikeIconUrl("499deal"), "/packages/blood-strike/deal.webp");
+  assert.equal(getBloodStrikeIconUrl("Unknown Bundle"), "/packages/blood-strike/other.webp");
 });

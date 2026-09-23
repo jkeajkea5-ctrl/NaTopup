@@ -25,6 +25,7 @@
     "catalogue:zepeto": "tsx scripts/replace-zepeto.ts",
     "catalogue:delta-force": "tsx scripts/replace-delta-force.ts",
     "catalogue:blood-strike": "tsx scripts/replace-blood-strike.ts",
+    "catalogue:blood-strike-images": "tsx scripts/update-blood-strike-images.ts",
     "catalogue:magic-chess-gogo": "tsx scripts/replace-magic-chess-gogo.ts",
     "catalogue:crossfire-legend": "tsx scripts/replace-crossfire-legend.ts"
   },
