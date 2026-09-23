@@ -3,6 +3,7 @@ import path from "node:path";
 import { mkdir, writeFile } from "node:fs/promises";
 import { PrismaClient } from "@prisma/client";
 import { prepareGameCatalogue } from "../lib/mlbbCatalogue";
+import { getZepetoIconUrl } from "../lib/zepetoCatalogue";
 
 dotenv.config({ path: path.resolve(__dirname, "../.env.local") });
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
@@ -12,7 +13,7 @@ async function main() {
   const { g2bulkAdapter } = await import("../suppliers/g2bulk/client");
   const { config } = await import("../lib/config");
   const packages = prepareGameCatalogue(await g2bulkAdapter.getZepetoCatalogue(), "ZEPETO", ["60 ZEMS", "21000 Coins", "Premium (1M)"]);
-  for (const entry of packages) { entry.product.name = entry.catalogueName; entry.product.amount = entry.catalogueName; entry.product.description = `Zepeto Cambodia Server (${entry.catalogueName})`; }
+  for (const entry of packages) { entry.product.name = entry.catalogueName; entry.product.amount = entry.catalogueName; entry.product.description = `Zepeto Cambodia Server (${entry.catalogueName})`; entry.product.iconUrl = getZepetoIconUrl(entry.catalogueName); }
   console.log(`Validated ${packages.length} Zepeto Cambodia packages.`);
   const db = new PrismaClient({ log: [] });
   try {

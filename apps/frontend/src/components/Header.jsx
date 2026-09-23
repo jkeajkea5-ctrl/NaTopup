@@ -3,16 +3,8 @@ import { Link, useLocation } from "react-router-dom";
 import { Home, Mail, Menu, Phone, X } from "lucide-react";
 import { NavbarSearch } from "./NavbarSearch";
 import { TelegramBrandIcon } from "./TelegramBrandIcon";
-
-const FacebookIcon = () => (
-  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.1 8.3V6.6c0-.8.5-1 1-1h2.6V1.2L14.1 1C10.5 1 8.8 3.2 8.8 6.2v2.1H6.3v5h2.5V23h5.3v-9.7h3.5l.6-5h-4.1Z" /></svg>
-);
-const TikTokIcon = () => (
-  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.8 2c.3 2.2 1.5 3.6 3.8 3.8v4a10 10 0 0 1-3.7-.9v7.2a7 7 0 1 1-6-6.9v4.1a3 3 0 1 0 2 2.8V2h3.9Z" /></svg>
-);
-const YouTubeIcon = () => (
-  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8ZM9.6 15.6V8.4l6.3 3.6-6.3 3.6Z" /></svg>
-);
+import { FacebookBrandIcon, TikTokBrandIcon, YouTubeBrandIcon } from "./SocialBrandIcons";
+import { CONTACT_LINKS } from "../contactLinks";
 
 const RailLink = ({ href, label, className, children }) => (
   <a href={href} target={href.startsWith("http") ? "_blank" : undefined} rel={href.startsWith("http") ? "noopener noreferrer" : undefined} className={`mobile-rail-link hover:!bg-transparent ${className || ""}`} aria-label={label} title={label}>
@@ -63,7 +55,7 @@ export const Header = () => {
             </div>
             <NavbarSearch />
             <div className="flex items-center gap-2 sm:gap-3">
-              <a href="https://t.me/LukasTopupSupport" target="_blank" rel="noopener noreferrer" className="navbar-contact flex shrink-0 items-center justify-center gap-2 rounded-2xl !border-0 !bg-transparent p-2 !shadow-none md:px-4 md:py-2.5" title="ទាក់ទង Telegram" aria-label="ទាក់ទង Telegram">
+              <a href={CONTACT_LINKS.telegram} target="_blank" rel="noopener noreferrer" className="navbar-contact flex shrink-0 items-center justify-center gap-2 p-1.5 md:px-2 md:py-2" title="ទាក់ទង Telegram" aria-label="ទាក់ទង Telegram">
                 <TelegramBrandIcon className="h-10 w-10" />
                 <span className="relative z-10 hidden whitespace-nowrap pr-0.5 font-kulen text-xs font-bold tracking-tight text-[#2489b6] lg:inline lg:text-sm">ទាក់ទង Telegram</span>
               </a>
@@ -85,17 +77,17 @@ export const Header = () => {
           <section className="mobile-rail-section" aria-labelledby="follow-us-title">
             <h2 id="follow-us-title">តាមដានយើង</h2>
             <div className="mobile-rail-icons">
-              <RailLink href="https://facebook.com" label="Facebook" className="is-facebook"><FacebookIcon /></RailLink>
-              <RailLink href="https://tiktok.com" label="TikTok" className="is-tiktok"><TikTokIcon /></RailLink>
-              <RailLink href="https://youtube.com" label="YouTube" className="is-youtube"><YouTubeIcon /></RailLink>
-              <RailLink href="https://t.me/LukasTopupSupport" label="Telegram" className="is-telegram"><TelegramBrandIcon className="h-9 w-9" /></RailLink>
+              <RailLink href={CONTACT_LINKS.facebook} label="Facebook" className="is-facebook"><FacebookBrandIcon /></RailLink>
+              <RailLink href={CONTACT_LINKS.tiktok} label="TikTok" className="is-tiktok"><TikTokBrandIcon /></RailLink>
+              <RailLink href="https://youtube.com" label="YouTube" className="is-youtube"><YouTubeBrandIcon /></RailLink>
+              <RailLink href={CONTACT_LINKS.telegram} label="Telegram" className="is-telegram"><TelegramBrandIcon className="h-9 w-9" /></RailLink>
             </div>
           </section>
 
           <section className="mobile-rail-section mobile-rail-contact" aria-labelledby="contact-us-title">
             <h2 id="contact-us-title">ទាក់ទងមកយើង</h2>
             <div className="mobile-rail-icons">
-              <RailLink href="https://t.me/LukasTopupSupport" label="Telegram support" className="is-telegram"><TelegramBrandIcon className="h-9 w-9" /></RailLink>
+              <RailLink href={CONTACT_LINKS.telegram} label="Telegram support" className="is-telegram"><TelegramBrandIcon className="h-9 w-9" /></RailLink>
               <RailLink href="/support" label="Contact support" className="is-phone"><Phone /></RailLink>
               <RailLink href="mailto:support@lukastopup.com" label="Email support" className="is-email"><Mail /></RailLink>
             </div>

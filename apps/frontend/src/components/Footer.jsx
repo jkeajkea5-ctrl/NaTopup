@@ -2,6 +2,8 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { Mail } from "lucide-react";
 import { TelegramBrandIcon } from "./TelegramBrandIcon";
+import { FacebookBrandIcon, TikTokBrandIcon } from "./SocialBrandIcons";
+import { CONTACT_LINKS } from "../contactLinks";
 
 export const Footer = () => {
   return (
@@ -17,15 +19,13 @@ export const Footer = () => {
                 />
               </div>
               <div className="flex min-w-0 flex-col items-center text-center">
-                <span className="mt-2 text-[10px] font-semibold tracking-wide text-gray-500 sm:text-sm">
-                  Cambodian Premier Game Top-Up
+                <span className="mt-2 flex items-center gap-1.5 font-heading text-2xl font-black tracking-tight sm:text-3xl" aria-label="NA TOPUP">
+                  <span className="text-[#ffdf51]">NA</span>
+                  <span className="na-brand-word">TOPUP</span>
                 </span>
               </div>
             </Link>
 
-            <p className="mt-6 max-w-2xl text-center font-kulen text-sm font-semibold leading-7 text-gray-500 sm:mt-7 sm:text-base sm:leading-8">
-              សេវាកម្មបញ្ចូលហ្គេមរហ័ស 24 ម៉ោង តាមរយៈប្រព័ន្ធ KHQR Bakong និងធនាគារក្នុងស្រុកទាំងអស់ដោយសុវត្ថិភាព។
-            </p>
         </div>
 
         <div className="mx-auto mt-8 grid max-w-md grid-cols-2 gap-6 border-t border-[#DFD3E6]/70 pt-7 text-center sm:mt-10">
@@ -33,7 +33,7 @@ export const Footer = () => {
             <h4 className="text-sm font-extrabold tracking-wide text-[#1C172B] sm:text-base">តាមដានយើង</h4>
             <div className="flex items-center justify-center gap-3">
               <a
-                href="https://t.me/LukasTopupSupport"
+                href={CONTACT_LINKS.telegram}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="contact-icon contact-icon--telegram !border-0 !bg-transparent !shadow-none"
@@ -44,16 +44,25 @@ export const Footer = () => {
               </a>
 
               <a
-                href="https://facebook.com"
+                href={CONTACT_LINKS.facebook}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="contact-icon contact-icon--facebook !border-0 !bg-transparent !shadow-none"
                 title="Facebook"
                 aria-label="Facebook"
               >
-                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                </svg>
+                <FacebookBrandIcon className="h-6 w-6" />
+              </a>
+
+              <a
+                href={CONTACT_LINKS.tiktok}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="contact-icon contact-icon--tiktok !border-0 !bg-transparent !shadow-none"
+                title="TikTok"
+                aria-label="TikTok"
+              >
+                <TikTokBrandIcon className="h-6 w-6" />
               </a>
             </div>
           </div>
@@ -62,7 +71,7 @@ export const Footer = () => {
             <h4 className="text-sm font-extrabold tracking-wide text-[#1C172B] sm:text-base">ទាក់ទងមកយើង</h4>
             <div className="flex items-center justify-center gap-3">
               <a
-                href="https://t.me/LukasTopupSupport"
+                href={CONTACT_LINKS.telegram}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="contact-icon contact-icon--telegram !border-0 !bg-transparent !shadow-none"
@@ -93,7 +102,7 @@ export const Footer = () => {
             <div className="flex items-center gap-2">
               <span className="text-gray-600 font-semibold text-xs">We accept:</span>
               <img
-                src="/aba-khqr-badge.png"
+                src="/aba-khqr-badge.svg"
                 alt="ABA KHQR Badge"
                 className="h-6 object-contain rounded-xs shadow-2xs"
               />

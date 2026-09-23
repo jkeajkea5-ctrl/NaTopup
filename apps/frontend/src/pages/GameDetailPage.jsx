@@ -591,7 +591,7 @@ export const GameDetailPage = () => {
               <div className="flex items-center justify-between p-3.5 rounded-2xl bg-[#EEF6FC] border-2 border-[#1E75A0] shadow-xs">
                 <div className="flex items-center gap-3">
                   <img
-                    src="/aba-khqr.png"
+                    src="/aba-khqr.svg"
                     alt="ABA KHQR"
                     className="w-10 h-10 rounded-xl object-contain shadow-xs flex-shrink-0 bg-white"
                   />

@@ -1,5 +1,6 @@
 import React from "react";
 import { useLocation } from "react-router-dom";
+import { CONTACT_LINKS } from "../contactLinks";
 
 export const FloatingSupportButton = () => {
   const { pathname } = useLocation();
@@ -17,7 +18,7 @@ export const FloatingSupportButton = () => {
 
   return (
     <a
-      href="https://t.me/LukasTopupSupport"
+      href={CONTACT_LINKS.telegram}
       target="_blank"
       rel="noopener noreferrer"
       className={`support-contact fixed ${bottomPosClass} right-3 sm:right-6 z-30 group flex flex-col items-center gap-2 rounded-[20px] sm:rounded-[22px] p-2.5 sm:p-3`}

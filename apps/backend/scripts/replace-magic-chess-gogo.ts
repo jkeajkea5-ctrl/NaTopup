@@ -3,6 +3,7 @@ import path from "node:path";
 import { mkdir, writeFile } from "node:fs/promises";
 import { PrismaClient } from "@prisma/client";
 import { prepareGameCatalogue } from "../lib/mlbbCatalogue";
+import { getMagicChessGogoIconUrl } from "../lib/magicChessGogoCatalogue";
 
 dotenv.config({ path: path.resolve(__dirname, "../.env.local") });
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
@@ -12,7 +13,7 @@ async function main() {
   const { g2bulkAdapter } = await import("../suppliers/g2bulk/client");
   const { config } = await import("../lib/config");
   const packages = prepareGameCatalogue(await g2bulkAdapter.getMagicChessGogoCatalogue(), "MCGOGO", ["86", "172", "257", "706", "Weekly Card"]);
-  for (const entry of packages) { entry.product.name = entry.catalogueName; entry.product.amount = entry.catalogueName; entry.product.description = `Magic Chess Gogo Cambodia Server (${entry.catalogueName})`; }
+  for (const entry of packages) { entry.product.name = entry.catalogueName; entry.product.amount = entry.catalogueName; entry.product.description = `Magic Chess Gogo Cambodia Server (${entry.catalogueName})`; entry.product.iconUrl = getMagicChessGogoIconUrl(entry.catalogueName); }
   console.log(`Validated ${packages.length} Magic Chess Gogo Cambodia packages.`);
   const db = new PrismaClient({ log: [] });
   try {

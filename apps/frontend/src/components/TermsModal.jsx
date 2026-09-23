@@ -101,7 +101,7 @@ export const TermsModal = ({ isOpen, onClose, onAgree }) => {
               <span>៥. ជំនួយអតិថិជន ២៤/៧ (Customer Support)</span>
             </div>
             <p className="text-gray-700 leading-relaxed">
-              ប្រសិនបើមានបញ្ហាបច្ចេកទេស ការទូទាត់ ឬការផ្ទេរពេជ្រមានការយឺតយ៉ាវ សូមទាក់ទងមកកាន់ផ្នែកបម្រើអតិថិជនរបស់យើងតាមរយៈ Telegram: <strong>@LukasTopupSupport</strong> ឬ Telegram Help Desk ដើម្បីទទួលបានការដោះស្រាយភ្លាមៗ។
+              ប្រសិនបើមានបញ្ហាបច្ចេកទេស ការទូទាត់ ឬការផ្ទេរពេជ្រមានការយឺតយ៉ាវ សូមទាក់ទងមកកាន់ផ្នែកបម្រើអតិថិជនរបស់យើងតាមរយៈ Telegram: <strong>@nagaming32</strong> ឬ Telegram Help Desk ដើម្បីទទួលបានការដោះស្រាយភ្លាមៗ។
             </p>
           </div>
         </div>

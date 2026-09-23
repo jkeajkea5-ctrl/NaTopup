@@ -285,7 +285,7 @@ export const KhqrModal = ({
                 onClick={handleAbaMobileClick}
                 className="w-full py-2.5 px-4 rounded-xl text-xs sm:text-sm bg-[#005E7B] hover:bg-[#004B62] active:scale-98 text-white shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
-                <img src="/aba-khqr.png" alt="ABA Mobile" className="w-4 h-4 rounded-xs object-contain" />
+                <img src="/aba-khqr.svg" alt="ABA Mobile" className="w-5 h-5 rounded-sm object-contain" />
                 <span className="font-kulen font-bold text-xs sm:text-sm">បើកក្នុង</span>
                 <span className="font-bold text-xs sm:text-sm tracking-wide">ABA Mobile (Deeplink)</span>
                 <ExternalLink className="w-3.5 h-3.5 ml-0.5 opacity-80" />

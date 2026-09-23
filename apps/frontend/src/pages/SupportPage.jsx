@@ -1,6 +1,7 @@
 import React from "react";
 import { HelpCircle, ShieldCheck, Clock, Zap } from "lucide-react";
 import { TelegramBrandIcon } from "../components/TelegramBrandIcon";
+import { CONTACT_LINKS } from "../contactLinks";
 
 export const SupportPage = () => {
   const faqs = [
@@ -53,7 +54,7 @@ export const SupportPage = () => {
         </div>
 
         <a
-          href="https://t.me/LukasTopupSupport"
+          href={CONTACT_LINKS.telegram}
           target="_blank"
           rel="noopener noreferrer"
           className="bg-white text-brand-text hover:bg-brand-bg px-6 py-3 rounded-button font-bold text-sm shadow-md transition-all flex items-center gap-2 flex-shrink-0"

@@ -279,12 +279,12 @@ export const CheckOrderPage = () => {
           <div className="pt-2 text-center text-xs text-brand-muted">
             ត្រូវការជំនួយលើការបញ្ជាទិញនេះមែនទេ? ទាក់ទងសេវាអតិថិជន 24/7 តាម Telegram ៖{" "}
             <a
-              href="https://t.me/LukasTopupSupport"
+              href="https://t.me/nagaming32"
               target="_blank"
               rel="noopener noreferrer"
               className="text-brand-violet font-semibold hover:underline"
             >
-              @LukasTopupSupport
+              @nagaming32
             </a>
           </div>
         </div>

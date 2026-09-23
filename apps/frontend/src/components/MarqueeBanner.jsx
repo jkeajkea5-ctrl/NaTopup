@@ -20,8 +20,8 @@ export const MarqueeBanner = ({
     },
     {
       icon: <span className="text-sm">💬</span>,
-      text: "ត្រូវការជំនួយ ឬមានចម្ងល់ផ្សេងៗ សូមទាក់ទងមកកាន់ Telegram ផ្លូវការ: @NATopUp",
-      highlight: "@NATopUp",
+      text: "ត្រូវការជំនួយ ឬមានចម្ងល់ផ្សេងៗ សូមទាក់ទងមកកាន់ Telegram ផ្លូវការ: @nagaming32",
+      highlight: "@nagaming32",
     },
   ],
 }) => {

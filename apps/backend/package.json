@@ -25,10 +25,13 @@
     "catalogue:valorant-kh": "tsx scripts/replace-valorant-kh.ts",
     "catalogue:valorant-images": "tsx scripts/update-valorant-images.ts",
     "catalogue:zepeto": "tsx scripts/replace-zepeto.ts",
+    "catalogue:zepeto-images": "tsx scripts/update-zepeto-images.ts",
     "catalogue:delta-force": "tsx scripts/replace-delta-force.ts",
+    "catalogue:delta-force-images": "tsx scripts/update-delta-force-images.ts",
     "catalogue:blood-strike": "tsx scripts/replace-blood-strike.ts",
     "catalogue:blood-strike-images": "tsx scripts/update-blood-strike-images.ts",
     "catalogue:magic-chess-gogo": "tsx scripts/replace-magic-chess-gogo.ts",
+    "catalogue:magic-chess-gogo-images": "tsx scripts/update-magic-chess-gogo-images.ts",
     "catalogue:crossfire-legend": "tsx scripts/replace-crossfire-legend.ts",
     "catalogue:crossfire-legend-images": "tsx scripts/update-crossfire-legend-images.ts"
   },
