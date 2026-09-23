@@ -101,9 +101,14 @@ function Editor({ editor, saving, error, onClose, onSave }) {
   const field = (name, label, type = "text", required = true) => <label className="admin-field" key={name}>{label}<input type={type} required={required} value={form[name] ?? ""} min={type === "number" ? 0 : undefined} step={type === "number" ? (name === "sortOrder" || name === "priority" ? 1 : .01) : undefined} onChange={(e) => setForm({ ...form, [name]: type === "number" ? Number(e.target.value) : e.target.value })} /></label>;
   const toggle = (name, label) => <label className="admin-check" key={name}><input type="checkbox" checked={!!form[name]} onChange={(e) => setForm({ ...form, [name]: e.target.checked })} />{label}</label>;
   if (editor.entity === "package") {
-    const profit = Number(form.sellingPrice || 0) - Number(form.discount || 0) - Number(form.supplierCost || 0);
+    const supplierCost = Number(form.supplierCost || 0);
+    const discount = Number(form.discount || 0);
+    const customerPrice = Number(form.sellingPrice || 0) - discount;
+    const profit = customerPrice - supplierCost;
+    const minimumSellingPrice = Math.ceil((supplierCost + discount - 1e-9) * 100) / 100;
+    const isBelowCost = profit < -Number.EPSILON;
     return <dialog ref={dialog} className="admin-dialog admin-package-dialog" onCancel={(e) => { e.preventDefault(); if (!saving) onClose(); }}>
-      <form onSubmit={(e) => { e.preventDefault(); onSave({ entity: editor.entity, id: editor.id, data: form }); }}>
+      <form onSubmit={(e) => { e.preventDefault(); if (!isBelowCost) onSave({ entity: editor.entity, id: editor.id, data: form }); }}>
         <div className="admin-dialog-head"><h2>Edit Package</h2><button type="button" className="admin-icon-btn" onClick={onClose} aria-label="Close"><X size={20} /></button></div>
         <div className="admin-package-preview"><Picture url={form.iconUrl} name={form.name} /><span><strong>{form.name || "Package name"}</strong><small>{form.amount || "0"}</small></span></div>
         <fieldset disabled={saving} className="admin-package-fields">
@@ -111,14 +116,15 @@ function Editor({ editor, saving, error, onClose, onSave }) {
           <label className="admin-field">Amount (diamonds)<input required value={form.amount ?? ""} onChange={(e) => setForm({ ...form, amount: e.target.value })} /></label>
           <label className="admin-field">Custom image URL (optional)<input value={form.iconUrl ?? ""} placeholder="/packages/game/item.png" onChange={(e) => setForm({ ...form, iconUrl: e.target.value })} /></label>
           <label className="admin-field admin-package-wide">Category<select value={form.category || "normal"} onChange={(e) => setForm({ ...form, category: e.target.value })}><option value="pass">Passes &amp; Deal</option><option value="normal">Normal</option><option value="other">Other</option></select></label>
-          <label className="admin-field">Cost price (USD)<input required type="number" min="0" step="0.01" value={form.supplierCost ?? 0} onChange={(e) => setForm({ ...form, supplierCost: Number(e.target.value) })} /></label>
-          <label className="admin-field admin-selling-field">Selling price (USD)<span><input required type="number" min="0.01" step="0.01" value={form.sellingPrice ?? 0} onChange={(e) => setForm({ ...form, sellingPrice: Number(e.target.value) })} /><em className={profit >= 0 ? "positive" : "negative"}>Profit: {profit >= 0 ? "+" : "-"}${Math.abs(profit).toFixed(2)}</em></span></label>
+          <label className="admin-field">Cost price (USD)<input required type="number" min="0" step="0.001" value={form.supplierCost ?? 0} onChange={(e) => setForm({ ...form, supplierCost: Number(e.target.value) })} /></label>
+          <label className="admin-field admin-selling-field">Selling price (USD)<span><input required type="number" min={Math.max(0.01, minimumSellingPrice)} step="0.01" aria-invalid={isBelowCost} value={form.sellingPrice ?? 0} onChange={(e) => setForm({ ...form, sellingPrice: Number(e.target.value) })} /><em className={profit >= 0 ? "positive" : "negative"}>Profit: {profit >= 0 ? "+" : "-"}${Math.abs(profit).toFixed(2)}</em></span></label>
           <label className="admin-field">Custom badge<input maxLength="40" value={form.customBadge ?? ""} placeholder="e.g., 50% Off" onChange={(e) => setForm({ ...form, customBadge: e.target.value })} /></label>
           <label className="admin-field">Display order (0 is first)<input required type="number" min="0" step="1" value={form.sortOrder ?? 0} onChange={(e) => setForm({ ...form, sortOrder: Number(e.target.value) })} /></label>
           <div className="admin-package-wide">{toggle("isActive", "Active")}</div>
         </fieldset>
+        {isBelowCost && <p className="admin-alert error">Customer price cannot be below cost. Set the selling price to at least ${minimumSellingPrice.toFixed(2)}.</p>}
         {error && <p className="admin-alert error">{error}</p>}
-        <div className="admin-dialog-actions"><button type="button" className="admin-btn secondary" onClick={onClose}>Cancel</button><button className="admin-btn primary" disabled={saving}>{saving ? "Saving…" : "Save Package"}</button></div>
+        <div className="admin-dialog-actions"><button type="button" className="admin-btn secondary" onClick={onClose}>Cancel</button><button className="admin-btn primary" disabled={saving || isBelowCost}>{saving ? "Saving…" : "Save Package"}</button></div>
       </form>
     </dialog>;
   }
@@ -233,7 +239,21 @@ export const AdminDashboard = () => {
     const source = entity === "package" ? { ...item, category: item.isPopular ? "pass" : item.isFeatured ? "other" : "normal", supplierCost: item.price?.supplierCost || 0, sellingPrice: item.price?.sellingPrice || 0, discount: item.price?.discount || 0 } : item;
     setSaveError(""); setEditor({ entity, id: item.id, title: `${item.id ? "Edit" : "Add"} ${entity}`, data: Object.fromEntries(fields[entity].map((name) => [name, source[name] ?? ""])) });
   }
-  async function save(mutation) { setSaving(true); setSaveError(""); try { await saveAdminDashboardMutation(mutation); setEditor(null); await refresh(); setNotice("Changes saved to NA TOPUP."); } catch (err) { setSaveError(err.message); } finally { setSaving(false); } }
+  async function save(mutation) {
+    if (mutation.entity === "package") {
+      const cost = Number(mutation.data.supplierCost);
+      const sellingPrice = Number(mutation.data.sellingPrice);
+      const discount = Number(mutation.data.discount);
+      if (![cost, sellingPrice, discount].every(Number.isFinite) || sellingPrice - discount + Number.EPSILON < cost) {
+        setSaveError("Customer price cannot be below the cost price.");
+        return;
+      }
+    }
+    setSaving(true); setSaveError("");
+    try { await saveAdminDashboardMutation(mutation); setEditor(null); await refresh(); setNotice("Changes saved to NA TOPUP."); }
+    catch (err) { setSaveError(err.message); }
+    finally { setSaving(false); }
+  }
   async function signOut() { await logoutAdmin(); navigate("/admin/login", { replace: true }); }
   function exportOrders() {
     const rows = [["Order", "Created", "Game", "Package", "Player", "USD", "Status"], ...filteredOrders.map((o) => [o.publicOrderId, o.createdAt, o.game.name, o.product.name, o.playerName || o.playerId, o.total, o.status])];

@@ -42,7 +42,14 @@ export class FulfilmentService {
     }
 
     // BUSINESS RULE: NO VERIFIED PAYMENT = NO SUPPLIER ORDER
-    if (order.status !== OrderStatus.PAID && order.status !== OrderStatus.FULFILMENT_QUEUED) {
+    const recoverableQueuedDispatch =
+      order.status === OrderStatus.PROCESSING &&
+      order.fulfilment?.status === FulfilmentStatus.QUEUED;
+    if (
+      order.status !== OrderStatus.PAID &&
+      order.status !== OrderStatus.FULFILMENT_QUEUED &&
+      !recoverableQueuedDispatch
+    ) {
       logger.warn("Refusing fulfilment: Order is not paid", {
         orderId: order.publicOrderId,
         status: order.status,
@@ -51,9 +58,10 @@ export class FulfilmentService {
     }
 
     // BUSINESS RULE: ONE VERIFIED PAYMENT = MAXIMUM ONE FULFILMENT
-    if (order.fulfilment && order.fulfilment.status === FulfilmentStatus.DELIVERED) {
-      logger.info("Fulfilment already delivered, skipping duplicate attempt", {
+    if (order.fulfilment && order.fulfilment.status !== FulfilmentStatus.QUEUED) {
+      logger.info("Fulfilment is already claimed or completed, skipping duplicate dispatch", {
         orderId: order.publicOrderId,
+        status: order.fulfilment.status,
       });
       return;
     }
@@ -114,7 +122,7 @@ export class FulfilmentService {
             status: FulfilmentStatus.QUEUED,
             supplierCost: currentCost,
             idempotencyKey,
-            attemptCount: 1,
+            attemptCount: 0,
           },
         });
       } catch (err: any) {
@@ -132,6 +140,24 @@ export class FulfilmentService {
       OrderStatus.PROCESSING,
       `Order submitted to ${supplierCode} for delivery`
     );
+
+    // Claim the durable queue record before calling a supplier. This prevents
+    // a webhook and the recovery cron from dispatching the same paid order at
+    // the same time.
+    const claimed = await prisma.fulfilment.updateMany({
+      where: { id: fulfilment.id, status: FulfilmentStatus.QUEUED },
+      data: {
+        status: FulfilmentStatus.PROCESSING,
+        attemptCount: { increment: 1 },
+        lastCheckedAt: new Date(),
+      },
+    });
+    if (claimed.count !== 1) {
+      logger.info("Fulfilment dispatch was claimed by another worker", {
+        orderId: order.publicOrderId,
+      });
+      return;
+    }
 
     // 6. Submit Order to Supplier Gateway
     // The public order ID is already unique and lets supplier callbacks map
@@ -178,7 +204,6 @@ export class FulfilmentService {
         where: { id: fulfilment.id },
         data: {
           supplierOrderId: result.supplierOrderId,
-          status: FulfilmentStatus.PROCESSING,
           supplierCost: result.supplierCost,
         },
       });

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
-import { extractSupplierCallback, verifyVizoWebhookSignature } from "../services/WebhookService";
+import { extractSupplierCallback, inferG2BulkGameCode, verifyVizoWebhookSignature } from "../services/WebhookService";
 import { generatePublicOrderId } from "../lib/security";
 import { g2bulkAdapter } from "../suppliers/g2bulk/client";
 import { vizoAdapter } from "../suppliers/vizo/client";
@@ -12,6 +12,12 @@ test("verifies Vizo's documented sha256 HMAC format", () => {
   assert.equal(verifyVizoWebhookSignature(body, signature, "test-key"), true);
   assert.equal(verifyVizoWebhookSignature(`${body} `, signature, "test-key"), false);
   assert.equal(verifyVizoWebhookSignature(body, null, "test-key"), false);
+});
+
+test("infers the G2Bulk game required by its order status endpoint", () => {
+  assert.equal(inferG2BulkGameCode("Mobile Legends"), "mlbb");
+  assert.equal(inferG2BulkGameCode("G2B_MLBB_55"), "mlbb");
+  assert.equal(inferG2BulkGameCode("valorant_sg"), "valorant_sg");
 });
 
 test("extracts G2Bulk remarks and nested Vizo transaction IDs", () => {

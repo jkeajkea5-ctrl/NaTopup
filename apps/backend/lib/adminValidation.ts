@@ -15,7 +15,22 @@ export const adminMutation = z.discriminatedUnion("entity", [
     name: text, amount: text, customBadge: z.string().trim().max(40), category: z.enum(["pass", "normal", "other"]),
     sortOrder: sort, isActive: z.boolean(), supplierCost: z.number().finite().min(0).max(100000),
     sellingPrice: z.number().finite().positive().max(100000), discount: z.number().finite().min(0).max(100000),
-  }).strict().refine((data) => data.discount < data.sellingPrice, "Discount must be less than the price") }).strict(),
+  }).strict().superRefine((data, context) => {
+    if (data.discount >= data.sellingPrice) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["discount"],
+        message: "Discount must be less than the selling price",
+      });
+    }
+    if (data.sellingPrice - data.discount + Number.EPSILON < data.supplierCost) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["sellingPrice"],
+        message: "Customer price cannot be below the cost price",
+      });
+    }
+  }) }).strict(),
   z.object({ entity: z.literal("slide"), id: id.optional(), data: z.object({
     title: text, bannerUrl: image, targetUrl: z.string().max(2000).refine((value) => !value || /^https?:\/\//i.test(value) || /^\/(?!\/)/.test(value), "Invalid target URL"),
     sortOrder: sort, isActive: z.boolean(),

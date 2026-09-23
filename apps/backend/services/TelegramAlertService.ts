@@ -19,6 +19,22 @@ export function escapeTelegramHtml(value: unknown): string {
     .replaceAll(">", "&gt;");
 }
 
+export function formatCambodiaTime(value: Date = new Date()): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Phnom_Penh",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(value);
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((entry) => entry.type === type)?.value || "";
+  return `${part("year")}-${part("month")}-${part("day")} ${part("hour")}:${part("minute")}:${part("second")} (Cambodia)`;
+}
+
 function threadIdFor(topic: TelegramAlertTopic): number {
   if (topic === "paid") return config.telegram.paidThreadId;
   if (topic === "completed") return config.telegram.completedThreadId;
@@ -97,7 +113,16 @@ class TelegramAlertService {
     reason: string
   ): Promise<boolean> {
     const topic = getTelegramAlertTopic(status);
-    if (!topic || !this.isConfigured(topic)) return false;
+    if (!topic) return false;
+    if (!this.isConfigured(topic)) {
+      logger.warn("Telegram order alert is not configured", {
+        provider: "TELEGRAM",
+        orderId: publicOrderId,
+        status,
+        metadata: { topic },
+      });
+      return false;
+    }
 
     const order = String(orderId).startsWith("mem_")
       ? null
@@ -148,12 +173,26 @@ class TelegramAlertService {
         `<b>Reason:</b> ${escapeTelegramHtml(order?.fulfilment?.lastError || reason || "Unknown error")}`
       );
     }
-    lines.push(`<b>Time:</b> ${escapeTelegramHtml(new Date().toISOString())}`);
+    lines.push(`<b>Time:</b> ${escapeTelegramHtml(formatCambodiaTime())}`);
 
-    return this.send(topic, lines.join("\n"));
+    const sent = await this.send(topic, lines.join("\n"));
+    if (sent) {
+      logger.info("Telegram order alert delivered", {
+        provider: "TELEGRAM",
+        orderId: order?.publicOrderId || publicOrderId,
+        status,
+        metadata: { topic },
+      });
+    }
+    return sent;
   }
 
-  async notifyLowBalance(supplier: "G2BULK" | "VIZO", balance: number, currency = "USD") {
+  async notifyLowBalance(
+    supplier: "G2BULK" | "VIZO",
+    balance: number,
+    currency = "USD",
+    threshold = config.telegram.lowBalanceThresholdUsd
+  ) {
     const topic: TelegramAlertTopic = supplier === "G2BULK" ? "lowBalanceG2b" : "lowBalanceVizo";
     if (!this.isConfigured(topic)) return false;
     const now = Date.now();
@@ -163,8 +202,8 @@ class TelegramAlertService {
       `<b>Low Balance ${supplier === "G2BULK" ? "G2B" : "Vizo"}</b>`,
       `<b>Supplier:</b> ${escapeTelegramHtml(supplier)}`,
       `<b>Balance:</b> ${escapeTelegramHtml(balance.toFixed(2))} ${escapeTelegramHtml(currency)}`,
-      `<b>Threshold:</b> $3.00 USD`,
-      `<b>Time:</b> ${escapeTelegramHtml(new Date().toISOString())}`,
+      `<b>Threshold:</b> $${escapeTelegramHtml(threshold.toFixed(2))} USD`,
+      `<b>Time:</b> ${escapeTelegramHtml(formatCambodiaTime())}`,
     ];
     const sent = await this.send(topic, lines.join("\n"));
     if (sent) this.lowBalanceAlertAt.set(supplier, now);

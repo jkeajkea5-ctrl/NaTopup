@@ -14,7 +14,7 @@ export class ReconciliationService {
     const now = new Date();
     const pendingPayments = await prisma.payment.findMany({
       where: {
-        status: PaymentStatus.PENDING,
+        status: { in: [PaymentStatus.PENDING, PaymentStatus.VERIFYING] },
         qrExpiresAt: { gt: new Date(now.getTime() - 15 * 60 * 1000) }, // within 15 min window
       },
       include: { order: true },
@@ -77,22 +77,76 @@ export class ReconciliationService {
    * Reconciles pending supplier fulfilments.
    */
   async reconcilePendingFulfilments(): Promise<{ checked: number; updated: number }> {
+    // Recover paid orders that were acknowledged but whose original webhook
+    // invocation ended before supplier dispatch completed. This path does not
+    // depend on the customer returning to or polling the website.
+    const undispatchedOrders = await prisma.order.findMany({
+      where: {
+        status: { in: [OrderStatus.PAID, OrderStatus.FULFILMENT_QUEUED] },
+        payment: { is: { status: PaymentStatus.PAID } },
+      },
+      select: { id: true, publicOrderId: true },
+      take: 50,
+    });
+
+    let updated = 0;
+    for (const order of undispatchedOrders) {
+      try {
+        await fulfilmentService.processFulfilment(order.id);
+        updated++;
+      } catch (err: any) {
+        logger.error("Error recovering paid order fulfilment", {
+          orderId: order.publicOrderId,
+          error: err.message,
+        });
+      }
+    }
+
+    // Also recover the narrow crash window between creating the durable queue
+    // row and claiming it for supplier dispatch.
+    const queuedFulfilments = await prisma.fulfilment.findMany({
+      where: { status: FulfilmentStatus.QUEUED },
+      select: { orderId: true, order: { select: { publicOrderId: true } } },
+      take: 50,
+    });
+    for (const fulfilment of queuedFulfilments) {
+      try {
+        await fulfilmentService.processFulfilment(fulfilment.orderId);
+        updated++;
+      } catch (err: any) {
+        logger.error("Error recovering queued fulfilment", {
+          orderId: fulfilment.order.publicOrderId,
+          error: err.message,
+        });
+      }
+    }
+
     const pendingFulfilments = await prisma.fulfilment.findMany({
       where: {
         status: FulfilmentStatus.PROCESSING,
         supplierOrderId: { not: null },
       },
-      include: { order: true },
+      include: {
+        order: true,
+        supplierOrders: { orderBy: { createdAt: "desc" }, take: 1 },
+      },
     });
 
-    let updated = 0;
     for (const fulfilment of pendingFulfilments) {
       if (!fulfilment.supplierOrderId) continue;
 
       try {
+        const supplierOrder = fulfilment.supplierOrders[0];
+        let supplierGame = "";
+        try {
+          const response = JSON.parse(supplierOrder?.responsePayload || "{}");
+          supplierGame = response?.order?.game || response?.game || "";
+        } catch {}
         const statusResult = await supplierManager.checkOrderStatus(
           fulfilment.supplier as any,
-          fulfilment.supplierOrderId
+          fulfilment.supplierOrderId,
+          supplierOrder?.referenceCode,
+          supplierGame
         );
 
         if (statusResult.isDelivered) {
@@ -122,7 +176,10 @@ export class ReconciliationService {
       }
     }
 
-    return { checked: pendingFulfilments.length, updated };
+    return {
+      checked: undispatchedOrders.length + queuedFulfilments.length + pendingFulfilments.length,
+      updated,
+    };
   }
 }
 

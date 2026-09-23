@@ -7,13 +7,29 @@ try {
 
 dotenv.config();
 
+function callbackOrigin(...values: Array<string | undefined>): string {
+  for (const value of values) {
+    if (!value) continue;
+    try {
+      return new URL(value).origin;
+    } catch {}
+  }
+  return "http://localhost:3001";
+}
+
+const frontendUrl = process.env.FRONTEND_URL || process.env.CLIENT_URL || "http://localhost:5173";
+const backendUrl =
+  process.env.BACKEND_URL ||
+  process.env.PUBLIC_BASE_URL ||
+  callbackOrigin(process.env.G2BULK_CALLBACK_URL, process.env.VIZO_CALLBACK_URL);
+
 export const config = {
   env: process.env.NODE_ENV || "development",
   isProduction: process.env.NODE_ENV === "production",
   port: parseInt(process.env.PORT || "3001", 10),
   
-  frontendUrl: process.env.FRONTEND_URL || "http://localhost:5173",
-  backendUrl: process.env.BACKEND_URL || "http://localhost:3001",
+  frontendUrl,
+  backendUrl,
   
   authSecret: process.env.AUTH_SECRET || "default_auth_secret_must_be_overridden_in_prod",
   internalApiSecret: process.env.INTERNAL_API_SECRET || "default_internal_secret",
@@ -45,11 +61,13 @@ export const config = {
   g2bulk: {
     baseUrl: process.env.G2BULK_BASE_URL || "https://api.g2bulk.com/v1",
     apiKey: process.env.G2BULK_API_KEY || "",
+    callbackUrl: process.env.G2BULK_CALLBACK_URL || `${backendUrl}/api/webhooks/g2bulk`,
   },
   
   vizo: {
     baseUrl: process.env.VIZO_BASE_URL || "https://api.vizoapp.store",
     apiKey: process.env.VIZO_API_KEY || "",
+    callbackUrl: process.env.VIZO_CALLBACK_URL || `${backendUrl}/api/webhooks/vizo`,
   },
 
   telegram: {
@@ -66,6 +84,7 @@ export const config = {
     systemThreadId: parseInt(process.env.TELEGRAM_SYSTEM_THREAD_ID || "0", 10),
     lowBalanceG2bThreadId: parseInt(process.env.TELEGRAM_LOW_BALANCE_G2B_THREAD_ID || "22", 10),
     lowBalanceVizoThreadId: parseInt(process.env.TELEGRAM_LOW_BALANCE_VIZO_THREAD_ID || "25", 10),
+    lowBalanceThresholdUsd: parseFloat(process.env.TELEGRAM_LOW_BALANCE_THRESHOLD_USD || "3"),
   },
   
   business: {

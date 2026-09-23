@@ -112,15 +112,15 @@ export async function GET(
               order.payment.paidAt = new Date();
             }
 
-            // 3. Trigger fulfilment asynchronously
-            setImmediate(() => {
-              fulfilmentService.processFulfilment(order.id).catch((err) => {
-                logger.error("Error during asynchronous fulfilment after polling confirmation", {
-                  orderId: publicId,
-                  error: err.message,
-                });
+            // 3. Start fulfilment before the serverless request exits.
+            try {
+              await fulfilmentService.processFulfilment(order.id);
+            } catch (err: any) {
+              logger.error("Error during fulfilment after polling confirmation", {
+                orderId: publicId,
+                error: err.message,
               });
-            });
+            }
           }
         } catch (err: any) {
           logger.warn("Non-fatal error polling Check Transaction V2", {

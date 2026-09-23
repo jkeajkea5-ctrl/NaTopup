@@ -163,7 +163,7 @@ export class VizoAdapter implements ISupplierAdapter {
     if (this.apiKey) {
       try {
         const productCode = this.mapProductCode(input.supplierProductCode);
-        const callbackUrl = `${config.backendUrl}/api/webhooks/vizo`;
+        const callbackUrl = config.vizo.callbackUrl;
 
         const payload: Record<string, any> = {
           product_code: productCode,

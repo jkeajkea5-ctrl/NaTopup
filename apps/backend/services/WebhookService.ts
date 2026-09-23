@@ -27,6 +27,17 @@ export function extractSupplierCallback(payload: any) {
   };
 }
 
+export function inferG2BulkGameCode(...values: unknown[]): string {
+  const text = values.filter(Boolean).join(" ").toLowerCase();
+  if (text.includes("mlbb") || text.includes("mobile legends")) return "mlbb";
+  if (text.includes("pubgm") || text.includes("pubg")) return "pubgm";
+  if (text.includes("valorant_kh") || text.includes("valorant kh")) return "valorant_kh";
+  if (text.includes("valorant_sg") || text.includes("valorant sg")) return "valorant_sg";
+  if (text.includes("honor of kings") || text.includes("g2b_hok") || text.includes(" hok")) return "hok";
+  if (text.includes("free fire") || text.includes("free_fire")) return "free_fire";
+  return "";
+}
+
 export class WebhookService {
   /**
    * Handles incoming KHQR payment webhook idempotently.
@@ -175,15 +186,16 @@ export class WebhookService {
         `Payment confirmed via KHQR (Txn: ${transactionId})`
       );
 
-      // 6. Asynchronously trigger fulfilment without blocking fast 200 OK webhook response
-      setImmediate(() => {
-        fulfilmentService.processFulfilment(order.id).catch((err) => {
-          logger.error("Error during asynchronous fulfilment", {
-            orderId: order.publicOrderId,
-            error: err.message,
-          });
+      // Start fulfilment before returning. Detached callbacks are not reliable
+      // in serverless runtimes and previously delayed dispatch until the cron.
+      try {
+        await fulfilmentService.processFulfilment(order.id);
+      } catch (err: any) {
+        logger.error("Error during fulfilment after payment", {
+          orderId: order.publicOrderId,
+          error: err.message,
         });
-      });
+      }
     }
 
     // 7. Mark Webhook as Processed
@@ -265,10 +277,29 @@ export class WebhookService {
     // G2Bulk documents no webhook signature. Confirm its callback through the
     // authenticated order-status API before changing customer order state.
     if (supplier === "G2BULK") {
+      let supplierGame = "";
+      try {
+        const originalResponse = JSON.parse(supplierOrder.responsePayload || "{}");
+        const originalRequest = JSON.parse(supplierOrder.requestPayload || "{}");
+        supplierGame = inferG2BulkGameCode(
+          data?.game,
+          data?.game_code,
+          payload?.game,
+          payload?.game_code,
+          originalResponse?.order?.game,
+          originalResponse?.game,
+          originalRequest?.productId
+        );
+      } catch {}
+      const storedSupplierOrderId = supplierOrder.supplierOrderId || "";
+      const confirmedSupplierOrderId = /^\d+$/.test(storedSupplierOrderId)
+        ? storedSupplierOrderId
+        : supplierOrderId;
       const confirmed = await supplierManager.checkOrderStatus(
         SupplierCode.G2BULK,
-        supplierOrder.supplierOrderId || supplierOrderId,
-        supplierOrder.referenceCode
+        confirmedSupplierOrderId,
+        supplierOrder.referenceCode,
+        supplierGame
       );
       if (confirmed.isDelivered) status = "COMPLETED";
       else if (confirmed.isFailed) status = "FAILED";
@@ -306,11 +337,18 @@ export class WebhookService {
       where: { id: supplierOrder.id },
       data: {
         status: delivered ? SupplierOrderStatus.COMPLETED : SupplierOrderStatus.FAILED,
+        supplierOrderId: supplierOrderId || supplierOrder.supplierOrderId || undefined,
         responsePayload: rawBody,
       },
     });
 
     if (delivered) {
+      if (supplierOrderId && !supplierOrder.fulfilment.supplierOrderId) {
+        await prisma.fulfilment.update({
+          where: { id: supplierOrder.fulfilment.id },
+          data: { supplierOrderId },
+        });
+      }
       await fulfilmentService.markFulfilmentDelivered(supplierOrder.fulfilment.id);
     } else {
       await prisma.fulfilment.update({

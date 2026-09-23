@@ -37,8 +37,16 @@
   ],
   "crons": [
     {
+      "path": "/api/internal/cron/payments",
+      "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/internal/cron/fulfilments",
+      "schedule": "* * * * *"
+    },
+    {
       "path": "/api/internal/cron/balances",
-      "schedule": "*/5 * * * *"
+      "schedule": "0 */3 * * *"
     }
   ]
 }

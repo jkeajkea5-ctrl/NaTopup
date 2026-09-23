@@ -14,6 +14,14 @@ function request(body: unknown, origin = "http://localhost:5200") {
   });
 }
 const game = { entity: "game", id: "a".repeat(24), data: { name: "Game", category: "Mobile", logoUrl: "/game.png", sortOrder: 0, isActive: true, isPopular: false } };
+const packageMutation = {
+  entity: "package",
+  id: "a".repeat(24),
+  data: {
+    name: "Pack", amount: "10", iconUrl: "", customBadge: "", category: "normal",
+    sortOrder: 0, isActive: true, supplierCost: 1, sellingPrice: 1.25, discount: 0.25,
+  },
+};
 
 test("admin sessions reject absent and altered tokens", () => {
   assert.equal(hasAdminSession(new Request("http://localhost")), false);
@@ -33,7 +41,9 @@ test("validation rejects mass assignment, unsafe URLs and invalid prices", () =>
   assert.equal(adminMutation.safeParse(game).success, true);
   assert.equal(adminMutation.safeParse({ ...game, data: { ...game.data, slug: "overwrite" } }).success, false);
   assert.equal(adminMutation.safeParse({ ...game, data: { ...game.data, logoUrl: "javascript:alert(1)" } }).success, false);
-  assert.equal(adminMutation.safeParse({ entity: "package", id: "a".repeat(24), data: { name: "Pack", amount: "10", sortOrder: 0, isActive: true, isPopular: false, isFeatured: false, sellingPrice: 1, discount: 2 } }).success, false);
+  assert.equal(adminMutation.safeParse(packageMutation).success, true);
+  assert.equal(adminMutation.safeParse({ ...packageMutation, data: { ...packageMutation.data, sellingPrice: 1.24 } }).success, false);
+  assert.equal(adminMutation.safeParse({ ...packageMutation, data: { ...packageMutation.data, sellingPrice: 1, discount: 1 } }).success, false);
 });
 
 test("save route validates before writing, and wraps updates with the audit in a transaction", async () => {

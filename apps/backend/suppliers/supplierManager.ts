@@ -108,10 +108,11 @@ export class SupplierManager {
   async checkOrderStatus(
     supplierCode: SupplierCode,
     supplierOrderId: string,
-    referenceId?: string
+    referenceId?: string,
+    gameCode?: string
   ): Promise<SupplierOrderStatusResult> {
     const adapter = this.getAdapter(supplierCode);
-    return adapter.getOrderStatus(supplierOrderId, referenceId);
+    return adapter.getOrderStatus(supplierOrderId, referenceId, gameCode);
   }
 }
 

@@ -31,7 +31,11 @@ export interface ISupplierAdapter {
   /**
    * Queries real-time order delivery status from the supplier.
    */
-  getOrderStatus(supplierOrderId: string, referenceId?: string): Promise<SupplierOrderStatusResult>;
+  getOrderStatus(
+    supplierOrderId: string,
+    referenceId?: string,
+    gameCode?: string
+  ): Promise<SupplierOrderStatusResult>;
 
   /**
    * Syncs active products and real-time costs from supplier.

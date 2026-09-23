@@ -45,7 +45,7 @@ export class G2BulkAdapter implements ISupplierAdapter {
 
   private mapGameCode(gameCode: string): string {
     const code = (gameCode || "").toLowerCase().trim();
-    if (code === "mobile-legends" || code === "mlbb") return "mlbb";
+    if (code === "mobile-legends" || code === "mobile legends" || code === "mobile legends: bang bang" || code === "mlbb") return "mlbb";
     if (code === "free-fire" || code === "freefire" || code === "freefire_sgmy") return "free_fire";
     if (code === "pubg-mobile" || code === "pubgm" || code === "pubg_mobile") return "pubg_mobile";
     if (code === "valorant-cambodia" || code === "valorant_kh" || code === "valorant-kh") return "valorant_kh";
@@ -365,7 +365,7 @@ export class G2BulkAdapter implements ISupplierAdapter {
           catalogue_name: catalogueName,
           player_id: playerId,
           remark: input.referenceId,
-          callback_url: `${config.backendUrl}/api/webhooks/g2bulk`,
+          callback_url: config.g2bulk.callbackUrl,
         };
 
         if (input.serverId) {
@@ -437,13 +437,60 @@ export class G2BulkAdapter implements ISupplierAdapter {
     };
   }
 
-  async getOrderStatus(supplierOrderId: string, referenceId?: string): Promise<SupplierOrderStatusResult> {
+  async getOrderStatus(
+    supplierOrderId: string,
+    referenceId?: string,
+    gameCode?: string
+  ): Promise<SupplierOrderStatusResult> {
     if (this.apiKey) {
+      const numericOrderId = Number(supplierOrderId);
+
+      // G2Bulk's documented endpoint is the game-specific POST endpoint. Use it
+      // first when we have the numeric supplier id and game. The legacy GET
+      // endpoint can be slow or unavailable for some accounts and was adding a
+      // 15-second delay before the real status check.
+      if (Number.isInteger(numericOrderId) && gameCode) {
+        try {
+          const res = await fetch(`${this.baseUrl}/games/order/status`, {
+            method: "POST",
+            headers: this.getHeaders(),
+            body: JSON.stringify({
+              order_id: numericOrderId,
+              game: this.mapCatalogueGameCode(gameCode),
+            }),
+            signal: AbortSignal.timeout(8000),
+          });
+          const data = await res.json();
+          if (res.ok && data?.order) {
+            const status = String(data.order.status || "").toUpperCase();
+            const isDelivered = ["COMPLETED", "SUCCESS", "DELIVERED"].includes(status);
+            const isFailed = ["FAILED", "CANCELLED", "CANCELED", "REFUNDED"].includes(status);
+            return {
+              supplierOrderId,
+              status: isDelivered
+                ? SupplierOrderStatus.COMPLETED
+                : isFailed
+                ? SupplierOrderStatus.FAILED
+                : SupplierOrderStatus.PROCESSING,
+              isDelivered,
+              isFailed,
+              supplierCost: parseFloat(data.order.price || 0),
+              rawResponse: data,
+            };
+          }
+        } catch (err: any) {
+          logger.warn("G2Bulk game order status check failed; trying legacy endpoint", {
+            error: err.message,
+            provider: "G2BULK",
+          });
+        }
+      }
+
       try {
-        // G2Bulk provides GET /v1/orders/:id and POST /v1/games/order/status
+        // Legacy fallback for suppliers/orders where the game is unavailable.
         const res = await fetch(`${this.baseUrl}/orders/${supplierOrderId}`, {
           headers: this.getHeaders(),
-          signal: AbortSignal.timeout(15000),
+          signal: AbortSignal.timeout(8000),
         });
         const data = await res.json();
 
@@ -468,6 +515,7 @@ export class G2BulkAdapter implements ISupplierAdapter {
       } catch (err: any) {
         logger.error("G2Bulk getOrderStatus failed", { error: err.message, provider: "G2BULK" });
       }
+
     }
 
     return {
