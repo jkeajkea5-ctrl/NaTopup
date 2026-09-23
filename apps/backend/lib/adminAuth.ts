@@ -99,25 +99,19 @@ export function getClientIp(request: Request) {
   return net.isIP(normalized) ? normalized : "unknown";
 }
 
-export function getIpv4SubnetRule(ip: string) {
-  if (net.isIP(ip) !== 4) return null;
-  return `${ip.split(".").slice(0, 3).join(".")}.0/24`;
-}
-
 export function isAdminIpRule(value: string) {
-  if (net.isIP(value)) return true;
-  const match = value.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.0\/24$/);
-  return !!match && match.slice(1).every((part) => Number(part) <= 255);
+  return net.isIP(value) !== 0;
 }
 
 export function adminIpRuleMatches(ip: string, rule: string) {
-  if (ip === rule) return true;
-  const subnet = getIpv4SubnetRule(ip);
-  return !!subnet && subnet === rule;
+  return net.isIP(ip) !== 0 && ip === rule;
 }
 
 function configuredIps() {
-  return (process.env.ADMIN_ALLOWED_IPS || "").split(",").map((value) => value.trim()).filter(isAdminIpRule);
+  return (process.env.ADMIN_ALLOWED_IPS || process.env.ADMIN_IP_ALLOWLIST || "")
+    .split(",")
+    .map((value) => value.trim().replace(/^::ffff:/i, ""))
+    .filter(isAdminIpRule);
 }
 
 export async function isAdminIpAllowed(request: Request) {

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { ADMIN_COOKIE, createAdminSession, hasAdminSession, requireAdmin, validAdminKey } from "../lib/adminAuth";
+import { ADMIN_COOKIE, adminIpRuleMatches, createAdminSession, hasAdminSession, isAdminIpRule, requireAdmin, validAdminKey } from "../lib/adminAuth";
 import { adminMutation } from "../lib/adminValidation";
 import { prisma } from "../lib/prisma";
 import { PATCH } from "../app/api/admin/dashboard/route";
@@ -35,6 +35,14 @@ test("admin sessions reject absent and altered tokens", () => {
 test("mutations reject untrusted origins even with a valid session", () => {
   assert.equal(requireAdmin(request(game, "https://other.example"))?.status, 403);
   assert.equal(requireAdmin(request(game)), null);
+});
+
+test("admin allowlists accept exact IPs only", () => {
+  assert.equal(isAdminIpRule("203.0.113.42"), true);
+  assert.equal(isAdminIpRule("2001:db8::42"), true);
+  assert.equal(isAdminIpRule("203.0.113.0/24"), false);
+  assert.equal(adminIpRuleMatches("203.0.113.42", "203.0.113.42"), true);
+  assert.equal(adminIpRuleMatches("203.0.113.99", "203.0.113.0/24"), false);
 });
 
 test("validation rejects mass assignment, unsafe URLs and invalid prices", () => {

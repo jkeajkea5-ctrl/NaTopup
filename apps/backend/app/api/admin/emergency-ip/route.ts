@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import net from "node:net";
 import { NextResponse } from "next/server";
-import { getClientIp, getIpv4SubnetRule } from "../../../../lib/adminAuth";
+import { getClientIp } from "../../../../lib/adminAuth";
 import { prisma } from "../../../../lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -33,15 +33,6 @@ export async function GET(request: Request) {
       create: { ipAddress, isActive: true, label: "Emergency secret URL", lastUsedAt: new Date() },
     });
 
-    const savedSubnet = getIpv4SubnetRule(ipAddress);
-    if (savedSubnet) {
-      await prisma.adminIpAllowlist.upsert({
-        where: { ipAddress: savedSubnet },
-        update: { isActive: true, label: "Emergency mobile subnet", lastUsedAt: new Date() },
-        create: { ipAddress: savedSubnet, isActive: true, label: "Emergency mobile subnet", lastUsedAt: new Date() },
-      });
-    }
-
     const origin = process.env.FRONTEND_URL || url.origin;
     const loginUrl = `${origin.replace(/\/$/, "")}/admin/login`;
 
@@ -56,9 +47,8 @@ export async function GET(request: Request) {
     const response = NextResponse.json(
       {
         success: true,
-        message: "Success! Your IP subnet has been added to the whitelist.",
-        saved_subnet: savedSubnet ? savedSubnet.replace(/0\/24$/, "") : ipAddress,
-        your_original_ip: ipAddress,
+        message: "Success! Your exact IP address has been added to the whitelist.",
+        saved_ip: ipAddress,
       },
       {
         headers: {

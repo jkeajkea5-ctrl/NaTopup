@@ -100,7 +100,7 @@ export async function POST(request: Request) {
     }
     if (body?.action === "add-ip") {
       const ipAddress = typeof body.ipAddress === "string" ? body.ipAddress.trim().replace(/^::ffff:/i, "") : "";
-      if (!isAdminIpRule(ipAddress)) return error("Enter a valid IPv4, IPv6, or IPv4 /24 subnet.");
+      if (!isAdminIpRule(ipAddress)) return error("Enter one exact IPv4 or IPv6 address.");
       const item = await prisma.adminIpAllowlist.upsert({ where: { ipAddress }, update: { label: body.label?.trim() || null, isActive: true }, create: { ipAddress, label: body.label?.trim() || null } });
       return NextResponse.json({ success: true, data: item });
     }
