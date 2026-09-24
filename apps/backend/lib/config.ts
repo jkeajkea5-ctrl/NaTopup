@@ -55,7 +55,7 @@ export const config = {
     profileId: process.env.KHQRCC_PROFILE_ID || "",
     secretKey: process.env.KHQRCC_SECRET_KEY || "",
     sessionSeconds: parseInt(process.env.KHQRCC_SESSION_SECONDS || "420", 10),
-    webhookTimeoutMinutes: parseInt(process.env.KHQRCC_WEBHOOK_TIMEOUT_MINUTES || "7", 10),
+    webhookTimeoutMinutes: parseInt(process.env.KHQRCC_WEBHOOK_TIMEOUT_MINUTES || "5", 10),
     webhookMaxAgeSeconds: parseInt(process.env.KHQRCC_WEBHOOK_MAX_AGE_SECONDS || "300", 10),
   },
   
