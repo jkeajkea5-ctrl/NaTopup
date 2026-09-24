@@ -16,6 +16,15 @@ export function prepareMlbbCatalogue(items: unknown) {
   ]);
 }
 
+export function prepareMlbbExclusiveCatalogue(items: unknown) {
+  return prepareGameCatalogue(items, "MLBB_EXCLUSIVE", [
+    "Weekly Elite Pack",
+    "Weekly",
+    "Monthly Elite Pack",
+    "Twilight",
+  ]);
+}
+
 export function prepareGameCatalogue(items: unknown, prefix: string, popularNames: string[] = []) {
   if (!Array.isArray(items) || items.length === 0) {
     throw new Error("Supplier catalogue is empty; existing packages were not changed.");
@@ -42,7 +51,7 @@ export function prepareGameCatalogue(items: unknown, prefix: string, popularName
         name: catalogueName === "Weekly" ? "Weekly Diamond Pass" : catalogueName === "Twilight" ? "Twilight Pass" : pack ? catalogueName : `${catalogueName} Diamonds`,
         description: `${prefix} (${catalogueName})`,
         amount: pass ? "1 Pass" : pack ? "1 Pack" : catalogueName,
-        ...(prefix === "MLBB" ? { iconUrl: getMlbbIconUrl(catalogueName) } : {}),
+        ...(prefix.startsWith("MLBB") ? { iconUrl: getMlbbIconUrl(catalogueName) } : {}),
         isPopular: popularNames.includes(catalogueName),
         isFeatured: catalogueName === "Weekly",
         isActive: true,

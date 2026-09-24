@@ -119,7 +119,7 @@ export async function GET(
       });
     },
     null,
-    ["mobile-legends", "free-fire", "pubg-mobile", "honor-of-kings", "valorant", "zepeto", "delta-force", "blood-strike", "magic-chess-gogo", "crossfire-legend"].includes(normalizedSlug) ? 5000 : 800
+    ["mobile-legends", "mobile-legends-philippines", "free-fire", "pubg-mobile", "honor-of-kings", "valorant", "zepeto", "delta-force", "blood-strike", "magic-chess-gogo", "crossfire-legend"].includes(normalizedSlug) ? 5000 : 800
   );
 
   if (game && !game.isActive) {
@@ -206,7 +206,7 @@ export async function GET(
 
 
   // Imported catalog games must only expose saved MongoDB products, never stale fallback packages.
-  if (["mobile-legends", "free-fire", "pubg-mobile", "honor-of-kings", "valorant", "zepeto", "delta-force", "blood-strike", "magic-chess-gogo", "crossfire-legend"].includes(normalizedSlug)) {
+  if (["mobile-legends", "mobile-legends-philippines", "free-fire", "pubg-mobile", "honor-of-kings", "valorant", "zepeto", "delta-force", "blood-strike", "magic-chess-gogo", "crossfire-legend"].includes(normalizedSlug)) {
     return NextResponse.json(
       { success: false, error: { message: "Game packages are temporarily unavailable. Please try again shortly." } },
       { status: 503 }

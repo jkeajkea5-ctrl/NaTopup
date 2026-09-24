@@ -45,6 +45,7 @@ export class G2BulkAdapter implements ISupplierAdapter {
 
   private mapGameCode(gameCode: string): string {
     const code = (gameCode || "").toLowerCase().trim();
+    if (code === "mobile-legends-philippines" || code === "mobile legends philippines" || code === "mlbb_exclusive") return "mlbb_exclusive";
     if (code === "mobile-legends" || code === "mobile legends" || code === "mobile legends: bang bang" || code === "mlbb") return "mlbb";
     if (code === "free-fire" || code === "freefire" || code === "freefire_sgmy") return "free_fire";
     if (code === "pubg-mobile" || code === "pubgm" || code === "pubg_mobile") return "pubg_mobile";
@@ -62,6 +63,7 @@ export class G2BulkAdapter implements ISupplierAdapter {
   private mapCatalogueName(supplierProductCode: string): string {
     const clean = (supplierProductCode || "")
       .replace(/^G2B_/i, "")
+      .replace(/^MLBB_EXCLUSIVE_/i, "")
       .replace(/^MLBB_/i, "")
       .replace(/^PUBGM_/i, "")
       .replace(/^VAL_/i, "")
@@ -127,6 +129,24 @@ export class G2BulkAdapter implements ISupplierAdapter {
       }
     } catch (err: any) {
       logger.error("Failed to fetch G2Bulk mlbb catalogue", { error: err.message });
+    }
+    return [];
+  }
+
+  /** Fetches the G2Bulk Mobile Legends Exclusive catalogue (Philippines). */
+  async getMlbbExclusiveCatalogue(): Promise<any[]> {
+    if (!this.apiKey) return [];
+    try {
+      const res = await fetch(`${this.baseUrl}/games/mlbb_exclusive/catalogue`, {
+        headers: this.getHeaders(),
+        signal: AbortSignal.timeout(6000),
+      });
+      const data = await res.json();
+      if (res.ok && Array.isArray(data.catalogues)) {
+        return data.catalogues;
+      }
+    } catch (err: any) {
+      logger.error("Failed to fetch G2Bulk mlbb_exclusive catalogue", { error: err.message });
     }
     return [];
   }
