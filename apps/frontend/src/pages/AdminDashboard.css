@@ -866,8 +866,8 @@
 .admin-package-fields .admin-field input[aria-invalid="true"] { border-color: #df7180; box-shadow: 0 0 0 3px #df718018; }
 .admin-package-fields .admin-fixed-cost > span { justify-self: start; margin-top: -22px; margin-left: 98px; padding: 3px 7px; border-radius: 999px; color: #55708a; background: #e8eef6; font-size: 8px; letter-spacing: .08em; }
 .admin-package-fields .admin-fixed-cost input[readonly] { cursor: not-allowed; color: #526780; border-color: #d7e0ec; background: #f1f4f8; }
-.admin-sync-actions { width: min(270px, 100%); align-self: end; display: grid; grid-template-columns: minmax(210px, 1fr); gap: 10px; }
-.admin-sync-btn { min-height: 56px; padding: 8px 14px; display: flex; align-items: center; gap: 11px; border: 1px solid transparent; border-radius: 17px; font: inherit; text-align: left; cursor: pointer; box-shadow: 0 7px 18px #43306a14; transition: transform .18s ease, box-shadow .18s ease, filter .18s ease; }
+.admin-sync-actions { width: min(560px, 100%); align-self: end; display: flex; align-items: stretch; justify-content: flex-end; flex-wrap: wrap; gap: 10px; }
+.admin-sync-btn { min-width: 210px; min-height: 56px; padding: 8px 14px; flex: 1 1 210px; display: flex; align-items: center; gap: 11px; border: 1px solid transparent; border-radius: 17px; font: inherit; text-align: left; cursor: pointer; box-shadow: 0 7px 18px #43306a14; transition: transform .18s ease, box-shadow .18s ease, filter .18s ease; }
 .admin-sync-btn > span:last-child { min-width: 0; display: grid; gap: 1px; }
 .admin-sync-btn strong { font-size: 13px; line-height: 1.25; }
 .admin-sync-btn small { font-size: 9px; font-weight: 750; opacity: .7; }
@@ -877,6 +877,10 @@
 .admin-sync-btn:hover:not(:disabled) { transform: translateY(-2px); filter: saturate(1.08); box-shadow: 0 10px 22px #43306a22; }
 .admin-sync-btn:active:not(:disabled) { transform: translateY(0); }
 .admin-sync-btn:disabled { cursor: not-allowed; filter: grayscale(.25); opacity: .52; box-shadow: none; }
+@media (max-width: 760px) {
+  .admin-sync-actions { width: 100%; flex-direction: column; }
+  .admin-sync-btn { width: 100%; min-width: 0; flex-basis: auto; }
+}
 .admin-cost-reference { color: #7184a5; font-size: 10px; font-weight: 700; letter-spacing: 0; text-transform: none; }
 .admin-package-wide { grid-column: 1 / -1; }
 .admin-selling-field > span { position: relative; display: block; }
