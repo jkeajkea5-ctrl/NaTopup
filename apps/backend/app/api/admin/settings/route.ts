@@ -17,7 +17,7 @@ export async function GET(request: Request) {
   try {
     const [admins, databaseAllowlist] = await Promise.all([
       prisma.adminUser.findMany({ orderBy: { createdAt: "asc" }, select: { id: true, username: true, email: true, role: true, isActive: true, createdAt: true, updatedAt: true } }),
-      prisma.adminIpAllowlist.findMany({ orderBy: { createdAt: "asc" }, select: { id: true, ipAddress: true, label: true, isActive: true, lastUsedAt: true, createdAt: true } }),
+      prisma.adminIpAllowlist.findMany({ where: { OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] }, orderBy: { createdAt: "asc" }, select: { id: true, ipAddress: true, label: true, isActive: true, lastUsedAt: true, expiresAt: true, createdAt: true } }),
     ]);
     const databaseIps = new Set(databaseAllowlist.map((entry) => entry.ipAddress));
     const environmentAllowlist = (process.env.ADMIN_ALLOWED_IPS || process.env.ADMIN_IP_ALLOWLIST || "")
@@ -30,6 +30,7 @@ export async function GET(request: Request) {
         label: "Configured in deployment environment",
         isActive: true,
         lastUsedAt: null,
+        expiresAt: null,
         createdAt: null,
         locked: true,
       }));
@@ -101,7 +102,7 @@ export async function POST(request: Request) {
     if (body?.action === "add-ip") {
       const ipAddress = typeof body.ipAddress === "string" ? body.ipAddress.trim().replace(/^::ffff:/i, "") : "";
       if (!isAdminIpRule(ipAddress)) return error("Enter one exact IPv4 or IPv6 address.");
-      const item = await prisma.adminIpAllowlist.upsert({ where: { ipAddress }, update: { label: body.label?.trim() || null, isActive: true }, create: { ipAddress, label: body.label?.trim() || null } });
+      const item = await prisma.adminIpAllowlist.upsert({ where: { ipAddress }, update: { label: body.label?.trim() || null, isActive: true, expiresAt: null }, create: { ipAddress, label: body.label?.trim() || null, expiresAt: null } });
       return NextResponse.json({ success: true, data: item });
     }
     if (body?.action === "remove-ip") {

@@ -27,10 +27,16 @@ export async function GET(request: Request) {
   if (!net.isIP(ipAddress)) return notFound();
 
   try {
+    const existing = await prisma.adminIpAllowlist.findUnique({ where: { ipAddress } });
+    const isPermanentApproval = existing?.isActive && existing.expiresAt === null
+      && !["Emergency secret URL", "Added through invite link"].includes(existing.label || "");
+    const expiresAt = new Date(Date.now() + 30 * 60_000);
     await prisma.adminIpAllowlist.upsert({
       where: { ipAddress },
-      update: { isActive: true, label: "Emergency secret URL", lastUsedAt: new Date() },
-      create: { ipAddress, isActive: true, label: "Emergency secret URL", lastUsedAt: new Date() },
+      update: isPermanentApproval
+        ? { lastUsedAt: new Date() }
+        : { isActive: true, label: "Emergency secret URL", lastUsedAt: new Date(), expiresAt },
+      create: { ipAddress, isActive: true, label: "Emergency secret URL", lastUsedAt: new Date(), expiresAt },
     });
 
     const origin = process.env.FRONTEND_URL || url.origin;
@@ -52,6 +58,8 @@ export async function GET(request: Request) {
         your_original_ip: ipAddress,
         admin_login_url: loginUrl,
         restriction: "exact-ip",
+        expires_at: isPermanentApproval ? null : expiresAt.toISOString(),
+        expires_in_minutes: isPermanentApproval ? null : 30,
       },
       {
         headers: {

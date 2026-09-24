@@ -120,7 +120,10 @@ export async function isAdminIpAllowed(request: Request) {
   if (process.env.NODE_ENV !== "production" && ["127.0.0.1", "::1"].includes(ip)) return true;
   if (ip === "unknown") return false;
   try {
-    const rules = await prisma.adminIpAllowlist.findMany({ where: { isActive: true }, select: { ipAddress: true } });
+    const rules = await prisma.adminIpAllowlist.findMany({
+      where: { isActive: true, OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] },
+      select: { ipAddress: true },
+    });
     return rules.some((rule) => adminIpRuleMatches(ip, rule.ipAddress));
   } catch { return false; }
 }

@@ -49,8 +49,9 @@ test("admin allowlists accept exact IPs only", () => {
 test("protected admin APIs identify an unapproved network", async () => {
   const originalFindAdmin = prisma.adminUser.findUnique;
   const originalFindIps = prisma.adminIpAllowlist.findMany;
+  let allowlistQuery: any;
   (prisma.adminUser as any).findUnique = async () => ({ username: "admin", role: "SUPERADMIN", isActive: true });
-  (prisma.adminIpAllowlist as any).findMany = async () => [];
+  (prisma.adminIpAllowlist as any).findMany = async (query: any) => { allowlistQuery = query; return []; };
   try {
     const denied = await requireAdminWithIp(new Request("http://localhost:3001/api/admin/dashboard", {
       headers: {
@@ -61,6 +62,9 @@ test("protected admin APIs identify an unapproved network", async () => {
     }));
     assert.equal(denied?.status, 403);
     assert.equal((await denied?.json()).code, "ADMIN_IP_DENIED");
+    assert.equal(allowlistQuery.where.isActive, true);
+    assert.equal(allowlistQuery.where.OR[0].expiresAt, null);
+    assert.ok(allowlistQuery.where.OR[1].expiresAt.gt instanceof Date);
   } finally {
     (prisma.adminUser as any).findUnique = originalFindAdmin;
     (prisma.adminIpAllowlist as any).findMany = originalFindIps;

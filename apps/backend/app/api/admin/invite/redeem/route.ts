@@ -15,7 +15,16 @@ export async function POST(request: Request) {
     if (!invite) return NextResponse.json({ success: false, error: "This invite link is expired or has already been used." }, { status: 410 });
     const claimed = await prisma.adminInvite.updateMany({ where: { id: invite.id, usedAt: null }, data: { usedAt: new Date(), usedIp: ipAddress } });
     if (claimed.count !== 1) return NextResponse.json({ success: false, error: "This invite link has already been used." }, { status: 410 });
-    await prisma.adminIpAllowlist.upsert({ where: { ipAddress }, update: { isActive: true, lastUsedAt: new Date() }, create: { ipAddress, label: "Added through invite link", isActive: true, lastUsedAt: new Date() } });
+    const existing = await prisma.adminIpAllowlist.findUnique({ where: { ipAddress } });
+    const isPermanentApproval = existing?.isActive && existing.expiresAt === null
+      && !["Emergency secret URL", "Added through invite link"].includes(existing.label || "");
+    await prisma.adminIpAllowlist.upsert({
+      where: { ipAddress },
+      update: isPermanentApproval
+        ? { lastUsedAt: new Date() }
+        : { isActive: true, label: "Added through invite link", lastUsedAt: new Date(), expiresAt: invite.expiresAt },
+      create: { ipAddress, label: "Added through invite link", isActive: true, lastUsedAt: new Date(), expiresAt: invite.expiresAt },
+    });
     return NextResponse.json({ success: true, data: { ip: ipAddress } }, { headers: { "Cache-Control": "no-store" } });
   } catch {
     return NextResponse.json({ success: false, error: "The invite could not be redeemed." }, { status: 503 });
