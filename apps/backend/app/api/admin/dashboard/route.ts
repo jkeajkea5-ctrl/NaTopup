@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "../../../../lib/prisma";
 import { requireAdminWithIp } from "../../../../lib/adminAuth";
-import { adminMutation, importCostFloorMessage, isCostBelowImportCost } from "../../../../lib/adminValidation";
+import { adminMutation } from "../../../../lib/adminValidation";
 
 export const dynamic = "force-dynamic";
 
@@ -89,7 +89,12 @@ export async function PATCH(request: Request) {
       if (mutation.entity === "game") {
         await tx.game.update({ where: { id: mutation.id }, data: mutation.data });
       } else if (mutation.entity === "package") {
-        const { sellingPrice, supplierCost, discount, category, ...data } = mutation.data;
+        const { sellingPrice, supplierCost: _submittedSupplierCost, discount, category, ...data } = mutation.data;
+        const currentPrice = await tx.productPrice.findUnique({
+          where: { productId: mutation.id },
+          select: { supplierCost: true },
+        });
+        if (!currentPrice) throw new AdminInputError("Package pricing is unavailable.");
         const primaryMapping = await tx.supplierMapping.findFirst({
           where: { productId: mutation.id, isEnabled: true },
           orderBy: { priority: "asc" },
@@ -99,8 +104,9 @@ export async function PATCH(request: Request) {
           },
         });
         const importCost = primaryMapping?.supplierProduct.currentCost;
-        if (isCostBelowImportCost(supplierCost, importCost)) {
-          throw new AdminInputError(importCostFloorMessage(importCost!, primaryMapping?.supplier.code));
+        const fixedSupplierCost = importCost ?? currentPrice.supplierCost;
+        if (sellingPrice - discount + Number.EPSILON < fixedSupplierCost) {
+          throw new AdminInputError(`Customer price cannot be below the fixed supplier cost of $${fixedSupplierCost.toFixed(3)}.`);
         }
         await tx.product.update({ where: { id: mutation.id }, data: {
           ...data,
@@ -108,7 +114,7 @@ export async function PATCH(request: Request) {
           isPopular: category === "pass",
           isFeatured: category === "other",
         } });
-        await tx.productPrice.update({ where: { productId: mutation.id }, data: { sellingPrice, supplierCost, discount, pricingStrategy: "MANUAL" } });
+        await tx.productPrice.update({ where: { productId: mutation.id }, data: { sellingPrice, supplierCost: fixedSupplierCost, discount, pricingStrategy: "MANUAL" } });
       } else if (mutation.entity === "slide") {
         const slide = mutation.id
           ? await tx.promotion.update({ where: { id: mutation.id }, data: mutation.data })
