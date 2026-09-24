@@ -11,6 +11,7 @@ const GAME_SLUGS = [
   "mobile-legends-indonesia",
 ];
 const BEST_SELLING_NAMES = [
+  "Weekly Elite Pack",
   "Weekly Diamond Pass",
   "Monthly Elite Pack",
   "Twilight Pass",

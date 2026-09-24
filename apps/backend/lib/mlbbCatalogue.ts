@@ -7,7 +7,12 @@ export function getMlbbIconUrl(name: string) {
   return "/packages/mlbb/diamonds.png";
 }
 
-export const MLBB_BEST_SELLING = ["Weekly", "Monthly Elite Pack", "Twilight"];
+export const MLBB_BEST_SELLING = [
+  "Weekly Elite Pack",
+  "Weekly",
+  "Monthly Elite Pack",
+  "Twilight",
+];
 
 export function prepareMlbbCatalogue(items: unknown) {
   return prepareGameCatalogue(items, "MLBB", MLBB_BEST_SELLING);
