@@ -39,7 +39,7 @@ export const Header = () => {
 
   return (
     <>
-      <header className={`sticky top-0 z-40 border-b transition-all duration-200 ${isScrolled ? "border-brand-border bg-white/95 shadow-soft backdrop-blur-md" : "border-brand-border/60 bg-white/85 backdrop-blur-sm"}`}>
+      <header className={`site-header sticky top-0 z-40 border-b transition-all duration-200 ${isScrolled ? "border-brand-border bg-white/95 shadow-soft backdrop-blur-md" : "border-brand-border/60 bg-white/85 backdrop-blur-sm"}`}>
         <div className="mx-auto max-w-[1440px] px-3 sm:px-6 lg:px-8">
           <div className="flex flex-wrap items-center justify-between gap-x-2 sm:gap-x-4 lg:flex-nowrap lg:gap-x-6">
             <div className="flex h-[68px] shrink-0 items-center sm:h-20 lg:h-24">

@@ -55,6 +55,15 @@ dialog {
   min-width: 0;
 }
 
+.app-shell {
+  min-height: 100dvh;
+}
+
+/* Keep installed iPhone/iPad PWAs below the translucent status bar. */
+.site-header {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
 @media (max-width: 479px) {
   .mobile-checkout {
     padding-inline: 8px;
