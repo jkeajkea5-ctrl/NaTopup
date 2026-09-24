@@ -13,6 +13,13 @@ export function verifyVizoWebhookSignature(rawBody: string, signature: string | 
   return !!apiKey && verifyHmacSha256(rawBody, digest, apiKey);
 }
 
+export function requiresSupplierStatusConfirmation(
+  supplier: "G2BULK" | "VIZO",
+  signatureValid: boolean
+): boolean {
+  return supplier === "G2BULK" || (supplier === "VIZO" && !signatureValid);
+}
+
 export function extractSupplierCallback(payload: any) {
   const data = payload?.data && typeof payload.data === "object" ? payload.data : payload || {};
   return {
@@ -246,12 +253,17 @@ export class WebhookService {
     rawBody: string,
     signature?: string | null
   ): Promise<{ success: boolean; message: string; statusCode: number }> {
-    // Vizo signs the exact raw JSON body as `sha256=<HMAC>` using the API key.
-    if (supplier === "VIZO") {
-      if (!verifyVizoWebhookSignature(rawBody, signature, config.vizo.apiKey)) {
-        logger.warn("Vizo webhook rejected: invalid signature", { provider: supplier });
-        return { success: false, message: "Invalid webhook signature", statusCode: 401 };
-      }
+    const signatureValid =
+      supplier === "VIZO"
+        ? verifyVizoWebhookSignature(rawBody, signature, config.vizo.apiKey)
+        : false;
+    if (supplier === "VIZO" && !signatureValid) {
+      // Vizo's public callback contract does not currently document a
+      // signature header. Treat the callback only as a prompt and confirm its
+      // terminal state through the authenticated order-history API below.
+      logger.info("Unsigned Vizo callback requires authenticated confirmation", {
+        provider: supplier,
+      });
     }
 
     let payload: any;
@@ -295,9 +307,9 @@ export class WebhookService {
     if (payload.event === "order.completed") status = "COMPLETED";
     if (payload.event === "order.failed") status = "FAILED";
 
-    // G2Bulk documents no webhook signature. Confirm its callback through the
-    // authenticated order-status API before changing customer order state.
-    if (supplier === "G2BULK") {
+    // Unsigned supplier callbacks are only notifications. Confirm them through
+    // the authenticated supplier API before changing customer order state.
+    if (requiresSupplierStatusConfirmation(supplier, signatureValid)) {
       let supplierGame = "";
       try {
         const originalResponse = JSON.parse(supplierOrder.responsePayload || "{}");
@@ -313,11 +325,12 @@ export class WebhookService {
         );
       } catch {}
       const storedSupplierOrderId = supplierOrder.supplierOrderId || "";
-      const confirmedSupplierOrderId = /^\d+$/.test(storedSupplierOrderId)
-        ? storedSupplierOrderId
-        : supplierOrderId;
+      const confirmedSupplierOrderId =
+        supplier === "G2BULK" && !/^\d+$/.test(storedSupplierOrderId)
+          ? supplierOrderId
+          : storedSupplierOrderId || supplierOrderId;
       const confirmed = await supplierManager.checkOrderStatus(
-        SupplierCode.G2BULK,
+        supplier === "G2BULK" ? SupplierCode.G2BULK : SupplierCode.VIZO,
         confirmedSupplierOrderId,
         supplierOrder.referenceCode,
         supplierGame
@@ -339,7 +352,7 @@ export class WebhookService {
             eventHash,
             eventType: payload.event || "SUPPLIER_CALLBACK",
             payload: rawBody,
-            signatureValid: supplier === "VIZO" || supplier === "G2BULK",
+            signatureValid,
             processed: false,
           },
         });

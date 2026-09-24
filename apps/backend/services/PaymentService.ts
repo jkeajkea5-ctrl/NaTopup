@@ -91,6 +91,9 @@ export class PaymentService {
             where: { orderId: order.id },
             update: {
               status: PaymentStatus.PENDING,
+              // Store an explicit null for MongoDB. A missing optional field
+              // does not match `verifiedAt: null` during reconciliation.
+              verifiedAt: null,
               qrPayload: khqrResult.qrString,
               md5Hash: khqrResult.md5,
               qrExpiresAt: khqrResult.expiresAt,
@@ -108,6 +111,7 @@ export class PaymentService {
               amountKhr: order.totalKhr,
               currency: "USD",
               status: PaymentStatus.PENDING,
+              verifiedAt: null,
               qrPayload: khqrResult.qrString,
               md5Hash: khqrResult.md5,
               qrExpiresAt: khqrResult.expiresAt,

@@ -7,6 +7,18 @@ import { supplierManager } from "../suppliers/supplierManager";
 import { fulfilmentService } from "./FulfilmentService";
 import { orderService } from "./OrderService";
 
+export function paymentRetryEligibility(retryBefore: Date) {
+  return {
+    OR: [
+      { verifiedAt: null },
+      // Prisma returns missing MongoDB fields as null, but MongoDB does not
+      // match those documents with `{ verifiedAt: null }`.
+      { verifiedAt: { isSet: false } },
+      { verifiedAt: { lte: retryBefore } },
+    ],
+  };
+}
+
 export class ReconciliationService {
   /**
    * Reconciles pending payments with the payment provider.
@@ -15,16 +27,33 @@ export class ReconciliationService {
     const now = new Date();
     const retryBefore = new Date(now.getTime() - config.paymentPolling.intervalSeconds * 1000);
     const recoveryCutoff = new Date(now.getTime() - config.paymentPolling.maxAgeMinutes * 60 * 1000);
-    const pendingPayments = await prisma.payment.findMany({
+    const activePayments = await prisma.payment.findMany({
       where: {
-        status: { in: [PaymentStatus.PENDING, PaymentStatus.VERIFYING, PaymentStatus.EXPIRED] },
+        status: { in: [PaymentStatus.PENDING, PaymentStatus.VERIFYING] },
         createdAt: { gte: recoveryCutoff },
-        OR: [{ verifiedAt: null }, { verifiedAt: { lte: retryBefore } }],
+        ...paymentRetryEligibility(retryBefore),
       },
       include: { order: true },
       orderBy: { createdAt: "asc" },
       take: config.paymentPolling.limit,
     });
+
+    // Current checkout sessions take priority. Use spare batch capacity to
+    // continue checking late payments after their QR session expired.
+    const remaining = Math.max(0, config.paymentPolling.limit - activePayments.length);
+    const expiredPayments = remaining
+      ? await prisma.payment.findMany({
+          where: {
+            status: PaymentStatus.EXPIRED,
+            createdAt: { gte: recoveryCutoff },
+            ...paymentRetryEligibility(retryBefore),
+          },
+          include: { order: true },
+          orderBy: { createdAt: "asc" },
+          take: remaining,
+        })
+      : [];
+    const pendingPayments = [...activePayments, ...expiredPayments];
 
     let resolved = 0;
     for (const payment of pendingPayments) {
@@ -113,6 +142,37 @@ export class ReconciliationService {
    * Reconciles pending supplier fulfilments.
    */
   async reconcilePendingFulfilments(): Promise<{ checked: number; updated: number }> {
+    // Recover the narrow crash window where the payment was committed as PAID
+    // but its order did not advance. This remains independent of the browser.
+    const paidOrderMismatches = await prisma.order.findMany({
+      where: {
+        status: {
+          in: [OrderStatus.AWAITING_PAYMENT, OrderStatus.PAYMENT_VERIFYING, OrderStatus.EXPIRED],
+        },
+        payment: { is: { status: PaymentStatus.PAID } },
+      },
+      select: { id: true, publicOrderId: true },
+      take: 50,
+    });
+
+    let updated = 0;
+    for (const order of paidOrderMismatches) {
+      try {
+        await orderService.transitionStatus(
+          order.id,
+          OrderStatus.PAID,
+          "Recovered paid order after interrupted payment processing"
+        );
+        await fulfilmentService.processFulfilment(order.id);
+        updated++;
+      } catch (err: any) {
+        logger.error("Error recovering paid order status", {
+          orderId: order.publicOrderId,
+          error: err.message,
+        });
+      }
+    }
+
     // Recover paid orders that were acknowledged but whose original webhook
     // invocation ended before supplier dispatch completed. This path does not
     // depend on the customer returning to or polling the website.
@@ -125,7 +185,6 @@ export class ReconciliationService {
       take: 50,
     });
 
-    let updated = 0;
     for (const order of undispatchedOrders) {
       try {
         await fulfilmentService.processFulfilment(order.id);
@@ -189,17 +248,8 @@ export class ReconciliationService {
           await fulfilmentService.markFulfilmentDelivered(fulfilment.id);
           updated++;
         } else if (statusResult.isFailed) {
-          await prisma.fulfilment.update({
-            where: { id: fulfilment.id },
-            data: {
-              status: FulfilmentStatus.FAILED,
-              lastError: statusResult.errorMessage || "Supplier reported failure",
-            },
-          });
-
-          await orderService.transitionStatus(
-            fulfilment.orderId,
-            OrderStatus.FAILED,
+          await fulfilmentService.markFulfilmentFailedForReview(
+            fulfilment.id,
             statusResult.errorMessage || "Supplier reported delivery failure"
           );
           updated++;
@@ -213,7 +263,11 @@ export class ReconciliationService {
     }
 
     return {
-      checked: undispatchedOrders.length + queuedFulfilments.length + pendingFulfilments.length,
+      checked:
+        paidOrderMismatches.length +
+        undispatchedOrders.length +
+        queuedFulfilments.length +
+        pendingFulfilments.length,
       updated,
     };
   }

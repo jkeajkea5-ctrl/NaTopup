@@ -1,18 +1,30 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
-import { extractSupplierCallback, inferG2BulkGameCode, paymentCurrencyMatches, verifyVizoWebhookSignature } from "../services/WebhookService";
+import {
+  extractSupplierCallback,
+  inferG2BulkGameCode,
+  paymentCurrencyMatches,
+  requiresSupplierStatusConfirmation,
+  verifyVizoWebhookSignature,
+} from "../services/WebhookService";
 import { generatePublicOrderId, timingSafeEqualHex } from "../lib/security";
 import { isWebhookTimestampFresh, parseWebhookTimestamp } from "../payments/khqr/client";
 import { g2bulkAdapter } from "../suppliers/g2bulk/client";
 import { vizoAdapter } from "../suppliers/vizo/client";
 
-test("verifies Vizo's documented sha256 HMAC format", () => {
+test("verifies the supported Vizo sha256 HMAC format when supplied", () => {
   const body = JSON.stringify({ event: "order.completed", data: { transaction_id: "TX-1" } });
   const signature = `sha256=${crypto.createHmac("sha256", "test-key").update(body).digest("hex")}`;
   assert.equal(verifyVizoWebhookSignature(body, signature, "test-key"), true);
   assert.equal(verifyVizoWebhookSignature(`${body} `, signature, "test-key"), false);
   assert.equal(verifyVizoWebhookSignature(body, null, "test-key"), false);
+});
+
+test("confirms unsigned supplier callbacks through the authenticated API", () => {
+  assert.equal(requiresSupplierStatusConfirmation("G2BULK", false), true);
+  assert.equal(requiresSupplierStatusConfirmation("VIZO", false), true);
+  assert.equal(requiresSupplierStatusConfirmation("VIZO", true), false);
 });
 
 test("compares provider hashes safely and rejects malformed hex", () => {

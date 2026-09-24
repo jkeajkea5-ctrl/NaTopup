@@ -2,7 +2,10 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { config } from "../lib/config";
-import { reconciliationService } from "../services/ReconciliationService";
+import {
+  paymentRetryEligibility,
+  reconciliationService,
+} from "../services/ReconciliationService";
 import { telegramAlertService } from "../services/TelegramAlertService";
 import { GET as reconcilePayments } from "../app/api/internal/cron/payments/route";
 import { GET as reconcileFulfilments } from "../app/api/internal/cron/fulfilments/route";
@@ -83,4 +86,15 @@ test("explicit supplier callback URLs remain authoritative", () => {
   if (process.env.VIZO_CALLBACK_URL) {
     assert.equal(config.vizo.callbackUrl, process.env.VIZO_CALLBACK_URL);
   }
+});
+
+test("payment reconciliation includes missing MongoDB verifiedAt fields", () => {
+  const retryBefore = new Date("2026-09-24T12:00:00.000Z");
+  assert.deepEqual(paymentRetryEligibility(retryBefore), {
+    OR: [
+      { verifiedAt: null },
+      { verifiedAt: { isSet: false } },
+      { verifiedAt: { lte: retryBefore } },
+    ],
+  });
 });
