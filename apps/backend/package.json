@@ -18,6 +18,7 @@
     "catalogue:mlbb": "tsx scripts/replace-mlbb-global.ts",
     "catalogue:mlbb-ph": "tsx scripts/import-mlbb-philippines.ts",
     "catalogue:mlbb-id": "tsx scripts/import-mlbb-indonesia.ts",
+    "catalogue:mlbb-best-selling": "tsx scripts/update-mlbb-best-selling.ts",
     "catalogue:mlbb-images": "tsx scripts/update-mlbb-images.ts",
     "catalogue:freefire-my": "tsx scripts/replace-freefire-my.ts",
     "catalogue:hok": "tsx scripts/replace-honor-of-kings.ts",

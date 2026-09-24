@@ -7,26 +7,18 @@ export function getMlbbIconUrl(name: string) {
   return "/packages/mlbb/diamonds.png";
 }
 
+export const MLBB_BEST_SELLING = ["Weekly", "Monthly Elite Pack", "Twilight"];
+
 export function prepareMlbbCatalogue(items: unknown) {
-  return prepareGameCatalogue(items, "MLBB", [
-    "Weekly Elite Pack",
-    "Weekly",
-    "Monthly Elite Pack",
-    "Twilight",
-  ]);
+  return prepareGameCatalogue(items, "MLBB", MLBB_BEST_SELLING);
 }
 
 export function prepareMlbbExclusiveCatalogue(items: unknown) {
-  return prepareGameCatalogue(items, "MLBB_EXCLUSIVE", [
-    "Weekly Elite Pack",
-    "Weekly",
-    "Monthly Elite Pack",
-    "Twilight",
-  ]);
+  return prepareGameCatalogue(items, "MLBB_EXCLUSIVE", MLBB_BEST_SELLING);
 }
 
 export function prepareMlbbGlobalCatalogue(items: unknown) {
-  return prepareGameCatalogue(items, "MLBB_GLOBAL", ["Weekly"]);
+  return prepareGameCatalogue(items, "MLBB_GLOBAL", MLBB_BEST_SELLING);
 }
 
 export function prepareGameCatalogue(items: unknown, prefix: string, popularNames: string[] = []) {

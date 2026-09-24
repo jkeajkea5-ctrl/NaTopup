@@ -26,7 +26,7 @@ test("preserves supplier names and prices with the existing markup", () => {
   assert.equal(pack.product.name, "Weekly Elite Pack");
   assert.equal(pack.product.iconUrl, "/packages/mlbb/weekly-elite.png");
   assert.equal(pack.product.amount, "1 Pack");
-  assert.equal(pack.product.isPopular, true);
+  assert.equal(pack.product.isPopular, false);
 });
 
 test("uses only the requested passes and elite packs for Best Selling", () => {
@@ -41,7 +41,7 @@ test("uses only the requested passes and elite packs for Best Selling", () => {
 
   assert.deepEqual(
     entries.filter((entry) => entry.product.isPopular).map((entry) => entry.catalogueName),
-    ["Weekly Elite Pack", "Weekly", "Monthly Elite Pack", "Twilight"]
+    ["Weekly", "Monthly Elite Pack", "Twilight"]
   );
   assert.equal(entries.find((entry) => entry.catalogueName === "85")?.product.isPopular, false);
   assert.equal(entries.find((entry) => entry.catalogueName === "875")?.product.isPopular, false);
