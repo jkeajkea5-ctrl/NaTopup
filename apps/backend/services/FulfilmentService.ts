@@ -236,23 +236,37 @@ export class FulfilmentService {
   /**
    * Marks fulfilment and customer order as DELIVERED.
    */
-  async markFulfilmentDelivered(fulfilmentId: string): Promise<void> {
+  async markFulfilmentDelivered(fulfilmentId: string): Promise<boolean> {
     const fulfilment = await prisma.fulfilment.findUnique({
       where: { id: fulfilmentId },
       include: { order: true },
     });
 
     if (!fulfilment || fulfilment.status === FulfilmentStatus.DELIVERED) {
-      return;
+      return false;
     }
 
-    await prisma.fulfilment.update({
-      where: { id: fulfilmentId },
+    // Supplier webhooks and reconciliation can report the same completion at
+    // the same time. Only the request that changes the status may emit the
+    // DELIVERED order event (and its Telegram notification).
+    const claimed = await prisma.fulfilment.updateMany({
+      where: {
+        id: fulfilmentId,
+        status: { not: FulfilmentStatus.DELIVERED },
+      },
       data: {
         status: FulfilmentStatus.DELIVERED,
         completedAt: new Date(),
       },
     });
+
+    if (claimed.count !== 1) {
+      logger.info("Duplicate delivery confirmation ignored", {
+        orderId: fulfilment.order.publicOrderId,
+        supplierOrderId: fulfilment.supplierOrderId || undefined,
+      });
+      return false;
+    }
 
     await orderService.transitionStatus(
       fulfilment.orderId,
@@ -264,6 +278,54 @@ export class FulfilmentService {
       orderId: fulfilment.order.publicOrderId,
       supplierOrderId: fulfilment.supplierOrderId || undefined,
     });
+
+    return true;
+  }
+
+  /**
+   * Claims a terminal supplier failure once and sends the paid order to review.
+   * A late failure callback must never overwrite an already delivered order.
+   */
+  async markFulfilmentFailedForReview(fulfilmentId: string, reason: string): Promise<boolean> {
+    const fulfilment = await prisma.fulfilment.findUnique({
+      where: { id: fulfilmentId },
+      include: { order: true },
+    });
+
+    if (
+      !fulfilment ||
+      fulfilment.status === FulfilmentStatus.DELIVERED ||
+      fulfilment.status === FulfilmentStatus.FAILED
+    ) {
+      return false;
+    }
+
+    const claimed = await prisma.fulfilment.updateMany({
+      where: {
+        id: fulfilmentId,
+        status: { notIn: [FulfilmentStatus.DELIVERED, FulfilmentStatus.FAILED] },
+      },
+      data: {
+        status: FulfilmentStatus.FAILED,
+        lastError: reason,
+      },
+    });
+
+    if (claimed.count !== 1) {
+      logger.info("Duplicate supplier failure ignored", {
+        orderId: fulfilment.order.publicOrderId,
+        supplierOrderId: fulfilment.supplierOrderId || undefined,
+      });
+      return false;
+    }
+
+    await orderService.transitionStatus(
+      fulfilment.orderId,
+      OrderStatus.REVIEW_REQUIRED,
+      reason
+    );
+
+    return true;
   }
 }
 

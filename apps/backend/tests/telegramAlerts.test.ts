@@ -1,7 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { OrderStatus } from "@topup/shared";
-import { escapeTelegramHtml, formatCambodiaTime, getTelegramAlertTopic } from "../services/TelegramAlertService";
+import {
+  escapeTelegramHtml,
+  formatCambodiaTime,
+  formatTelegramReceipt,
+  getTelegramAlertTopic,
+} from "../services/TelegramAlertService";
 
 test("routes order statuses to the correct Telegram topic", () => {
   assert.equal(getTelegramAlertTopic(OrderStatus.PAID), "paid");
@@ -20,4 +25,38 @@ test("formats Telegram timestamps in Cambodia time", () => {
     formatCambodiaTime(new Date("2026-09-22T17:50:11.902Z")),
     "2026-09-23 00:50:11 (Cambodia)"
   );
+});
+
+test("formats a paid Telegram receipt with an explicit status", () => {
+  const receipt = formatTelegramReceipt({
+    publicOrderId: "NT-ABC12345",
+    status: OrderStatus.PAID,
+    gameName: "Mobile Legends",
+    productName: "Weekly Elite Pack",
+    playerId: "123456",
+    serverId: "7890",
+    playerName: "Player One",
+    total: 0.86,
+    currency: "USD",
+    paymentProvider: "KHQR",
+    paymentReference: "TX-100",
+    time: new Date("2026-09-22T17:50:11.902Z"),
+  });
+
+  assert.match(receipt, /NA TOPUP RECEIPT/);
+  assert.match(receipt, /Status:<\/b> 🟢 <b>PAID/);
+  assert.match(receipt, /Weekly Elite Pack/);
+  assert.match(receipt, /\$0\.86 USD/);
+  assert.match(receipt, /TX-100/);
+});
+
+test("formats review receipts with an escaped reason", () => {
+  const receipt = formatTelegramReceipt({
+    publicOrderId: "NT-REVIEW1",
+    status: OrderStatus.REVIEW_REQUIRED,
+    reason: "Supplier <timeout> & retry",
+  });
+
+  assert.match(receipt, /Status:<\/b> ⚠️ <b>REVIEW REQUIRED/);
+  assert.match(receipt, /Supplier &lt;timeout&gt; &amp; retry/);
 });

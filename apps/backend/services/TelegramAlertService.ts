@@ -43,10 +43,75 @@ function threadIdFor(topic: TelegramAlertTopic): number {
   return config.telegram.systemThreadId;
 }
 
-function headingFor(topic: TelegramAlertTopic): string {
-  if (topic === "paid") return "⚡ <b>Paid</b>";
-  if (topic === "completed") return "💎 <b>Delivered</b>";
-  return "‼️ <b>Order Error</b>";
+function statusFor(status: OrderStatus): { icon: string; label: string } {
+  if (status === OrderStatus.PAID) return { icon: "🟢", label: "PAID" };
+  if (status === OrderStatus.DELIVERED) return { icon: "✅", label: "DELIVERED" };
+  if (status === OrderStatus.REVIEW_REQUIRED) return { icon: "⚠️", label: "REVIEW REQUIRED" };
+  if (status === OrderStatus.FAILED) return { icon: "❌", label: "FAILED" };
+  return { icon: "ℹ️", label: status.replaceAll("_", " ") };
+}
+
+export interface TelegramReceiptDetails {
+  publicOrderId: string;
+  status: OrderStatus;
+  gameName?: string | null;
+  productName?: string | null;
+  playerId?: string | null;
+  serverId?: string | null;
+  playerName?: string | null;
+  total?: number | null;
+  currency?: string | null;
+  paymentProvider?: string | null;
+  paymentReference?: string | null;
+  supplier?: string | null;
+  supplierOrderId?: string | null;
+  reason?: string | null;
+  time?: Date;
+}
+
+export function formatTelegramReceipt(details: TelegramReceiptDetails): string {
+  const status = statusFor(details.status);
+  const currency = String(details.currency || "USD").toUpperCase();
+  const lines = [
+    "🧾 <b>NA TOPUP RECEIPT</b>",
+    "━━━━━━━━━━━━━━━━",
+    `<b>Status:</b> ${status.icon} <b>${escapeTelegramHtml(status.label)}</b>`,
+    `<b>Order ID:</b> <code>${escapeTelegramHtml(details.publicOrderId)}</code>`,
+  ];
+
+  if (details.gameName) lines.push(`<b>Game:</b> ${escapeTelegramHtml(details.gameName)}`);
+  if (details.productName) lines.push(`<b>Package:</b> ${escapeTelegramHtml(details.productName)}`);
+  if (details.playerId) {
+    const server = details.serverId ? ` / ${escapeTelegramHtml(details.serverId)}` : "";
+    lines.push(`<b>Player ID:</b> <code>${escapeTelegramHtml(details.playerId)}${server}</code>`);
+  }
+  if (details.playerName) lines.push(`<b>Player Name:</b> ${escapeTelegramHtml(details.playerName)}`);
+  if (typeof details.total === "number") {
+    const amount = `${currency === "USD" ? "$" : ""}${details.total.toFixed(2)} ${currency}`;
+    lines.push(`<b>Amount:</b> <b>${escapeTelegramHtml(amount)}</b>`);
+  }
+  if (details.paymentProvider) {
+    const reference = details.paymentReference
+      ? ` · <code>${escapeTelegramHtml(details.paymentReference)}</code>`
+      : "";
+    lines.push(`<b>Payment:</b> ${escapeTelegramHtml(details.paymentProvider)}${reference}`);
+  }
+  if (details.supplier) {
+    const supplierOrder = details.supplierOrderId
+      ? ` · <code>${escapeTelegramHtml(details.supplierOrderId)}</code>`
+      : "";
+    lines.push(`<b>Supplier:</b> ${escapeTelegramHtml(details.supplier)}${supplierOrder}`);
+  }
+  if (
+    (details.status === OrderStatus.FAILED || details.status === OrderStatus.REVIEW_REQUIRED) &&
+    details.reason
+  ) {
+    lines.push(`<b>Reason:</b> ${escapeTelegramHtml(details.reason)}`);
+  }
+
+  lines.push("━━━━━━━━━━━━━━━━");
+  lines.push(`<b>Time:</b> ${escapeTelegramHtml(formatCambodiaTime(details.time))}`);
+  return lines.join("\n");
 }
 
 const wait = (milliseconds: number) =>
@@ -170,8 +235,12 @@ class TelegramAlertService {
                 serverId: true,
                 playerName: true,
                 total: true,
+                currency: true,
                 game: { select: { name: true } },
                 product: { select: { name: true } },
+                payment: {
+                  select: { provider: true, providerTransactionId: true, providerReference: true },
+                },
                 fulfilment: {
                   select: { supplier: true, supplierOrderId: true, lastError: true },
                 },
@@ -181,35 +250,28 @@ class TelegramAlertService {
           1500
         );
 
-    const lines = [
-      headingFor(topic),
-      `<b>Order:</b> <code>${escapeTelegramHtml(order?.publicOrderId || publicOrderId)}</code>`,
-    ];
+    const receipt = formatTelegramReceipt({
+      publicOrderId: order?.publicOrderId || publicOrderId,
+      status,
+      gameName: order?.game?.name,
+      productName: order?.product?.name,
+      playerId: order?.playerId,
+      serverId: order?.serverId,
+      playerName: order?.playerName,
+      total: order?.total,
+      currency: order?.currency,
+      paymentProvider: order?.payment?.provider,
+      paymentReference:
+        order?.payment?.providerTransactionId || order?.payment?.providerReference,
+      supplier: order?.fulfilment?.supplier,
+      supplierOrderId: order?.fulfilment?.supplierOrderId,
+      reason:
+        status === OrderStatus.FAILED || status === OrderStatus.REVIEW_REQUIRED
+          ? order?.fulfilment?.lastError || reason || "Unknown error"
+          : undefined,
+    });
 
-    if (order?.game?.name) lines.push(`<b>Game:</b> ${escapeTelegramHtml(order.game.name)}`);
-    if (order?.product?.name) lines.push(`<b>Package:</b> ${escapeTelegramHtml(order.product.name)}`);
-    if (order?.playerId) {
-      const server = order.serverId ? ` (${escapeTelegramHtml(order.serverId)})` : "";
-      lines.push(`<b>Player:</b> <code>${escapeTelegramHtml(order.playerId)}</code>${server}`);
-    }
-    if (order?.playerName) lines.push(`<b>Name:</b> ${escapeTelegramHtml(order.playerName)}`);
-    if (typeof order?.total === "number") {
-      lines.push(`<b>Amount:</b> $${order.total.toFixed(2)} USD`);
-    }
-    if (order?.fulfilment?.supplier) {
-      const supplierOrder = order.fulfilment.supplierOrderId
-        ? ` · ${escapeTelegramHtml(order.fulfilment.supplierOrderId)}`
-        : "";
-      lines.push(`<b>Supplier:</b> ${escapeTelegramHtml(order.fulfilment.supplier)}${supplierOrder}`);
-    }
-    if (topic === "system") {
-      lines.push(
-        `<b>Reason:</b> ${escapeTelegramHtml(order?.fulfilment?.lastError || reason || "Unknown error")}`
-      );
-    }
-    lines.push(`<b>Time:</b> ${escapeTelegramHtml(formatCambodiaTime())}`);
-
-    const sent = await this.send(topic, lines.join("\n"), maxAttempts);
+    const sent = await this.send(topic, receipt, maxAttempts);
     if (sent) {
       logger.info("Telegram order alert delivered", {
         provider: "TELEGRAM",

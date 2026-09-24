@@ -1,4 +1,4 @@
-import { FulfilmentStatus, OrderStatus, PaymentStatus, SupplierCode, SupplierOrderStatus } from "@topup/shared";
+import { OrderStatus, PaymentStatus, SupplierCode, SupplierOrderStatus } from "@topup/shared";
 import { config } from "../lib/config";
 import { logger } from "../lib/logger";
 import { prisma } from "../lib/prisma";
@@ -354,14 +354,29 @@ export class WebhookService {
       return { success: false, message: `Unsupported supplier status: ${status || "missing"}`, statusCode: 400 };
     }
 
-    await prisma.supplierOrder.update({
-      where: { id: supplierOrder.id },
-      data: {
-        status: delivered ? SupplierOrderStatus.COMPLETED : SupplierOrderStatus.FAILED,
-        supplierOrderId: supplierOrderId || supplierOrder.supplierOrderId || undefined,
-        responsePayload: rawBody,
-      },
-    });
+    if (delivered) {
+      await prisma.supplierOrder.update({
+        where: { id: supplierOrder.id },
+        data: {
+          status: SupplierOrderStatus.COMPLETED,
+          supplierOrderId: supplierOrderId || supplierOrder.supplierOrderId || undefined,
+          responsePayload: rawBody,
+        },
+      });
+    } else {
+      // Do not let an out-of-order failure callback regress a completed order.
+      await prisma.supplierOrder.updateMany({
+        where: {
+          id: supplierOrder.id,
+          status: { not: SupplierOrderStatus.COMPLETED },
+        },
+        data: {
+          status: SupplierOrderStatus.FAILED,
+          supplierOrderId: supplierOrderId || supplierOrder.supplierOrderId || undefined,
+          responsePayload: rawBody,
+        },
+      });
+    }
 
     if (delivered) {
       if (supplierOrderId && !supplierOrder.fulfilment.supplierOrderId) {
@@ -372,18 +387,10 @@ export class WebhookService {
       }
       await fulfilmentService.markFulfilmentDelivered(supplierOrder.fulfilment.id);
     } else {
-      await prisma.fulfilment.update({
-        where: { id: supplierOrder.fulfilment.id },
-        data: {
-          status: FulfilmentStatus.FAILED,
-          lastError: data.message || payload.message || `Supplier reported ${status}`,
-        },
-      });
       // Payment was already collected, so supplier failure requires review or
       // refund instead of presenting the customer's paid order as unpaid.
-      await orderService.transitionStatus(
-        supplierOrder.fulfilment.orderId,
-        OrderStatus.REVIEW_REQUIRED,
+      await fulfilmentService.markFulfilmentFailedForReview(
+        supplierOrder.fulfilment.id,
         data.message || payload.message || `Supplier reported ${status}`
       );
     }
