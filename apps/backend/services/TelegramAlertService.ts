@@ -54,6 +54,39 @@ const wait = (milliseconds: number) =>
 
 class TelegramAlertService {
   private lowBalanceAlertAt = new Map<string, number>();
+
+  private async normalizeLegacyOutboxEvents(): Promise<void> {
+    // OrderEvent records created before the Telegram outbox fields were added
+    // have missing MongoDB keys rather than explicit null/default values.
+    // Prisma's `isSet` filter is not accepted by updateMany in production, so
+    // backfill only missing keys and keep the normal claim query portable.
+    await prisma.$runCommandRaw({
+      update: "OrderEvent",
+      updates: [
+        {
+          q: { telegramSentAt: { $exists: false } },
+          u: { $set: { telegramSentAt: null } },
+          multi: true,
+        },
+        {
+          q: { telegramAttemptCount: { $exists: false } },
+          u: { $set: { telegramAttemptCount: 0 } },
+          multi: true,
+        },
+        {
+          q: { telegramLastError: { $exists: false } },
+          u: { $set: { telegramLastError: null } },
+          multi: true,
+        },
+        {
+          q: { telegramLastAttemptAt: { $exists: false } },
+          u: { $set: { telegramLastAttemptAt: null } },
+          multi: true,
+        },
+      ],
+    });
+  }
+
   private isConfigured(topic: TelegramAlertTopic): boolean {
     return Boolean(
       config.telegram.botToken &&
@@ -213,12 +246,11 @@ class TelegramAlertService {
       where: {
         id: event.id,
         AND: [
-          { OR: [{ telegramSentAt: null }, { telegramSentAt: { isSet: false } }] },
-          { OR: [{ telegramAttemptCount: attemptCount }, { telegramAttemptCount: { isSet: false } }] },
+          { telegramSentAt: null },
+          { telegramAttemptCount: attemptCount },
           {
             OR: [
               { telegramLastAttemptAt: null },
-              { telegramLastAttemptAt: { isSet: false } },
               { telegramLastAttemptAt: { lt: staleClaimBefore } },
             ],
           },
@@ -256,6 +288,7 @@ class TelegramAlertService {
   }
 
   async retryPendingOrderAlerts(limit = 10): Promise<{ checked: number; sent: number }> {
+    await this.normalizeLegacyOutboxEvents();
     const eventDelegate = prisma.orderEvent as any;
     const retryBefore = new Date(Date.now() - 2 * 60 * 1000);
     const events = await eventDelegate.findMany({
@@ -264,11 +297,10 @@ class TelegramAlertService {
           in: [OrderStatus.PAID, OrderStatus.DELIVERED, OrderStatus.FAILED, OrderStatus.REVIEW_REQUIRED],
         },
         AND: [
-          { OR: [{ telegramSentAt: null }, { telegramSentAt: { isSet: false } }] },
+          { telegramSentAt: null },
           {
             OR: [
               { telegramLastAttemptAt: null },
-              { telegramLastAttemptAt: { isSet: false } },
               { telegramLastAttemptAt: { lt: retryBefore } },
             ],
           },
