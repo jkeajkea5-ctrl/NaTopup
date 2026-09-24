@@ -43,11 +43,22 @@ test("formats a paid Telegram receipt with an explicit status", () => {
     time: new Date("2026-09-22T17:50:11.902Z"),
   });
 
-  assert.match(receipt, /NA TOPUP RECEIPT/);
+  assert.match(receipt, /PAYMENT SUCCESS/);
   assert.match(receipt, /Status:<\/b> 🟢 <b>PAID/);
   assert.match(receipt, /Weekly Elite Pack/);
   assert.match(receipt, /\$0\.86 USD/);
   assert.match(receipt, /TX-100/);
+});
+
+test("formats a delivered Telegram receipt after the paid receipt", () => {
+  const receipt = formatTelegramReceipt({
+    publicOrderId: "NT-DELIVERED1",
+    status: OrderStatus.DELIVERED,
+    productName: "55 Diamonds",
+  });
+
+  assert.match(receipt, /ORDER DELIVERED/);
+  assert.match(receipt, /Status:<\/b> ✅ <b>DELIVERED/);
 });
 
 test("formats review receipts with an escaped reason", () => {

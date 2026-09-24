@@ -51,6 +51,14 @@ function statusFor(status: OrderStatus): { icon: string; label: string } {
   return { icon: "ℹ️", label: status.replaceAll("_", " ") };
 }
 
+function receiptTitleFor(status: OrderStatus): string {
+  if (status === OrderStatus.PAID) return "💳 <b>PAYMENT SUCCESS</b>";
+  if (status === OrderStatus.DELIVERED) return "🎉 <b>ORDER DELIVERED</b>";
+  if (status === OrderStatus.REVIEW_REQUIRED) return "⚠️ <b>ORDER NEEDS REVIEW</b>";
+  if (status === OrderStatus.FAILED) return "❌ <b>ORDER FAILED</b>";
+  return "🧾 <b>NA TOPUP RECEIPT</b>";
+}
+
 export interface TelegramReceiptDetails {
   publicOrderId: string;
   status: OrderStatus;
@@ -73,7 +81,7 @@ export function formatTelegramReceipt(details: TelegramReceiptDetails): string {
   const status = statusFor(details.status);
   const currency = String(details.currency || "USD").toUpperCase();
   const lines = [
-    "🧾 <b>NA TOPUP RECEIPT</b>",
+    receiptTitleFor(details.status),
     "━━━━━━━━━━━━━━━━",
     `<b>Status:</b> ${status.icon} <b>${escapeTelegramHtml(status.label)}</b>`,
     `<b>Order ID:</b> <code>${escapeTelegramHtml(details.publicOrderId)}</code>`,

@@ -350,6 +350,17 @@ export class OrderService {
     }
 
     const currentStatus = order.status as OrderStatus;
+    // The payment webhook, reconciliation cron, and browser polling can all
+    // observe the same provider confirmation. A repeated state is not a new
+    // transition and must not create another Telegram outbox event.
+    if (currentStatus === toStatus) {
+      logger.info("Duplicate order status transition ignored", {
+        orderId: order.publicOrderId,
+        status: toStatus,
+      });
+      return order;
+    }
+
     if (!canTransitionOrder(currentStatus, toStatus)) {
       const errorMsg = `Illegal order transition from ${currentStatus} to ${toStatus} on order ${order.publicOrderId}`;
       logger.error(errorMsg, { orderId: order.publicOrderId });
