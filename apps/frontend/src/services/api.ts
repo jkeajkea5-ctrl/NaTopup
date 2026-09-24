@@ -46,6 +46,10 @@ export function saveAdminDashboardMutation(data: Record<string, unknown>) {
   return adminJson("/admin/dashboard", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
 }
 
+export function syncAdminGameCatalog(gameId: string) {
+  return adminJson("/admin/catalog-sync", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ gameId }) });
+}
+
 export async function fetchGames(): Promise<{ games: GameItem[]; promotions: PromotionItem[] }> {
   const res = await fetch(`${API_BASE}/games`);
   const json = await res.json();

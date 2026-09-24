@@ -866,6 +866,7 @@
 .admin-package-fields .admin-field input[aria-invalid="true"] { border-color: #df7180; box-shadow: 0 0 0 3px #df718018; }
 .admin-package-fields .admin-fixed-cost > span { justify-self: start; margin-top: -22px; margin-left: 98px; padding: 3px 7px; border-radius: 999px; color: #55708a; background: #e8eef6; font-size: 8px; letter-spacing: .08em; }
 .admin-package-fields .admin-fixed-cost input[readonly] { cursor: not-allowed; color: #526780; border-color: #d7e0ec; background: #f1f4f8; }
+.admin-sync-btn { align-self: end; white-space: nowrap; }
 .admin-cost-reference { color: #7184a5; font-size: 10px; font-weight: 700; letter-spacing: 0; text-transform: none; }
 .admin-package-wide { grid-column: 1 / -1; }
 .admin-selling-field > span { position: relative; display: block; }

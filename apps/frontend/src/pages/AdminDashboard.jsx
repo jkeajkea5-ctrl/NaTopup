@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import {
   fetchAdminDashboard, fetchAdminSettings, fetchAdminSuppliers, logoutAdmin, saveAdminDashboardMutation,
-  updateAdminSecurity, uploadAdminImage,
+  syncAdminGameCatalog, updateAdminSecurity, uploadAdminImage,
 } from "../services/api";
 import "./AdminDashboard.css";
 
@@ -241,6 +241,7 @@ export const AdminDashboard = ({ adminSession }) => {
   const [editor, setEditor] = useState(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [catalogSyncing, setCatalogSyncing] = useState(false);
   const [liveBalances, setLiveBalances] = useState(null);
   const [profitLoading, setProfitLoading] = useState(false);
   const [profitError, setProfitError] = useState("");
@@ -291,6 +292,22 @@ export const AdminDashboard = ({ adminSession }) => {
     catch (err) { setSaveError(err.message); }
     finally { setSaving(false); }
   }
+  async function syncCatalog() {
+    if (packageGame === "ALL") {
+      setError("Select one game before syncing its live supplier catalog.");
+      return;
+    }
+    setCatalogSyncing(true); setError(""); setNotice("");
+    try {
+      const result = await syncAdminGameCatalog(packageGame);
+      await refresh();
+      setNotice(`${result.game} synced: ${result.added} added, ${result.updated} updated, ${result.deleted} deleted, ${result.archived} archived.`);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setCatalogSyncing(false);
+    }
+  }
   async function signOut() { await logoutAdmin(); navigate("/admin/login", { replace: true }); }
   function exportOrders() {
     const rows = [["Order", "Created", "Game", "Package", "Player", "USD", "Status"], ...filteredOrders.map((o) => [o.publicOrderId, o.createdAt, o.game.name, o.product.name, o.playerName || o.playerId, o.total, o.status])];
@@ -331,7 +348,7 @@ export const AdminDashboard = ({ adminSession }) => {
       {error && <p className="admin-alert error">{error}</p>}{notice && <p className="admin-alert success">{notice}</p>}
       {!data ? <Empty>{loading ? "Loading NA TOPUP records…" : "No data loaded."}</Empty> : <section className="admin-panel">
         <div className="admin-panel-head"><div className="admin-section-title"><span><CurrentIcon size={20} /></span><div><h2>{current[1]}</h2><p>{pageDescriptions[activeTab]}</p></div></div>{activeTab === "slides" && <button className="admin-btn primary" onClick={() => edit("slide", { title: "", bannerUrl: "", targetUrl: "", sortOrder: 0, isActive: false })}><Plus size={16} />Add slide</button>}</div>
-        {activeTab !== "security" && activeTab !== "profit" && <div className="admin-toolbar"><label className="admin-search"><Search size={17} /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={`Search ${current[1].toLowerCase()}…`} /></label>{activeTab === "orders" && <div className="admin-actions"><label className="admin-field">Status<select value={status} onChange={(e) => setStatus(e.target.value)}><option value="ALL">All statuses</option>{Object.entries(labels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label><button className="admin-btn secondary" onClick={exportOrders}>Export CSV</button></div>}{activeTab === "packages" && <div className="admin-actions"><label className="admin-field">Catalog<select value={packageCategory} onChange={(e) => { setPackageCategory(e.target.value); setPackageGame("ALL"); }}><option value="ALL">All catalogs</option>{packageCatalogs.map((catalog) => <option value={catalog.id} key={catalog.id}>{catalog.label}</option>)}</select></label><label className="admin-field">Game<select value={packageGame} onChange={(e) => setPackageGame(e.target.value)}><option value="ALL">All games</option>{packageGames.map((game) => <option value={game.id} key={game.id}>{game.name}</option>)}</select></label></div>}</div>}
+        {activeTab !== "security" && activeTab !== "profit" && <div className="admin-toolbar"><label className="admin-search"><Search size={17} /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={`Search ${current[1].toLowerCase()}…`} /></label>{activeTab === "orders" && <div className="admin-actions"><label className="admin-field">Status<select value={status} onChange={(e) => setStatus(e.target.value)}><option value="ALL">All statuses</option>{Object.entries(labels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label><button className="admin-btn secondary" onClick={exportOrders}>Export CSV</button></div>}{activeTab === "packages" && <div className="admin-actions"><label className="admin-field">Catalog<select value={packageCategory} onChange={(e) => { setPackageCategory(e.target.value); setPackageGame("ALL"); }}><option value="ALL">All catalogs</option>{packageCatalogs.map((catalog) => <option value={catalog.id} key={catalog.id}>{catalog.label}</option>)}</select></label><label className="admin-field">Game<select value={packageGame} onChange={(e) => setPackageGame(e.target.value)}><option value="ALL">All games</option>{packageGames.map((game) => <option value={game.id} key={game.id}>{game.name}</option>)}</select></label><button className="admin-btn primary admin-sync-btn" disabled={packageGame === "ALL" || catalogSyncing} onClick={syncCatalog}><RefreshCw size={16} className={catalogSyncing ? "spin" : ""} />{catalogSyncing ? "Syncing…" : "Sync supplier"}</button></div>}</div>}
         {activeTab === "orders" && <div className="admin-orders-view">
           <div className="admin-summary admin-order-summary">
             <article><ClipboardCheck /><span><small>Total orders</small><strong>{data.orderCount}</strong><em>{data.orders.length} recent records loaded</em></span></article>

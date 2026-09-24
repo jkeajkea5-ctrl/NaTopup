@@ -62,6 +62,9 @@ export class G2BulkAdapter implements ISupplierAdapter {
   }
 
   private mapCatalogueName(supplierProductCode: string): string {
+    if (supplierProductCode.startsWith("G2B:")) {
+      return supplierProductCode.split(":").slice(3).join(":").trim();
+    }
     const clean = (supplierProductCode || "")
       .replace(/^G2B_/i, "")
       .replace(/^MLBB_EXCLUSIVE_/i, "")
@@ -131,6 +134,22 @@ export class G2BulkAdapter implements ISupplierAdapter {
       }
     } catch (err: any) {
       logger.error("Failed to fetch G2Bulk mlbb catalogue", { error: err.message });
+    }
+    return [];
+  }
+
+  async getGameCatalogue(gameCode: string): Promise<any[]> {
+    if (!this.apiKey) return [];
+    const game = this.mapCatalogueGameCode(gameCode);
+    try {
+      const res = await fetch(`${this.baseUrl}/games/${game}/catalogue`, {
+        headers: this.getHeaders(),
+        signal: AbortSignal.timeout(15000),
+      });
+      const data = await res.json();
+      if (res.ok && Array.isArray(data.catalogues)) return data.catalogues;
+    } catch (err: any) {
+      logger.error("Failed to fetch G2Bulk game catalogue", { error: err.message, provider: "G2BULK", game });
     }
     return [];
   }
