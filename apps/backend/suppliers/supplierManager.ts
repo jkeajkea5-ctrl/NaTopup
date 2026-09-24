@@ -44,7 +44,7 @@ export class SupplierManager {
     const input: PlayerCheckInput = { gameCode, fields };
 
     // For Mobile Legends and Valorant, prioritize G2Bulk then Vizo
-    const isG2BulkPriority = gameCode === "mobile-legends" || gameCode === "mobile-legends-philippines" || gameCode === "mlbb" || gameCode === "mlbb_exclusive" || gameCode === "honor-of-kings" || gameCode === "hok" || gameCode.includes("valorant");
+    const isG2BulkPriority = gameCode === "mobile-legends" || gameCode === "mobile-legends-philippines" || gameCode === "mobile-legends-indonesia" || gameCode === "mlbb" || gameCode === "mlbb_exclusive" || gameCode === "mlbb_global" || gameCode === "honor-of-kings" || gameCode === "hok" || gameCode.includes("valorant");
     const primarySupplier = isG2BulkPriority ? SupplierCode.G2BULK : SupplierCode.VIZO;
     const secondarySupplier = isG2BulkPriority ? SupplierCode.VIZO : SupplierCode.G2BULK;
 

@@ -30,6 +30,7 @@ export function extractSupplierCallback(payload: any) {
 export function inferG2BulkGameCode(...values: unknown[]): string {
   const text = values.filter(Boolean).join(" ").toLowerCase();
   if (text.includes("mlbb_exclusive") || text.includes("mobile legends philippines") || text.includes("mlbb exclusive")) return "mlbb_exclusive";
+  if (text.includes("mlbb_global") || text.includes("mobile legends indonesia") || text.includes("mlbb global")) return "mlbb_global";
   if (text.includes("mlbb") || text.includes("mobile legends")) return "mlbb";
   if (text.includes("pubgm") || text.includes("pubg")) return "pubgm";
   if (text.includes("valorant_kh") || text.includes("valorant kh")) return "valorant_kh";

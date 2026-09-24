@@ -25,6 +25,10 @@ export function prepareMlbbExclusiveCatalogue(items: unknown) {
   ]);
 }
 
+export function prepareMlbbGlobalCatalogue(items: unknown) {
+  return prepareGameCatalogue(items, "MLBB_GLOBAL", ["Weekly"]);
+}
+
 export function prepareGameCatalogue(items: unknown, prefix: string, popularNames: string[] = []) {
   if (!Array.isArray(items) || items.length === 0) {
     throw new Error("Supplier catalogue is empty; existing packages were not changed.");

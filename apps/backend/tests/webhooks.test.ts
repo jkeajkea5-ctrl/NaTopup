@@ -42,6 +42,7 @@ test("validates an explicit KHQR callback currency", () => {
 test("infers the G2Bulk game required by its order status endpoint", () => {
   assert.equal(inferG2BulkGameCode("Mobile Legends"), "mlbb");
   assert.equal(inferG2BulkGameCode("Mobile Legends Philippines", "G2B_MLBB_EXCLUSIVE_55"), "mlbb_exclusive");
+  assert.equal(inferG2BulkGameCode("Mobile Legends Indonesia", "G2B_MLBB_GLOBAL_55"), "mlbb_global");
   assert.equal(inferG2BulkGameCode("G2B_MLBB_55"), "mlbb");
   assert.equal(inferG2BulkGameCode("valorant_sg"), "valorant_sg");
 });
