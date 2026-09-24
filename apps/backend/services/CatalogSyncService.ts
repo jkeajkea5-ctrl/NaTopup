@@ -46,7 +46,7 @@ async function fetchLive(provider: string, gameCode: string): Promise<LiveItem[]
 }
 
 export class CatalogSyncService {
-  async syncGame(gameId: string) {
+  async syncGame(gameId: string, selectedProvider?: "G2BULK" | "VIZO") {
     const game = await prisma.game.findUnique({
       where: { id: gameId },
       include: {
@@ -72,8 +72,8 @@ export class CatalogSyncService {
         sourceMap.set(`${provider}:${gameCode}`, { supplierId: mapping.supplierId, provider, gameCode });
       }
     }
-    const sources = [...sourceMap.values()];
-    if (!sources.length) throw new Error("This game has no G2Bulk or Vizo catalog mapping.");
+    const sources = [...sourceMap.values()].filter((source) => !selectedProvider || source.provider === selectedProvider);
+    if (!sources.length) throw new Error(`This game has no ${selectedProvider || "G2Bulk or Vizo"} catalog mapping.`);
 
     const liveSources = await Promise.all(sources.map(async (source) => {
       const items = await fetchLive(source.provider, source.gameCode);
