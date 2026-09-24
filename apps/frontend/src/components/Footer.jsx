@@ -36,33 +36,33 @@ export const Footer = () => {
                 href={CONTACT_LINKS.telegram}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="contact-icon contact-icon--telegram !border-0 !bg-transparent !shadow-none"
+                className="contact-icon footer-contact-icon contact-icon--telegram !border-0 !bg-transparent !shadow-none"
                 title="Telegram Channel"
                 aria-label="Telegram Channel"
               >
-                <TelegramBrandIcon className="h-8 w-8" />
+                <TelegramBrandIcon />
               </a>
 
               <a
                 href={CONTACT_LINKS.facebook}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="contact-icon contact-icon--facebook !border-0 !bg-transparent !shadow-none"
+                className="contact-icon footer-contact-icon contact-icon--facebook !border-0 !bg-transparent !shadow-none"
                 title="Facebook"
                 aria-label="Facebook"
               >
-                <FacebookBrandIcon className="h-6 w-6" />
+                <FacebookBrandIcon />
               </a>
 
               <a
                 href={CONTACT_LINKS.tiktok}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="contact-icon contact-icon--tiktok !border-0 !bg-transparent !shadow-none"
+                className="contact-icon footer-contact-icon contact-icon--tiktok !border-0 !bg-transparent !shadow-none"
                 title="TikTok"
                 aria-label="TikTok"
               >
-                <TikTokBrandIcon className="h-6 w-6" />
+                <TikTokBrandIcon />
               </a>
             </div>
           </div>
@@ -74,20 +74,20 @@ export const Footer = () => {
                 href={CONTACT_LINKS.telegram}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="contact-icon contact-icon--telegram !border-0 !bg-transparent !shadow-none"
+                className="contact-icon footer-contact-icon contact-icon--telegram !border-0 !bg-transparent !shadow-none"
                 title="Telegram"
                 aria-label="Telegram"
               >
-                <TelegramBrandIcon className="h-8 w-8" />
+                <TelegramBrandIcon />
               </a>
 
               <a
                 href="mailto:support@lukastopup.com"
-                className="contact-icon contact-icon--email !border-0 !bg-transparent !shadow-none"
+                className="contact-icon footer-contact-icon contact-icon--email !border-0 !bg-transparent !shadow-none"
                 title="Email Support"
                 aria-label="Email Support"
               >
-                <Mail className="w-4 h-4" />
+                <Mail />
               </a>
             </div>
           </div>

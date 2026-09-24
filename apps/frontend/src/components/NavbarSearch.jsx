@@ -24,17 +24,11 @@ const normalizeSearch = (value) =>
     .replace(/[^a-z0-9\u1780-\u17ff]+/g, " ")
     .trim();
 
-export const NavbarSearch = () => {
-  const [query, setQuery] = useState("");
-  const [open, setOpen] = useState(false);
-  const container = useRef(null);
-  const input = useRef(null);
-  const location = useLocation();
-  const navigate = useNavigate();
-  const { data, isLoading, isError } = useQuery({ queryKey: ["games"], queryFn: fetchGames });
-  const term = normalizeSearch(query);
+const findGameMatches = (games, term) => {
+  if (!term) return [];
   const compactTerm = term.replace(/\s+/g, "");
-  const matches = (data?.games || []).filter((game) => {
+
+  return games.filter((game) => {
     const aliases = GAME_SEARCH_ALIASES[game.slug] || [];
     const searchable = normalizeSearch([
       game.name,
@@ -45,6 +39,18 @@ export const NavbarSearch = () => {
     ].join(" "));
     return searchable.includes(term) || searchable.replace(/\s+/g, "").includes(compactTerm);
   });
+};
+
+export const NavbarSearch = () => {
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const container = useRef(null);
+  const input = useRef(null);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { data, isLoading, isError, refetch } = useQuery({ queryKey: ["games"], queryFn: fetchGames });
+  const term = normalizeSearch(query);
+  const matches = findGameMatches(data?.games || [], term);
   const visible = open && !!term;
 
   useEffect(() => { setOpen(false); setQuery(""); }, [location.pathname]);
@@ -61,12 +67,22 @@ export const NavbarSearch = () => {
       onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false); }}
       onKeyDown={(event) => { if (event.key === "Escape") { setOpen(false); input.current?.focus(); } }}>
       <form role="search" className="flex h-11 items-center gap-2 rounded-2xl border border-brand-border bg-white/90 px-3 text-brand-muted transition-shadow focus-within:border-brand-violet focus-within:ring-4 focus-within:ring-brand-violet/10"
-        onSubmit={(event) => {
+        onSubmit={async (event) => {
           event.preventDefault();
-          if (term && matches.length && !isError) {
-            navigate(`/game/${matches[0].slug}`);
+          if (!term) return;
+
+          let firstMatch = matches[0];
+          if (!firstMatch) {
+            const refreshed = await refetch();
+            firstMatch = findGameMatches(refreshed.data?.games || [], term)[0];
+          }
+
+          if (firstMatch) {
+            navigate(`/game/${firstMatch.slug}`);
             setOpen(false);
             setQuery("");
+          } else {
+            setOpen(true);
           }
         }}>
         <button

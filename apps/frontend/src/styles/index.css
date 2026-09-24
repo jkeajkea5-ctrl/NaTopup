@@ -111,6 +111,11 @@ dialog {
   height: 21px;
   transform: none;
 }
+.footer-contact-icon > svg,
+.footer-contact-icon > .telegram-brand-icon {
+  width: 28px !important;
+  height: 28px !important;
+}
 .contact-icon--telegram {
   --contact-bg: #ecf8ff;
   --contact-border: #d4ecf8;

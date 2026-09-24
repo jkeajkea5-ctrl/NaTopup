@@ -56,7 +56,7 @@ export const Header = () => {
             <NavbarSearch />
             <div className="flex items-center gap-2 sm:gap-3">
               <a href={CONTACT_LINKS.telegram} target="_blank" rel="noopener noreferrer" className="navbar-contact flex shrink-0 items-center justify-center gap-2 p-1.5 md:px-2 md:py-2" title="ទាក់ទង Telegram" aria-label="ទាក់ទង Telegram">
-                <TelegramBrandIcon className="h-10 w-10" />
+                <TelegramBrandIcon bare className="h-10 w-10" />
                 <span className="relative z-10 hidden whitespace-nowrap pr-0.5 font-kulen text-xs font-bold tracking-tight text-[#2489b6] lg:inline lg:text-sm">ទាក់ទង Telegram</span>
               </a>
               <button type="button" onClick={() => setIsMenuOpen(true)} className="shrink-0 cursor-pointer rounded-xl p-2 text-gray-700 transition-all hover:bg-brand-violet/10 hover:text-brand-violet active:scale-90 lg:hidden" aria-label="បើកម៉ឺនុយ" aria-expanded={isMenuOpen} aria-controls="mobile-navigation">
