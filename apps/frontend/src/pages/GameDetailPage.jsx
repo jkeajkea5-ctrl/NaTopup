@@ -23,11 +23,11 @@ import { checkPlayerId, createOrder, fetchGameDetail, initKhqrPayment, fetchOrde
 import { ProductCard } from "../components/ProductCard";
 import { SuccessInvoiceModal } from "../components/SuccessInvoiceModal";
 import { TermsModal } from "../components/TermsModal";
-import { closeProviderCheckout } from "../services/paymentCheckout";
+import { closeProviderCheckout, showProviderCloseButton } from "../services/paymentCheckout";
 
 let khqrPluginPromise;
 
-async function openProviderCheckout(checkoutUrl, onSuccess, onError) {
+async function openProviderCheckout(checkoutUrl, onSuccess, onError, onClose) {
   if (!checkoutUrl) throw new Error("Payment checkout is unavailable. Please try again.");
   if (!window.KhqrPayway?.openCheckout) {
     if (!khqrPluginPromise) {
@@ -53,6 +53,7 @@ async function openProviderCheckout(checkoutUrl, onSuccess, onError) {
     throw new Error("Payment checkout is unavailable. Please try again.");
   }
   window.KhqrPayway.openCheckout({ checkout_url: checkoutUrl, onSuccess, onError });
+  showProviderCloseButton(onClose);
 }
 
 export const GameDetailPage = () => {
@@ -383,7 +384,11 @@ export const GameDetailPage = () => {
             // The existing 3-second poll remains authoritative and will retry.
           }
         },
-        () => setSubmitError("Unable to open secure payment. Please try again.")
+        () => setSubmitError("Unable to open secure payment. Please try again."),
+        () => {
+          setPaymentSession(null);
+          setPaymentNotice(null);
+        }
       );
       setPaymentSession({ ...paymentRes, publicOrderId: orderRes.publicOrderId });
 

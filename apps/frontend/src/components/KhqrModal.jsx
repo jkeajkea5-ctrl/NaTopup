@@ -32,6 +32,7 @@ export const KhqrModal = ({
   const [paymentStatus, setPaymentStatus] = useState("PENDING");
   const [copied, setCopied] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState("");
+  const [isDownloading, setIsDownloading] = useState(false);
 
   // Generate clean, high-precision unoccluded QR code matrix locally
   useEffect(() => {
@@ -128,16 +129,69 @@ export const KhqrModal = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleDownloadQr = () => {
+  const dataUrlToBlob = (dataUrl) => {
+    const [metadata, encodedData] = dataUrl.split(",");
+    const mimeType = metadata.match(/data:([^;]+)/)?.[1] || "image/png";
+    const binary = atob(encodedData);
+    const bytes = new Uint8Array(binary.length);
+
+    for (let index = 0; index < binary.length; index += 1) {
+      bytes[index] = binary.charCodeAt(index);
+    }
+
+    return new Blob([bytes], { type: mimeType });
+  };
+
+  const handleDownloadQr = async () => {
+    if (isDownloading) return;
+    setIsDownloading(true);
+
     try {
+      // Always save a local blob. Browsers ignore the download attribute for
+      // cross-origin provider images, especially on mobile.
+      const localDataUrl = qrDataUrl || (qrPayload
+        ? await QRCode.toDataURL(qrPayload, {
+            errorCorrectionLevel: "M",
+            margin: 1,
+            width: 680,
+            color: { dark: "#000000", light: "#ffffff" },
+          })
+        : "");
+
+      let qrBlob;
+      if (localDataUrl.startsWith("data:")) {
+        qrBlob = dataUrlToBlob(localDataUrl);
+      } else {
+        const response = await fetch(qrDisplayUrl);
+        if (!response.ok) throw new Error("Unable to fetch QR image");
+        qrBlob = await response.blob();
+      }
+
+      const fileName = `KHQR_${publicOrderId}.png`;
+      const qrFile = new File([qrBlob], fileName, { type: "image/png" });
+      const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+      // iOS Safari does not consistently honor the download attribute. Its
+      // native share sheet provides Save Image / Save to Files instead.
+      if (isIos && navigator.share && navigator.canShare?.({ files: [qrFile] })) {
+        await navigator.share({ files: [qrFile], title: fileName });
+        return;
+      }
+
+      const objectUrl = URL.createObjectURL(qrBlob);
       const a = document.createElement("a");
-      a.href = qrDisplayUrl;
-      a.download = `KHQR_${publicOrderId}.png`;
+      a.href = objectUrl;
+      a.download = fileName;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-    } catch {
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+    } catch (error) {
+      if (error?.name === "AbortError") return;
+      console.error("QR download failed:", error);
       window.open(qrDisplayUrl, "_blank");
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -152,13 +206,15 @@ export const KhqrModal = ({
     <div className="fixed inset-0 z-[1000] flex items-center justify-center p-3 sm:p-4 bg-black/65 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto">
       <div className="relative w-full max-w-sm sm:max-w-md bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-gray-100 overflow-hidden my-auto">
         {/* Top Close Bar */}
-        <div className="absolute top-3 right-3 z-10">
+        <div className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3 z-30">
           <button
+            type="button"
             onClick={onClose}
-            className="p-1.5 rounded-full bg-black/20 hover:bg-black/40 text-white transition-colors cursor-pointer"
-            aria-label="Close modal"
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white text-gray-700 hover:bg-gray-100 hover:text-red-600 active:scale-95 shadow-lg ring-1 ring-black/10 transition-all cursor-pointer flex items-center justify-center"
+            aria-label="Close QR code"
+            title="Close QR code"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" strokeWidth={2.5} />
           </button>
         </div>
 
@@ -307,9 +363,14 @@ export const KhqrModal = ({
                 <button
                   type="button"
                   onClick={handleDownloadQr}
+                  disabled={isDownloading}
                   className="py-2 px-3 rounded-lg text-xs font-semibold bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                 >
-                  <Download className="w-3.5 h-3.5 text-gray-500" />
+                  {isDownloading ? (
+                    <Loader2 className="w-3.5 h-3.5 text-gray-500 animate-spin" />
+                  ) : (
+                    <Download className="w-3.5 h-3.5 text-gray-500" />
+                  )}
                   <span>ទាញយក QR</span>
                 </button>
 
