@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "../../../../lib/prisma";
 import { requireAdminWithIp } from "../../../../lib/adminAuth";
 import { adminMutation } from "../../../../lib/adminValidation";
+import { cambodiaDayRange } from "../../../../lib/cambodiaTime";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +13,8 @@ export async function GET(request: Request) {
   if (denied) return denied;
   try {
     const paid = { status: { in: ["PAID", "PROCESSING", "DELIVERED"] } };
-    const [orders, orderCount, games, products, slides, users, suppliers, totals, completed] = await Promise.all([
+    const today = cambodiaDayRange();
+    const [orders, orderCount, games, products, slides, users, suppliers, totals, dailyTotals, completed] = await Promise.all([
       prisma.order.findMany({ take: 250, orderBy: { createdAt: "desc" }, select: {
         id: true, publicOrderId: true, createdAt: true, status: true, playerId: true, playerName: true, total: true,
         gameId: true, productId: true, payment: { select: { status: true } },
@@ -43,6 +45,14 @@ export async function GET(request: Request) {
         id: true, code: true, name: true, isEnabled: true, priority: true, balance: true, currency: true, healthStatus: true, lastChecked: true,
       } }),
       prisma.order.aggregate({ where: paid, _sum: { total: true, supplierCostSnapshot: true }, _count: true }),
+      prisma.order.aggregate({
+        where: {
+          ...paid,
+          paidAt: { gte: today.start, lt: today.end },
+        },
+        _sum: { total: true, supplierCostSnapshot: true },
+        _count: true,
+      }),
       prisma.order.count({ where: { status: "DELIVERED" } }),
     ]);
     const gameMap = new Map(games.map((game) => [game.id, game]));
@@ -68,7 +78,18 @@ export async function GET(request: Request) {
         importSupplier: mappings[0]?.supplier.code ?? null,
       })), slides, users, suppliers,
       orphanedProducts: products.filter((product) => !gameMap.has(product.gameId)).length,
-      metrics: { revenue: totals._sum.total || 0, cost: totals._sum.supplierCostSnapshot || 0, paidOrders: totals._count, completed },
+      metrics: {
+        revenue: totals._sum.total || 0,
+        cost: totals._sum.supplierCostSnapshot || 0,
+        paidOrders: totals._count,
+        completed,
+        daily: {
+          revenue: dailyTotals._sum.total || 0,
+          cost: dailyTotals._sum.supplierCostSnapshot || 0,
+          profit: (dailyTotals._sum.total || 0) - (dailyTotals._sum.supplierCostSnapshot || 0),
+          paidOrders: dailyTotals._count,
+        },
+      },
       updatedAt: new Date().toISOString(),
     } }, { headers: { "Cache-Control": "no-store" } });
   } catch {

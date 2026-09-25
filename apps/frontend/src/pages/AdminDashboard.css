@@ -53,6 +53,7 @@
 .admin-field { min-width: 150px; display: grid; gap: 6px; color: #5f7991; font-size: 10px; font-weight: 700; }
 .admin-field input, .admin-field select, .admin-form-card > select, .admin-copy input { height: 40px; padding: 0 11px; border: 1px solid #aed5eb; border-radius: 10px; outline: 0; color: #173653; background: #fff; font-size: 12px; }
 .admin-summary { padding: 17px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; border-bottom: 1px solid var(--admin-line-soft); }
+.admin-profit-summary { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .admin-summary article { min-height: 106px; padding: 17px; display: flex; align-items: center; gap: 14px; border: 1px solid #b8dbef; border-radius: 16px; background: #fff; }
 .admin-summary article > svg { width: 47px; height: 47px; padding: 12px; flex: 0 0 auto; border-radius: 14px; color: #2b72c8; background: #e1efff; }
 .admin-summary article span { display: grid; }
@@ -220,6 +221,7 @@
   .admin-brand > span { display: none; }
   .admin-desktop-tabs button { padding-inline: 10px; }
   .admin-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .admin-profit-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 900px) {
   .admin-desktop-tabs { display: none; }
