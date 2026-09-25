@@ -33,6 +33,7 @@ export const KhqrModal = ({
   const [copied, setCopied] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState("");
   const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadHelp, setDownloadHelp] = useState("");
 
   // Generate clean, high-precision unoccluded QR code matrix locally
   useEffect(() => {
@@ -145,6 +146,9 @@ export const KhqrModal = ({
   const handleDownloadQr = async () => {
     if (isDownloading) return;
     setIsDownloading(true);
+    setDownloadHelp("");
+    const isAppleMobile = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 
     try {
       // Always save a local blob. Browsers ignore the download attribute for
@@ -169,12 +173,18 @@ export const KhqrModal = ({
 
       const fileName = `KHQR_${publicOrderId}.png`;
       const qrFile = new File([qrBlob], fileName, { type: "image/png" });
-      const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      const shareData = { files: [qrFile], title: fileName };
 
       // iOS Safari does not consistently honor the download attribute. Its
       // native share sheet provides Save Image / Save to Files instead.
-      if (isIos && navigator.share && navigator.canShare?.({ files: [qrFile] })) {
-        await navigator.share({ files: [qrFile], title: fileName });
+      if (isAppleMobile && typeof navigator.share === "function") {
+        const supportsFiles = typeof navigator.canShare !== "function" || navigator.canShare(shareData);
+        if (supportsFiles) {
+          await navigator.share(shareData);
+          return;
+        }
+
+        setDownloadHelp("Tap and hold the QR image above, then choose Save to Photos.");
         return;
       }
 
@@ -189,7 +199,7 @@ export const KhqrModal = ({
     } catch (error) {
       if (error?.name === "AbortError") return;
       console.error("QR download failed:", error);
-      window.open(qrDisplayUrl, "_blank");
+      if (isAppleMobile) setDownloadHelp("Tap and hold the QR image above, then choose Save to Photos.");
     } finally {
       setIsDownloading(false);
     }
@@ -392,6 +402,7 @@ export const KhqrModal = ({
                   )}
                 </button>
               </div>
+              {downloadHelp && <p className="mt-2 text-center text-[10px] font-medium text-gray-500">{downloadHelp}</p>}
             </div>
 
             {/* Supported Banks Footnote */}
