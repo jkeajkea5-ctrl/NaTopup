@@ -194,11 +194,12 @@ export class CatalogSyncService {
           continue;
         }
         if (current.price) {
-          const margin = Math.max(current.price.markupValue, current.price.sellingPrice - current.price.supplierCost, 0.05);
-          const nextPrice = money(primary.supplierProduct.currentCost + margin);
+          // Supplier catalogues are authoritative for their cost and product
+          // metadata only. The store selling price and discount are an admin
+          // decision, so a sync must never overwrite either value.
           await tx.productPrice.update({
             where: { productId: current.id },
-            data: { supplierCost: primary.supplierProduct.currentCost, sellingPrice: nextPrice, discount: Math.min(current.price.discount, Math.max(0, nextPrice - primary.supplierProduct.currentCost)) },
+            data: { supplierCost: primary.supplierProduct.currentCost },
           });
         }
       }
