@@ -81,6 +81,7 @@
 .admin-card-title p { margin-top: 5px; }
 .admin-wallet-card .admin-amount { font-variant-numeric: tabular-nums; }
 .admin-wallet-card .wallet-online { color: #147551; background: #e6f8ef; }
+.admin-wallet-card .wallet-cached { color: #8a5b10; background: #fff3d6; }
 .admin-wallet-card .wallet-offline { color: #983d48; background: #fff0f1; }
 .admin-thumb { width: 56px; height: 56px; border-radius: 14px; object-fit: cover; flex: 0 0 auto; }
 .admin-thumb-fallback { display: grid; place-items: center; color: #285e91; background: #e6f5ff; font-weight: 800; }

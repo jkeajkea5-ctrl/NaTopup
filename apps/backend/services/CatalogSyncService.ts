@@ -14,6 +14,18 @@ const normalize = (value: unknown) => String(value ?? "").trim().toLowerCase().r
 const money = (value: number) => Math.round(value * 100) / 100;
 const mlbbSlugs = new Set(["mobile-legends", "mobile-legends-philippines", "mobile-legends-indonesia"]);
 
+export function syncedPackageActiveState(currentlyActive: boolean, supplierAvailable: boolean) {
+  // Supplier availability may hide an active package, but a catalog refresh
+  // must not undo an administrator's decision to hide a package.
+  return currentlyActive && supplierAvailable;
+}
+
+export function supplierCostSyncData(supplierCost: number) {
+  // Keep this update deliberately limited to the imported/original cost.
+  // sellingPrice and discount belong to the seller and must remain unchanged.
+  return { supplierCost };
+}
+
 function displayName(slug: string, supplierName: string) {
   if (!mlbbSlugs.has(slug)) return supplierName;
   if (supplierName === "Weekly") return "Weekly Diamond Pass";
@@ -63,7 +75,6 @@ export class CatalogSyncService {
 
     const sourceMap = new Map<string, { supplierId: string; provider: string; gameCode: string }>();
     for (const product of game.products) {
-      if (!product.isActive) continue;
       for (const mapping of product.mappings) {
         if (!mapping.isEnabled || !mapping.supplier.isEnabled) continue;
         const provider = mapping.supplier.code;
@@ -89,6 +100,7 @@ export class CatalogSyncService {
       let unavailable = 0;
       const matchedMappings = new Set<string>();
       const touchedProducts = new Set<string>();
+      const syncedCosts = new Map<string, number>();
       const existingProducts = [...game.products].sort((a, b) => Number(b.isActive) - Number(a.isActive));
       let nextSortOrder = existingProducts.reduce((max, product) => Math.max(max, product.sortOrder), -1) + 1;
 
@@ -151,7 +163,13 @@ export class CatalogSyncService {
             existingProducts.push(product as any);
             added++;
           } else {
-            await tx.product.update({ where: { id: product.id }, data: { name: formattedName, isActive: item.available } });
+            await tx.product.update({
+              where: { id: product.id },
+              data: {
+                name: formattedName,
+                isActive: syncedPackageActiveState(product.isActive, item.available),
+              },
+            });
             updated++;
           }
 
@@ -163,6 +181,7 @@ export class CatalogSyncService {
           matchedMappings.add(mapping.id);
           if (match) matchedMappings.add(match.mapping.id);
           touchedProducts.add(product.id);
+          syncedCosts.set(product.id, item.cost);
         }
 
         for (const { product, mapping } of sourceMappings) {
@@ -199,7 +218,7 @@ export class CatalogSyncService {
           // decision, so a sync must never overwrite either value.
           await tx.productPrice.update({
             where: { productId: current.id },
-            data: { supplierCost: primary.supplierProduct.currentCost },
+            data: supplierCostSyncData(syncedCosts.get(current.id) ?? primary.supplierProduct.currentCost),
           });
         }
       }

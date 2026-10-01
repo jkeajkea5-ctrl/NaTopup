@@ -89,6 +89,7 @@ export const GameDetailPage = () => {
   // Checkout submission
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
   const [submitError, setSubmitError] = useState(null);
+  const [paymentErrorPopup, setPaymentErrorPopup] = useState(null);
   const [paymentNotice, setPaymentNotice] = useState(null);
   const [paymentSession, setPaymentSession] = useState(null);
   const [successInvoice, setSuccessInvoice] = useState(null);
@@ -106,6 +107,7 @@ export const GameDetailPage = () => {
     setPlayerCheckError(null);
     setIsValidatingPlayer(false);
     setSelectedProduct(null);
+    setPaymentErrorPopup(null);
     setPaymentNotice(null);
     setPaymentSession(null);
     setSuccessInvoice(null);
@@ -360,7 +362,13 @@ export const GameDetailPage = () => {
 
     setIsSubmittingOrder(true);
     setSubmitError(null);
+    setPaymentErrorPopup(null);
     setPaymentNotice(null);
+
+    const showPaymentError = (message) => {
+      setSubmitError(message);
+      setPaymentErrorPopup(message);
+    };
 
     try {
       const orderRes = await createOrder({
@@ -369,27 +377,38 @@ export const GameDetailPage = () => {
         playerData: playerFields,
       });
 
-      const paymentRes = await initKhqrPayment(orderRes.publicOrderId);
+      let paymentRes;
+      try {
+        paymentRes = await initKhqrPayment(orderRes.publicOrderId);
+      } catch (err) {
+        showPaymentError(err.message || "Unable to generate the payment QR code. Please try again.");
+        throw err;
+      }
 
-      await openProviderCheckout(
-        paymentRes.checkoutUrl,
-        async () => {
-          closeProviderCheckout();
-          try {
-            const status = await fetchOrderStatus(orderRes.publicOrderId);
-            if (status.paymentStatus === "PAID" || ["PAID", "FULFILMENT_QUEUED", "PROCESSING", "DELIVERED"].includes(status.status)) {
-              await showSuccessfulInvoice(orderRes.publicOrderId, status.status);
+      try {
+        await openProviderCheckout(
+          paymentRes.checkoutUrl,
+          async () => {
+            closeProviderCheckout();
+            try {
+              const status = await fetchOrderStatus(orderRes.publicOrderId);
+              if (status.paymentStatus === "PAID" || ["PAID", "FULFILMENT_QUEUED", "PROCESSING", "DELIVERED"].includes(status.status)) {
+                await showSuccessfulInvoice(orderRes.publicOrderId, status.status);
+              }
+            } catch {
+              // The existing 3-second poll remains authoritative and will retry.
             }
-          } catch {
-            // The existing 3-second poll remains authoritative and will retry.
+          },
+          () => showPaymentError("Unable to open secure payment. Please try again."),
+          () => {
+            setPaymentSession(null);
+            setPaymentNotice(null);
           }
-        },
-        () => setSubmitError("Unable to open secure payment. Please try again."),
-        () => {
-          setPaymentSession(null);
-          setPaymentNotice(null);
-        }
-      );
+        );
+      } catch (err) {
+        showPaymentError(err.message || "Unable to open secure payment. Please try again.");
+        throw err;
+      }
       setPaymentSession({ ...paymentRes, publicOrderId: orderRes.publicOrderId });
 
     } catch (err) {
@@ -409,6 +428,31 @@ export const GameDetailPage = () => {
           navigate("/");
         }}
       />
+
+      {paymentErrorPopup && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm" role="presentation">
+          <section
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="payment-error-title"
+            aria-describedby="payment-error-message"
+            className="w-full max-w-sm rounded-2xl border border-red-200 bg-white p-6 text-center shadow-2xl"
+          >
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-100 text-red-600">
+              <AlertCircle className="h-8 w-8" aria-hidden="true" />
+            </div>
+            <h2 id="payment-error-title" className="font-heading text-xl font-bold text-slate-900">Payment error</h2>
+            <p id="payment-error-message" className="mt-2 break-words text-sm text-slate-600">{paymentErrorPopup}</p>
+            <button
+              type="button"
+              onClick={() => setPaymentErrorPopup(null)}
+              className="mt-6 w-full rounded-xl bg-red-600 px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-red-700"
+            >
+              Try again
+            </button>
+          </section>
+        </div>
+      )}
 
       <Link
         to="/"

@@ -28,8 +28,31 @@ export class VizoAdapter implements ISupplierAdapter {
     return {
       "Content-Type": "application/json",
       "X-API-Key": this.apiKey,
-      "User-Agent": "LukasTopup/1.0",
+      // Vizo's edge gateway (Cloudflare/LiteSpeed) blocks curl user agents with HTTP 403.
+      // A standard browser user-agent is accepted cleanly without challenges.
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
     };
+  }
+
+  /**
+   * Vizo normally returns JSON, including for API errors.  Its edge security
+   * layer can instead return an HTML 403 page (for example when this server's
+   * IP has not been allowlisted).  Reading the body before parsing prevents
+   * that page from surfacing as the misleading "Unexpected token '<'" error.
+   */
+  private async fetchJson(path: string, init: RequestInit = {}): Promise<{ res: Response; data: any }> {
+    const res = await fetch(`${this.baseUrl.replace(/\/+$/, "")}${path}`, init);
+    const body = await res.text();
+
+    try {
+      return { res, data: body ? JSON.parse(body) : {} };
+    } catch {
+      const contentType = res.headers.get("content-type") || "unknown content type";
+      const accessHint = res.status === 403
+        ? " Check VIZO_BASE_URL and allowlist this server's outbound IP in Vizo."
+        : "";
+      throw new Error(`Vizo returned a non-JSON response (HTTP ${res.status}, ${contentType}).${accessHint}`);
+    }
   }
 
   private mapGameCode(gameCode: string): string {
@@ -78,11 +101,10 @@ export class VizoAdapter implements ISupplierAdapter {
     }
 
     try {
-      const res = await fetch(`${this.baseUrl}/api/v1/reseller/profile`, {
+      const { res, data } = await this.fetchJson("/api/v1/reseller/profile", {
         headers: this.getHeaders(),
         signal: AbortSignal.timeout(15000),
       });
-      const data = await res.json();
       if (res.ok && data) {
         const balance = typeof data.balance === "number" ? data.balance : parseFloat(data.balance || 0);
         return {
@@ -124,14 +146,12 @@ export class VizoAdapter implements ISupplierAdapter {
           payload.server_id = serverId;
         }
 
-        const res = await fetch(`${this.baseUrl}/api/v1/orders/check_player`, {
+        const { res, data } = await this.fetchJson("/api/v1/orders/check_player", {
           method: "POST",
           headers: this.getHeaders(),
           body: JSON.stringify(payload),
           signal: AbortSignal.timeout(15000),
         });
-
-        const data = await res.json();
 
         // Exact match with Vizo response format: { "valid": "valid", "name": "PlayerName" }
         if (res.ok && (data.valid === "valid" || data.status === "APPROVED" || data.status === "SUCCESS")) {
@@ -150,12 +170,18 @@ export class VizoAdapter implements ISupplierAdapter {
         }
       } catch (err: any) {
         logger.error("Vizo player check failed", { error: err.message, provider: "VIZO" });
+        return {
+          valid: false,
+          errorMessage: "Vizo player verification is temporarily unavailable.",
+          extraData: { providerUnavailable: true },
+        };
       }
     }
 
     return {
       valid: false,
-      errorMessage: "មិនអាចពិនិត្យគណនីអ្នកលេងបានទេនៅពេលនេះ។ សូមព្យាយាមម្តងទៀត។",
+      errorMessage: "Vizo player verification is temporarily unavailable.",
+      extraData: { providerUnavailable: true },
     };
   }
 
@@ -176,14 +202,12 @@ export class VizoAdapter implements ISupplierAdapter {
           payload.game_zone_id = input.serverId;
         }
 
-        const res = await fetch(`${this.baseUrl}/api/v1/orders/create_order`, {
+        const { res, data } = await this.fetchJson("/api/v1/orders/create_order", {
           method: "POST",
           headers: this.getHeaders(),
           body: JSON.stringify(payload),
           signal: AbortSignal.timeout(20000),
         });
-
-        const data = await res.json();
 
         if (res.ok && (data.status === "success" || data.transaction_id)) {
           return {
@@ -242,11 +266,10 @@ export class VizoAdapter implements ISupplierAdapter {
   async getOrderStatus(supplierOrderId: string, referenceId?: string): Promise<SupplierOrderStatusResult> {
     if (this.apiKey) {
       try {
-        const res = await fetch(`${this.baseUrl}/api/v1/orders/order_history?limit=50`, {
+        const { res, data } = await this.fetchJson("/api/v1/orders/order_history?limit=50", {
           headers: this.getHeaders(),
           signal: AbortSignal.timeout(15000),
         });
-        const data = await res.json();
         if (res.ok && Array.isArray(data.orders)) {
           const match = data.orders.find(
             (o: any) =>
@@ -291,19 +314,18 @@ export class VizoAdapter implements ISupplierAdapter {
   async syncCatalog(): Promise<SupplierProductItem[]> {
     if (this.apiKey) {
       try {
-        const res = await fetch(`${this.baseUrl}/api/v1/catalogue/categories`, {
+        const { res, data: categories } = await this.fetchJson("/api/v1/catalogue/categories", {
           headers: this.getHeaders(),
           signal: AbortSignal.timeout(15000),
         });
-        const categories = await res.json();
         if (res.ok && Array.isArray(categories)) {
           const items: SupplierProductItem[] = [];
           for (const cat of categories.slice(0, 10)) {
             try {
-              const pRes = await fetch(`${this.baseUrl}/api/v1/catalogue/products/${cat.game_code}`, {
+              const { res: pRes, data: pData } = await this.fetchJson(`/api/v1/catalogue/products/${cat.game_code}`, {
                 headers: this.getHeaders(),
+                signal: AbortSignal.timeout(15000),
               });
-              const pData = await pRes.json();
               if (pRes.ok && Array.isArray(pData.products)) {
                 for (const p of pData.products) {
                   items.push({
@@ -332,11 +354,10 @@ export class VizoAdapter implements ISupplierAdapter {
     if (!this.apiKey) return [];
     const game = this.mapGameCode(gameCode);
     try {
-      const res = await fetch(`${this.baseUrl}/api/v1/catalogue/products/${game}`, {
+      const { res, data } = await this.fetchJson(`/api/v1/catalogue/products/${game}`, {
         headers: this.getHeaders(),
         signal: AbortSignal.timeout(15000),
       });
-      const data = await res.json();
       if (res.ok && Array.isArray(data.products)) return data.products;
     } catch (err: any) {
       logger.error("Failed to fetch Vizo game catalogue", { error: err.message, provider: "VIZO", game });

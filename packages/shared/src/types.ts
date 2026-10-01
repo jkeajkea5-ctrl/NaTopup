@@ -52,6 +52,8 @@ export interface SupplierBalance {
   isHealthy: boolean;
   lastChecked: Date;
   errorMessage?: string;
+  cached?: boolean;
+  stale?: boolean;
 }
 
 export interface SupplierProductItem {

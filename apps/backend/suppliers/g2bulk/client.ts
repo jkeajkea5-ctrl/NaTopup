@@ -61,6 +61,16 @@ export class G2BulkAdapter implements ISupplierAdapter {
     return this.mapGameCode(gameCode);
   }
 
+  private mapPlayerCheckGameCode(gameCode: string): string {
+    const code = (gameCode || "").toLowerCase().trim();
+    // G2Bulk's SG/MY verification endpoint requires this exact code, while
+    // its catalogue and order routes use `free_fire`.
+    if (code === "free-fire" || code === "freefire" || code === "free_fire" || code === "freefire_sgmy") {
+      return "freefire_sgmy";
+    }
+    return this.mapGameCode(gameCode);
+  }
+
   private mapCatalogueName(supplierProductCode: string): string {
     if (supplierProductCode.startsWith("G2B:")) {
       return supplierProductCode.split(":").slice(3).join(":").trim();
@@ -357,7 +367,7 @@ export class G2BulkAdapter implements ISupplierAdapter {
   async checkPlayer(input: PlayerCheckInput): Promise<PlayerCheckResult> {
     if (this.apiKey) {
       try {
-        const game = this.mapGameCode(input.gameCode);
+        const game = this.mapPlayerCheckGameCode(input.gameCode);
         let userId = input.fields.userId || input.fields.playerId || input.fields.characterId || input.fields.uid || input.fields.riotId;
         const serverId = input.fields.zoneId || input.fields.serverId || input.fields.tagline;
         const charname = input.fields.characterName || input.fields.charname;
@@ -399,12 +409,18 @@ export class G2BulkAdapter implements ISupplierAdapter {
         }
       } catch (err: any) {
         logger.error("G2Bulk player check failed", { error: err.message, provider: "G2BULK" });
+        return {
+          valid: false,
+          errorMessage: "G2Bulk player verification is temporarily unavailable.",
+          extraData: { providerUnavailable: true },
+        };
       }
     }
 
     return {
       valid: false,
-      errorMessage: "មិនអាចពិនិត្យគណនីអ្នកលេងបានទេនៅពេលនេះ។ សូមព្យាយាមម្តងទៀត។",
+      errorMessage: "G2Bulk player verification is temporarily unavailable.",
+      extraData: { providerUnavailable: true },
     };
   }
 

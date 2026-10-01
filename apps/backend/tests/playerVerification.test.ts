@@ -5,6 +5,8 @@ import { prisma } from "../lib/prisma";
 import { OrderService } from "../services/OrderService";
 import { PaymentService } from "../services/PaymentService";
 import { khqrClient } from "../payments/khqr/client";
+import { g2bulkAdapter } from "../suppliers/g2bulk/client";
+import { vizoAdapter } from "../suppliers/vizo/client";
 
 function mockMethod(t: any, target: any, name: string, implementation: any) {
   const original = target[name];
@@ -46,4 +48,26 @@ test("verification accepts confirmed accounts and normalizes game aliases", asyn
 test("verification service failures block checkout", async (t) => {
   t.mock.method(supplierManager, "checkPlayer", async () => { throw new Error("Service unavailable"); });
   await assert.rejects(supplierManager.requireVerifiedPlayer("mobile-legends", { userId: "123" }), /Service unavailable/);
+});
+
+test("Free Fire verification uses the supplier-specific SG/MY game code", () => {
+  assert.equal((g2bulkAdapter as any).mapPlayerCheckGameCode("free-fire"), "freefire_sgmy");
+  assert.equal((g2bulkAdapter as any).mapCatalogueGameCode("free-fire"), "free_fire");
+});
+
+test("Free Fire verification falls back to G2Bulk when Vizo is unavailable", async (t) => {
+  t.mock.method(vizoAdapter, "checkPlayer", async () => ({
+    valid: false,
+    errorMessage: "Vizo player verification is temporarily unavailable.",
+    extraData: { providerUnavailable: true },
+  }));
+  const fallback = t.mock.method(g2bulkAdapter, "checkPlayer", async () => ({
+    valid: true,
+    playerName: "loveXnt",
+  }));
+
+  const result = await supplierManager.checkPlayer("free-fire", { userId: "2560333065" });
+  assert.equal(result.valid, true);
+  assert.equal(result.playerName, "loveXnt");
+  assert.equal(fallback.mock.callCount(), 1);
 });

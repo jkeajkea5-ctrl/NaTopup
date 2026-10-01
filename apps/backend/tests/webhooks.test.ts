@@ -87,3 +87,16 @@ test("supplier status connection failures never report delivery", async (t) => {
   assert.equal(g2bulk.isDelivered, false);
   assert.equal(vizo.isDelivered, false);
 });
+
+test("reports Vizo HTML access pages without exposing a JSON parse error", async (t) => {
+  t.mock.method(globalThis, "fetch", async () => new Response("<!DOCTYPE html><title>Forbidden</title>", {
+    status: 403,
+    headers: { "content-type": "text/html" },
+  }));
+
+  const balance = await vizoAdapter.getBalance();
+  assert.equal(balance.isHealthy, false);
+  assert.match(balance.errorMessage || "", /non-JSON response \(HTTP 403/i);
+  assert.match(balance.errorMessage || "", /allowlist/i);
+  assert.doesNotMatch(balance.errorMessage || "", /Unexpected token/i);
+});
