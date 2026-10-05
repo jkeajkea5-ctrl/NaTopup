@@ -92,7 +92,14 @@ export class CatalogSyncService {
       return { ...source, items };
     }));
 
-    return prisma.$transaction(async (tx) => {
+    // MongoDB's default transaction lifetime is 60 seconds. A large supplier
+    // catalogue can exceed that limit even when Prisma's client timeout is
+    // configured for longer, causing MongoDB to abort the whole sync. These
+    // writes are idempotent and cleanup runs only after every live item has
+    // been processed, so use individually atomic operations instead of one
+    // long-running interactive transaction.
+    const tx = prisma;
+
       let added = 0;
       let updated = 0;
       let deleted = 0;
@@ -233,7 +240,6 @@ export class CatalogSyncService {
         },
       });
       return result;
-    }, { maxWait: 10000, timeout: 120000 });
   }
 }
 
