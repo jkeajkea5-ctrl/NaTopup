@@ -38,8 +38,8 @@ export function updateAdminSecurity(data: Record<string, unknown>) {
   return adminJson("/admin/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
 }
 
-export function fetchAdminDashboard() {
-  return adminJson("/admin/dashboard");
+export function fetchAdminDashboard(orderPeriod: "TODAY" | "YESTERDAY" | "ALL" = "ALL") {
+  return adminJson(`/admin/dashboard?orderPeriod=${orderPeriod}`);
 }
 
 export function saveAdminDashboardMutation(data: Record<string, unknown>) {

@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  ArrowUpRight, Boxes, ClipboardCheck, Copy, Gamepad2, Images, Link2, LogOut,
+  ArrowUpRight, Boxes, CalendarDays, ClipboardCheck, Copy, Gamepad2, History, Images, Link2, LogOut,
   Menu, Pencil, Plus, RefreshCw, Search, Settings, ShieldCheck, Upload,
   Users, WalletCards, X,
 } from "lucide-react";
@@ -225,6 +225,7 @@ export const AdminDashboard = ({ adminSession }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("ALL");
+  const [orderPeriod, setOrderPeriod] = useState("TODAY");
   const [packageCategory, setPackageCategory] = useState("ALL");
   const [packageGame, setPackageGame] = useState("ALL");
   const [loading, setLoading] = useState(false);
@@ -240,10 +241,10 @@ export const AdminDashboard = ({ adminSession }) => {
   const [profitUpdatedAt, setProfitUpdatedAt] = useState("");
   const visibleTabs = adminSession?.role === "SUPERADMIN" ? tabs : tabs.filter(([id]) => id !== "security");
 
-  const refresh = useCallback(async () => { setLoading(true); setError(""); try { setData(await fetchAdminDashboard()); } catch (err) { setError(err.message); } finally { setLoading(false); } }, []);
+  const refresh = useCallback(async () => { setLoading(true); setError(""); try { setData(await fetchAdminDashboard(orderPeriod)); } catch (err) { setError(err.message); } finally { setLoading(false); } }, [orderPeriod]);
   const refreshProfit = useCallback(async () => {
     setProfitLoading(true); setProfitError("");
-    const [dashboardResult, walletResult] = await Promise.allSettled([fetchAdminDashboard(), fetchAdminSuppliers()]);
+    const [dashboardResult, walletResult] = await Promise.allSettled([fetchAdminDashboard(orderPeriod), fetchAdminSuppliers()]);
     if (dashboardResult.status === "fulfilled") setData(dashboardResult.value);
     if (walletResult.status === "fulfilled") {
       setLiveBalances(walletResult.value.liveBalances || []);
@@ -254,7 +255,7 @@ export const AdminDashboard = ({ adminSession }) => {
       .map((result) => result.reason?.message || "Live data request failed");
     if (failures.length) setProfitError(failures.join(" "));
     setProfitLoading(false);
-  }, []);
+  }, [orderPeriod]);
   useEffect(() => { refresh(); }, [refresh]);
   useEffect(() => {
     if (activeTab !== "profit") return undefined;
@@ -328,6 +329,8 @@ export const AdminDashboard = ({ adminSession }) => {
   const current = visibleTabs.find(([id]) => id === activeTab) || visibleTabs[0];
   const CurrentIcon = current[2];
   const metrics = data?.metrics || {};
+  const periodTotals = { TODAY: metrics.orders?.today || 0, YESTERDAY: metrics.orders?.yesterday || 0, ALL: metrics.orders?.allTime || 0 };
+  const periodLabels = { TODAY: "today", YESTERDAY: "yesterday", ALL: "all time" };
   const nav = visibleTabs.map(([id, label, Icon]) => <button key={id} className={activeTab === id ? "active" : ""} onClick={() => selectTab(id)}><Icon size={17} /><span>{label}</span></button>);
 
   return <div className="admin-shell">
@@ -339,14 +342,16 @@ export const AdminDashboard = ({ adminSession }) => {
       {error && <p className="admin-alert error">{error}</p>}{notice && <p className="admin-alert success">{notice}</p>}
       {!data ? <Empty>{loading ? "Loading NA TOPUP records…" : "No data loaded."}</Empty> : <section className="admin-panel">
         <div className="admin-panel-head"><div className="admin-section-title"><span><CurrentIcon size={20} /></span><div><h2>{current[1]}</h2><p>{pageDescriptions[activeTab]}</p></div></div>{activeTab === "slides" && <button className="admin-btn primary" onClick={() => edit("slide", { title: "", bannerUrl: "", targetUrl: "", sortOrder: 0, isActive: false })}><Plus size={16} />Add slide</button>}</div>
-        {activeTab !== "security" && activeTab !== "profit" && <div className="admin-toolbar"><label className="admin-search"><Search size={17} /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={`Search ${current[1].toLowerCase()}…`} /></label>{activeTab === "orders" && <div className="admin-actions"><label className="admin-field">Status<select value={status} onChange={(e) => setStatus(e.target.value)}><option value="ALL">All statuses</option>{Object.entries(labels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label><button className="admin-btn secondary" onClick={exportOrders}>Export CSV</button></div>}{activeTab === "packages" && <div className="admin-actions"><label className="admin-field">Catalog<select value={packageCategory} onChange={(e) => { setPackageCategory(e.target.value); setPackageGame("ALL"); }}><option value="ALL">All catalogs</option>{packageCatalogs.map((catalog) => <option value={catalog.id} key={catalog.id}>{catalog.label}</option>)}</select></label><label className="admin-field">Game<select value={packageGame} onChange={(e) => setPackageGame(e.target.value)}><option value="ALL">All games</option>{packageGames.map((game) => <option value={game.id} key={game.id}>{game.name}</option>)}</select></label><div className="admin-sync-actions"><button className="admin-sync-btn g2bulk" disabled={packageGame === "ALL" || !!catalogSyncing} onClick={() => syncCatalog("G2BULK")}><span className="admin-sync-icon"><RefreshCw size={18} className={catalogSyncing === "G2BULK" ? "spin" : ""} /></span><span><strong>{catalogSyncing === "G2BULK" ? "Syncing…" : "Sync G2Bulk"}</strong><small>Sync original price · selling price unchanged</small></span></button><button className="admin-sync-btn vizo" disabled={packageGame === "ALL" || !!catalogSyncing} onClick={() => syncCatalog("VIZO")}><span className="admin-sync-icon"><RefreshCw size={18} className={catalogSyncing === "VIZO" ? "spin" : ""} /></span><span><strong>{catalogSyncing === "VIZO" ? "Syncing…" : "Sync Vizo"}</strong><small>Sync original price · selling price unchanged</small></span></button></div></div>}</div>}
+        {activeTab !== "security" && activeTab !== "profit" && <div className="admin-toolbar"><label className="admin-search"><Search size={17} /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={`Search ${current[1].toLowerCase()}…`} /></label>{activeTab === "orders" && <div className="admin-actions"><label className="admin-field">Period<select value={orderPeriod} onChange={(e) => setOrderPeriod(e.target.value)}><option value="TODAY">Today</option><option value="YESTERDAY">Yesterday</option><option value="ALL">All time</option></select></label><label className="admin-field">Status<select value={status} onChange={(e) => setStatus(e.target.value)}><option value="ALL">All statuses</option>{Object.entries(labels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label><button className="admin-btn secondary" onClick={exportOrders}>Export CSV</button></div>}{activeTab === "packages" && <div className="admin-actions"><label className="admin-field">Catalog<select value={packageCategory} onChange={(e) => { setPackageCategory(e.target.value); setPackageGame("ALL"); }}><option value="ALL">All catalogs</option>{packageCatalogs.map((catalog) => <option value={catalog.id} key={catalog.id}>{catalog.label}</option>)}</select></label><label className="admin-field">Game<select value={packageGame} onChange={(e) => setPackageGame(e.target.value)}><option value="ALL">All games</option>{packageGames.map((game) => <option value={game.id} key={game.id}>{game.name}</option>)}</select></label><div className="admin-sync-actions"><button className="admin-sync-btn g2bulk" disabled={packageGame === "ALL" || !!catalogSyncing} onClick={() => syncCatalog("G2BULK")}><span className="admin-sync-icon"><RefreshCw size={18} className={catalogSyncing === "G2BULK" ? "spin" : ""} /></span><span><strong>{catalogSyncing === "G2BULK" ? "Syncing…" : "Sync G2Bulk"}</strong><small>Sync original price · selling price unchanged</small></span></button><button className="admin-sync-btn vizo" disabled={packageGame === "ALL" || !!catalogSyncing} onClick={() => syncCatalog("VIZO")}><span className="admin-sync-icon"><RefreshCw size={18} className={catalogSyncing === "VIZO" ? "spin" : ""} /></span><span><strong>{catalogSyncing === "VIZO" ? "Syncing…" : "Sync Vizo"}</strong><small>Sync original price · selling price unchanged</small></span></button></div></div>}</div>}
         {activeTab === "orders" && <div className="admin-orders-view">
           <div className="admin-summary admin-order-summary">
-            <article><ClipboardCheck /><span><small>Total orders</small><strong>{data.orderCount}</strong><em>{data.orders.length} recent records loaded</em></span></article>
+            <article><CalendarDays /><span><small>Today</small><strong>{metrics.orders?.today ?? 0}</strong><em>Orders created today · Cambodia</em></span></article>
+            <article><History /><span><small>Yesterday</small><strong>{metrics.orders?.yesterday ?? 0}</strong><em>Orders created yesterday · Cambodia</em></span></article>
+            <article><ClipboardCheck /><span><small>All time</small><strong>{metrics.orders?.allTime ?? data.orderCount}</strong><em>Across all recorded history</em></span></article>
             <article><WalletCards /><span><small>Paid revenue</small><strong>{money(metrics.revenue)}</strong><em>{metrics.paidOrders || 0} paid or processing</em></span></article>
             <article><Boxes /><span><small>Delivered</small><strong>{metrics.completed}</strong><em>{data.orderCount ? ((metrics.completed / data.orderCount) * 100).toFixed(1) : 0}% completion rate</em></span></article>
           </div>
-          <div className="admin-orders-meta"><p><strong>{filteredOrders.length}</strong> orders match your current search and status filter.</p><span>Newest first</span></div>
+          <div className="admin-orders-meta"><p><strong>{filteredOrders.length}</strong> shown · {periodTotals[orderPeriod]} total {periodLabels[orderPeriod]}.</p><span>Newest first · up to {data.orderListLimit || 250}</span></div>
           <div className="admin-table admin-orders-table">
             <div className="admin-order-table-head" aria-hidden="true"><span>Order</span><span>Game & package</span><span>Customer</span><span>Payment</span><span>Status</span></div>
             {filteredOrders.map((order) => <article className="admin-order-row" key={order.id}>

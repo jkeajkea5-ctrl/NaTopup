@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "../../../../lib/prisma";
 import { requireAdminWithIp } from "../../../../lib/adminAuth";
 import { adminMutation } from "../../../../lib/adminValidation";
-import { cambodiaDayRange } from "../../../../lib/cambodiaTime";
+import { cambodiaDayRange, cambodiaYesterdayRange } from "../../../../lib/cambodiaTime";
 
 export const dynamic = "force-dynamic";
 
@@ -12,14 +12,24 @@ export async function GET(request: Request) {
   const denied = await requireAdminWithIp(request);
   if (denied) return denied;
   try {
+    const requestedPeriod = new URL(request.url).searchParams.get("orderPeriod");
+    const orderPeriod = requestedPeriod === "TODAY" || requestedPeriod === "YESTERDAY" ? requestedPeriod : "ALL";
     const paid = { status: { in: ["PAID", "PROCESSING", "DELIVERED"] } };
     const today = cambodiaDayRange();
-    const [orders, orderCount, games, products, slides, users, suppliers, totals, dailyTotals, completed] = await Promise.all([
-      prisma.order.findMany({ take: 250, orderBy: { createdAt: "desc" }, select: {
+    const yesterday = cambodiaYesterdayRange();
+    const orderWhere = orderPeriod === "TODAY"
+      ? { createdAt: { gte: today.start, lt: today.end } }
+      : orderPeriod === "YESTERDAY"
+        ? { createdAt: { gte: yesterday.start, lt: yesterday.end } }
+        : undefined;
+    const [orders, orderCount, todayOrderCount, yesterdayOrderCount, games, products, slides, users, suppliers, totals, dailyTotals, completed] = await Promise.all([
+      prisma.order.findMany({ where: orderWhere, take: 250, orderBy: { createdAt: "desc" }, select: {
         id: true, publicOrderId: true, createdAt: true, status: true, playerId: true, playerName: true, total: true,
         gameId: true, productId: true, payment: { select: { status: true } },
       } }),
       prisma.order.count(),
+      prisma.order.count({ where: { createdAt: { gte: today.start, lt: today.end } } }),
+      prisma.order.count({ where: { createdAt: { gte: yesterday.start, lt: yesterday.end } } }),
       prisma.game.findMany({ orderBy: [{ sortOrder: "asc" }, { name: "asc" }], select: {
         id: true, name: true, slug: true, category: true, logoUrl: true, bannerUrl: true, sortOrder: true, isActive: true, isPopular: true,
       } }),
@@ -70,7 +80,7 @@ export async function GET(request: Request) {
           iconUrl: productMap.get(order.productId)?.iconUrl || "",
         },
       })),
-      orderCount, games, products: products.map(({ mappings, ...product }) => ({
+      orderCount, orderPeriod, orderListLimit: 250, games, products: products.map(({ mappings, ...product }) => ({
         ...product,
         game: gameMap.get(product.gameId) || missingGame,
         orphaned: !gameMap.has(product.gameId),
@@ -83,6 +93,11 @@ export async function GET(request: Request) {
         cost: totals._sum.supplierCostSnapshot || 0,
         paidOrders: totals._count,
         completed,
+        orders: {
+          today: todayOrderCount,
+          yesterday: yesterdayOrderCount,
+          allTime: orderCount,
+        },
         daily: {
           revenue: dailyTotals._sum.total || 0,
           cost: dailyTotals._sum.supplierCostSnapshot || 0,

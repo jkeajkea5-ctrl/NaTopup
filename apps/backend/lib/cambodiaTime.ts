@@ -11,3 +11,11 @@ export function cambodiaDayRange(now = new Date()) {
 
   return { start, end: new Date(start.getTime() + 24 * 60 * 60 * 1000) };
 }
+
+export function cambodiaYesterdayRange(now = new Date()) {
+  const today = cambodiaDayRange(now);
+  const start = new Date(today.start.getTime() - 24 * 60 * 60 * 1000);
+  const end = today.start;
+
+  return { start, end };
+}

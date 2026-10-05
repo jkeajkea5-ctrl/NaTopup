@@ -16,6 +16,7 @@ import { PaymentReturnPage } from "./pages/PaymentReturnPage";
 import { FloatingSupportButton } from "./components/FloatingSupportButton";
 import { InstallPrompt } from "./components/InstallPrompt";
 import { AnnouncementPopup } from "./components/AnnouncementPopup";
+import { MotionEffects } from "./components/MotionEffects";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -34,6 +35,7 @@ function AppFrame() {
   return (
     <>
       <ScrollToTop />
+      <MotionEffects disabled={minimalRoute} />
       <div className="app-shell min-h-screen flex flex-col bg-transparent text-brand-text font-sans overflow-x-hidden">
           {!minimalRoute && <Header />}
           <main className={minimalRoute ? "flex-1 w-full min-w-0" : "app-main flex-1 min-w-0 max-w-[1440px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-8"}>
