@@ -77,64 +77,70 @@ export const HeroSlider = ({ promotions }) => {
 
   return (
     <div
-      className="relative -mx-4 -mt-5 sm:mx-0 sm:mt-0 p-0 sm:p-1 rounded-none sm:rounded-3xl overflow-hidden border-0 sm:border sm:border-brand-border/80 shadow-sm hover:shadow-glow transition-all duration-300 group"
+      className="group relative w-full overflow-hidden rounded-2xl border border-[#A2AB73]/35 bg-[#FFF3CC] shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-glow sm:rounded-3xl"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
       {/* Inner Slider Content */}
-      <div className="relative rounded-none sm:rounded-[20px] overflow-hidden bg-brand-surface z-10">
-        {/* Clickable Image Banner (No text, no button - Bigger Display) */}
+      <div className="relative z-10 overflow-hidden rounded-[inherit] bg-brand-surface">
+        {/* Keep the source artwork's responsive 1500:767 presentation. */}
         <Link
           to={currentSlide.targetUrl}
-          className="block relative w-full aspect-[16/9] min-[480px]:aspect-[16/8] md:aspect-[16/7] xl:aspect-[16/6] overflow-hidden"
+          className="relative block aspect-[1500/767] w-full overflow-hidden"
         >
           <img
             src={currentSlide.bannerUrl}
             alt={currentSlide.alt}
-            className="w-full h-full object-cover object-center transition-all duration-700 group-hover:scale-[1.02]"
+            className="h-full w-full object-cover object-center transition-transform duration-700 group-hover:scale-[1.015]"
           />
         </Link>
 
         {/* Arrows */}
-        <button
-          type="button"
-          onClick={handlePrev}
-          aria-label="Previous Slide"
-          className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 z-20 p-2 sm:p-2.5 rounded-full bg-black/35 hover:bg-black/60 text-white backdrop-blur-md transition-all shadow-md active:scale-95"
-        >
-          <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
-        </button>
-        <button
-          type="button"
-          onClick={handleNext}
-          aria-label="Next Slide"
-          className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 z-20 p-2 sm:p-2.5 rounded-full bg-black/35 hover:bg-black/60 text-white backdrop-blur-md transition-all shadow-md active:scale-95"
-        >
-          <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" />
-        </button>
+        {slides.length > 1 && (
+          <>
+            <button
+              type="button"
+              onClick={handlePrev}
+              aria-label="Previous Slide"
+              className="absolute left-2 top-1/2 z-20 -translate-y-1/2 rounded-full border border-white/30 bg-black/30 p-1.5 text-white shadow-md backdrop-blur-md transition-all hover:bg-black/60 active:scale-95 sm:left-4 sm:p-2.5"
+            >
+              <ChevronLeft className="h-4 w-4 sm:h-6 sm:w-6" />
+            </button>
+            <button
+              type="button"
+              onClick={handleNext}
+              aria-label="Next Slide"
+              className="absolute right-2 top-1/2 z-20 -translate-y-1/2 rounded-full border border-white/30 bg-black/30 p-1.5 text-white shadow-md backdrop-blur-md transition-all hover:bg-black/60 active:scale-95 sm:right-4 sm:p-2.5"
+            >
+              <ChevronRight className="h-4 w-4 sm:h-6 sm:w-6" />
+            </button>
+          </>
+        )}
 
         {/* Pagination Dots */}
-        <div className="absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 sm:gap-2 bg-black/25 backdrop-blur-md px-3 py-1.5 rounded-full">
-          {slides.map((_, idx) => (
-            <button
-              key={idx}
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setCurrentIndex(idx);
-              }}
-              aria-label={`Go to slide ${idx + 1}`}
-              className={`h-2 rounded-full transition-all duration-300 ${
-                currentIndex === idx
-                  ? "w-6 sm:w-7 bg-brand-rose shadow-sm"
-                  : "w-2 bg-white/60 hover:bg-white"
-              }`}
-            />
-          ))}
-        </div>
+        {slides.length > 1 && (
+          <div className="absolute bottom-2 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-white/20 bg-black/25 px-2.5 py-1 backdrop-blur-md sm:bottom-4 sm:gap-2 sm:px-3 sm:py-1.5">
+            {slides.map((_, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setCurrentIndex(idx);
+                }}
+                aria-label={`Go to slide ${idx + 1}`}
+                className={`h-1.5 rounded-full transition-all duration-300 sm:h-2 ${
+                  currentIndex === idx
+                    ? "w-5 bg-brand-rose shadow-sm sm:w-7"
+                    : "w-1.5 bg-white/65 hover:bg-white sm:w-2"
+                }`}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
