@@ -107,6 +107,26 @@
 .admin-upload { margin-top: 16px; padding: 14px; display: grid; justify-items: start; gap: 9px; border: 1px dashed var(--admin-line); border-radius: 15px; background: #edf7ff; }
 .admin-upload img { width: 100%; max-height: 140px; border-radius: 10px; object-fit: contain; background: #fff; }
 .admin-upload small { color: var(--admin-muted); font-size: 10px; }
+.admin-upload.compact {
+  min-width: 0;
+  margin-top: 0;
+  padding: 12px;
+  grid-template-columns: 58px minmax(0, 1fr) auto;
+  grid-template-areas:
+    "preview label action"
+    "preview help action"
+    "error error error";
+  align-items: center;
+  column-gap: 12px;
+  row-gap: 3px;
+  border-style: solid;
+  background: linear-gradient(135deg, #f7faff, #f4f0ff);
+}
+.admin-upload.compact > strong { grid-area: label; color: #253563; font-size: 12px; }
+.admin-upload.compact > img { grid-area: preview; width: 58px; height: 58px; padding: 4px; border: 1px solid #d6e4fb; object-fit: contain; }
+.admin-upload.compact > .admin-btn { grid-area: action; min-height: 38px; white-space: nowrap; }
+.admin-upload.compact > small { grid-area: help; }
+.admin-upload.compact > .admin-alert { grid-area: error; width: 100%; margin: 7px 0 0; }
 .admin-security { padding: 18px; display: grid; gap: 18px; }
 .admin-security-status { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--admin-muted); font-size: 11px; }
 .admin-security-status .admin-btn { min-height: 36px; }
@@ -910,6 +930,16 @@
   .admin-package-preview strong { font-size: 17px; }
   .admin-package-fields { grid-template-columns: minmax(0, 1fr); gap: 14px; }
   .admin-package-wide { grid-column: auto; }
+  .admin-upload.compact {
+    grid-template-columns: 50px minmax(0, 1fr);
+    grid-template-areas:
+      "preview label"
+      "preview help"
+      "action action"
+      "error error";
+  }
+  .admin-upload.compact > img { width: 50px; height: 50px; }
+  .admin-upload.compact > .admin-btn { width: 100%; margin-top: 7px; }
 }
 
 /* Shared layouts for Games, Packages, Slides, Users, Suppliers, and Security. */

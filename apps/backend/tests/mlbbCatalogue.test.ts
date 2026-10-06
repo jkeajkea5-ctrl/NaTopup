@@ -1,6 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { prepareMlbbCatalogue } from "../lib/mlbbCatalogue";
+import { getMlbbIconUrl, prepareMlbbCatalogue } from "../lib/mlbbCatalogue";
+
+test("uses the dedicated Super Value Pass icon for both supported spellings", () => {
+  assert.equal(getMlbbIconUrl("Super Value Pass"), "/packages/mlbb/super-value-pass.png");
+  assert.equal(getMlbbIconUrl("Supper Value Pass"), "/packages/mlbb/super-value-pass.png");
+});
 
 test("rejects empty, malformed and duplicate catalogues before replacement", () => {
   for (const items of [null, [], [{ id: 1, name: "5", amount: 0 }], [{ id: 1, name: "5", amount: "bad" }], [{ id: 1, amount: 1 }], [{ id: 1, name: "5", amount: 1 }, { id: 1, name: "12", amount: 2 }], [{ id: 1, name: "5", amount: 1 }, { id: 2, name: "5", amount: 1 }]]) {
@@ -48,4 +53,11 @@ test("uses only the requested passes and elite packs for Best Selling", () => {
   assert.equal(entries.find((entry) => entry.catalogueName === "Monthly Elite Pack")?.product.iconUrl, "/packages/mlbb/monthly-elite.png");
   assert.equal(entries.find((entry) => entry.catalogueName === "Twilight")?.product.iconUrl, "/packages/mlbb/twilight-pass.png");
   assert.ok(entries.every((entry) => entry.product.description.startsWith("MLBB (")));
+});
+
+test("keeps Super Value Pass as a pass instead of appending Diamonds", () => {
+  const [entry] = prepareMlbbCatalogue([{ id: 7, name: "Super Value Pass", amount: 0.85 }]);
+  assert.equal(entry.product.name, "Super Value Pass");
+  assert.equal(entry.product.amount, "1 Pass");
+  assert.equal(entry.product.iconUrl, "/packages/mlbb/super-value-pass.png");
 });

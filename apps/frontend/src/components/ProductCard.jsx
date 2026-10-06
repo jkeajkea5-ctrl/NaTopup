@@ -6,6 +6,10 @@ export const ProductCard = ({ product, isSelected, onSelect }) => {
   const nameLower = (product?.name || "").toLowerCase();
   const iconUrlLower = (product?.iconUrl || "").toLowerCase();
   const isPass = nameLower.includes("pass") || nameLower.includes("weekly") || nameLower.includes("membership");
+  const isSuperValuePass = nameLower.includes("super value pass") || nameLower.includes("supper value pass");
+  const productIconUrl = isSuperValuePass
+    ? "/packages/mlbb/super-value-pass.png"
+    : product.iconUrl || (isPass ? "/mlbb-weekly-pass.png" : "/mlbb-diamond-clean.png");
   const isWeeklyElitePack = nameLower.trim() === "weekly elite pack" || iconUrlLower.includes("weekly-elite");
   const isMonthlyElitePack = nameLower.trim() === "monthly elite pack" || iconUrlLower.includes("monthly-elite");
   const purchaseLimit = isWeeklyElitePack
@@ -81,7 +85,7 @@ export const ProductCard = ({ product, isSelected, onSelect }) => {
       {/* Graphic Artwork */}
       <div className="w-9 h-9 sm:w-12 sm:h-12 flex items-center justify-center flex-shrink-0 order-1 my-0.5">
         <img
-          src={product.iconUrl || (isPass ? "/mlbb-weekly-pass.png" : "/mlbb-diamond-clean.png")}
+          src={productIconUrl}
           alt={product.name}
           className="w-full h-full object-contain filter drop-shadow-sm transition-transform duration-200 group-hover:scale-110"
           onError={(e) => {

@@ -1,5 +1,6 @@
 export function getMlbbIconUrl(name: string) {
   const normalized = name.trim().toLowerCase();
+  if (normalized === "super value pass" || normalized === "supper value pass") return "/packages/mlbb/super-value-pass.png";
   if (normalized === "weekly elite pack") return "/packages/mlbb/weekly-elite.png";
   if (normalized === "weekly" || normalized === "weekly diamond pass") return "/packages/mlbb/weekly-pass.png";
   if (normalized === "monthly elite pack") return "/packages/mlbb/monthly-elite.png";
@@ -42,14 +43,14 @@ export function prepareGameCatalogue(items: unknown, prefix: string, popularName
     ids.add(id);
     names.add(catalogueName);
     const markupValue = Math.max(0.05, Math.round(supplierCost * 0.1 * 100) / 100);
-    const pass = catalogueName === "Weekly" || catalogueName === "Twilight";
+    const pass = catalogueName === "Weekly" || catalogueName === "Twilight" || /pass/i.test(catalogueName);
     const pack = /pack/i.test(catalogueName);
     return {
       catalogueName,
       supplierProductCode: `G2B_${prefix}_${catalogueName}`,
       product: {
         sku: `G2B_${prefix}_${id}`,
-        name: catalogueName === "Weekly" ? "Weekly Diamond Pass" : catalogueName === "Twilight" ? "Twilight Pass" : pack ? catalogueName : `${catalogueName} Diamonds`,
+        name: catalogueName === "Weekly" ? "Weekly Diamond Pass" : catalogueName === "Twilight" ? "Twilight Pass" : pass || pack ? catalogueName : `${catalogueName} Diamonds`,
         description: `${prefix} (${catalogueName})`,
         amount: pass ? "1 Pass" : pack ? "1 Pack" : catalogueName,
         ...(prefix.startsWith("MLBB") ? { iconUrl: getMlbbIconUrl(catalogueName) } : {}),

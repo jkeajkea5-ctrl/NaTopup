@@ -100,7 +100,7 @@ async function optimizeUploadImage(file) {
   return blob && blob.size < file.size ? new File([blob], `${file.name.replace(/\.[^.]+$/, "")}.webp`, { type: "image/webp" }) : file;
 }
 
-function ImageUpload({ label, value, disabled, onChange }) {
+function ImageUpload({ label, value, disabled, onChange, compact = false }) {
   const input = useRef(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
@@ -113,7 +113,7 @@ function ImageUpload({ label, value, disabled, onChange }) {
     catch (err) { setError(err.message); }
     finally { setUploading(false); }
   }
-  return <div className="admin-upload">
+  return <div className={`admin-upload${compact ? " compact" : ""}`}>
     <strong>{label}</strong>
     {value && <img src={value} alt={`${label} preview`} />}
     <input ref={input} hidden type="file" accept="image/jpeg,image/png,image/webp" onChange={upload} />
@@ -145,6 +145,13 @@ function Editor({ editor, saving, error, onClose, onSave }) {
       <form onSubmit={(e) => { e.preventDefault(); if (!isBelowCost) onSave({ entity: editor.entity, id: editor.id, data: form }); }}>
         <div className="admin-dialog-head"><h2>Edit Package</h2><button type="button" className="admin-icon-btn" onClick={onClose} aria-label="Close"><X size={20} /></button></div>
         <div className="admin-package-preview"><Picture url={form.iconUrl} name={form.name} /><span><strong>{form.name || "Package name"}</strong><small>{form.amount || "0"}</small></span></div>
+        <ImageUpload
+          compact
+          label="Package icon"
+          value={form.iconUrl}
+          disabled={saving}
+          onChange={(iconUrl) => setForm({ ...form, iconUrl })}
+        />
         <fieldset disabled={saving} className="admin-package-fields">
           <label className="admin-field admin-package-wide">Package name<input required value={form.name ?? ""} onChange={(e) => setForm({ ...form, name: e.target.value })} /></label>
           <label className="admin-field">Amount (diamonds)<input required value={form.amount ?? ""} onChange={(e) => setForm({ ...form, amount: e.target.value })} /></label>
