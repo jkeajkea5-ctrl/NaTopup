@@ -25,7 +25,7 @@ export const ProductCard = ({ product, isSelected, onSelect }) => {
     <button
       type="button"
       onClick={() => onSelect(product)}
-      className={`relative w-full rounded-xl sm:rounded-2xl p-2 sm:p-3 ${product.customBadge ? "pt-7 sm:pt-8" : ""} transition-all duration-200 cursor-pointer border overflow-hidden select-none group flex flex-col justify-between items-center text-center gap-1.5 min-h-[84px] ${isSelected
+      className={`product-card ${isSelected ? "is-selected" : ""} relative w-full rounded-xl sm:rounded-2xl p-2 sm:p-3 ${product.customBadge ? "pt-7 sm:pt-8" : ""} transition-all duration-200 cursor-pointer border overflow-hidden select-none group flex flex-col justify-between items-center text-center gap-1.5 min-h-[84px] ${isSelected
           ? "bg-[#6777DE] border-2 border-[#C95A6E] ring-2 ring-[#C95A6E]/40 shadow-lg scale-[1.02]"
           : "bg-[#7E8FEF] border-[#6D7EE8] hover:bg-[#7283E6] hover:border-white/60 hover:scale-[1.01] shadow-xs"
         }`}

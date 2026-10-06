@@ -419,7 +419,7 @@ export const GameDetailPage = () => {
   };
 
   return (
-    <div className="w-full min-w-0 max-w-6xl mx-auto space-y-5 sm:space-y-6 pb-28 lg:pb-12">
+    <div className="game-detail-page w-full min-w-0 max-w-6xl mx-auto space-y-5 sm:space-y-6 pb-28 lg:pb-12">
       <SuccessInvoiceModal
         order={successInvoice?.order}
         status={successInvoice?.status}
@@ -456,7 +456,7 @@ export const GameDetailPage = () => {
 
       <Link
         to="/"
-        className="-mx-4 -mt-6 flex h-10 items-center gap-1.5 border-l-2 border-[#59aeca] bg-[#eaf8fc] px-2.5 font-kulen text-sm text-[#18233f] transition-colors hover:bg-[#dff3f9] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-violet sm:mx-0 sm:mt-0 sm:rounded-xl"
+        className="game-detail-back -mx-4 -mt-6 flex h-10 items-center gap-1.5 border-l-2 px-2.5 font-kulen text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-violet sm:mx-0 sm:mt-0 sm:rounded-xl"
         aria-label="ត្រឡប់ក្រោយទៅទំព័រដើម"
       >
         <ArrowLeft className="h-4 w-4" aria-hidden="true" />
@@ -465,9 +465,9 @@ export const GameDetailPage = () => {
 
       {/* SELECT PACKAGE ALERT BANNER */}
       {packageAlertMessage && (
-        <div className="animate-in slide-in-from-top-3 duration-200 p-4 rounded-2xl bg-brand-violet/10 border-2 border-brand-violet text-brand-violet flex items-center justify-between shadow-lg font-kulen">
+        <div className="game-detail-alert animate-in slide-in-from-top-3 duration-200 p-4 rounded-2xl border-2 flex items-center justify-between shadow-lg font-kulen">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-brand-violet text-white flex items-center justify-center flex-shrink-0 shadow-sm animate-bounce">
+            <div className="game-detail-alert-icon w-9 h-9 rounded-xl text-white flex items-center justify-center flex-shrink-0 shadow-sm animate-bounce">
               <Gem className="w-5 h-5" />
             </div>
             <div>
@@ -477,7 +477,7 @@ export const GameDetailPage = () => {
           </div>
           <button
             onClick={() => setPackageAlertMessage(null)}
-            className="p-1.5 rounded-lg hover:bg-brand-violet/20 transition-colors"
+            className="p-1.5 rounded-lg hover:bg-white/60 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -487,7 +487,7 @@ export const GameDetailPage = () => {
       {/* Top-Right Selected Package Toast Alert (Solid Brand Violet, No Gradient) */}
       {packageToast && (
         <div key={packageToast.id} role="status" aria-live="polite" className="fixed top-16 sm:top-20 right-3 sm:right-6 max-w-[calc(100vw-1.5rem)] z-[9999] animate-popup-bounce-in">
-          <div className="relative overflow-hidden bg-brand-violet text-white px-4 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl shadow-2xl flex items-center gap-3 border border-white/20 backdrop-blur-md animate-popup-glow">
+          <div className="game-detail-toast relative overflow-hidden text-white px-4 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl shadow-2xl flex items-center gap-3 border border-white/20 backdrop-blur-md animate-popup-glow">
             {/* White Circle with Violet Check Icon (Animated Pop) */}
             <div className="relative z-10 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-white text-brand-violet flex items-center justify-center flex-shrink-0 shadow-sm font-bold text-xs animate-check-pop">
               <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[3]" />
@@ -516,16 +516,16 @@ export const GameDetailPage = () => {
         </div>
       )}
 
-      {/* TOP GAME BANNER (Fits Yellow Border: Full-width Edge-to-Edge on Mobile) */}
-      <div className="-mx-4 sm:mx-0 mb-6 relative overflow-hidden rounded-none sm:rounded-2xl lg:rounded-3xl shadow-card border-b sm:border border-brand-border bg-black group">
-        <div className="relative w-full h-[190px] sm:h-[260px] md:h-[320px] lg:h-[360px] overflow-hidden">
+      {/* Game banner follows the same responsive frame and artwork ratio as the home banner. */}
+      <div className="game-detail-hero group relative w-full overflow-hidden rounded-2xl border border-[#A2AB73]/35 bg-[#FFF3CC] shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-glow sm:rounded-3xl">
+        <div className="relative z-10 aspect-[1500/767] w-full overflow-hidden rounded-[inherit] bg-brand-surface">
           <img
             src={game.bannerUrl || game.logoUrl || "/placeholder.png"}
             alt={game.name || "Game Banner"}
-            className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700"
+            className="h-full w-full object-cover object-center transition-transform duration-700 group-hover:scale-[1.015]"
           />
           {/* Subtle gradient overlay for readability and depth */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent pointer-events-none" />
+          <div className="game-detail-hero-overlay absolute inset-0 pointer-events-none" />
 
           {/* Game Title, Logo & Badges Overlaid at Bottom Left of Banner */}
           <div className="absolute bottom-3 left-4 right-4 sm:bottom-5 sm:left-6 sm:right-6 flex items-center gap-3.5 z-10">
@@ -539,7 +539,7 @@ export const GameDetailPage = () => {
                 {game.name}
               </h1>
               <div className="flex flex-wrap items-center gap-2 mt-1">
-                <span className="bg-brand-violet text-white text-[11px] sm:text-xs font-bold px-2.5 py-0.5 rounded-full shadow-xs">
+                <span className="game-detail-category text-white text-[11px] sm:text-xs font-bold px-2.5 py-0.5 rounded-full shadow-xs">
                   {game.category || "Game"}
                 </span>
               </div>
@@ -552,9 +552,9 @@ export const GameDetailPage = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* LEFT COLUMN: ការបញ្ជាទិញ (Order Summary) */}
         <div className="order-last lg:order-first lg:col-span-4 space-y-4">
-          <div className="rounded-2xl sm:rounded-3xl overflow-hidden shadow-card border border-brand-border bg-white lg:sticky lg:top-20 transition-all">
+          <div className="game-detail-card rounded-2xl sm:rounded-3xl overflow-hidden shadow-card border bg-white lg:sticky lg:top-20 transition-all">
             {/* Header Ribbon: Solid Brand Violet */}
-            <div className="bg-brand-violet text-white px-5 py-3.5 font-kulen font-bold text-sm sm:text-base flex items-center justify-between shadow-sm">
+            <div className="game-detail-card-header text-white px-5 py-3.5 font-kulen font-bold text-sm sm:text-base flex items-center justify-between shadow-sm">
               <div className="flex items-center gap-2.5">
                 <ShoppingBag className="w-5 h-5" />
                 <span>ការបញ្ជាទិញ</span>
@@ -566,7 +566,7 @@ export const GameDetailPage = () => {
 
             <div className="p-5 space-y-4 text-xs sm:text-sm">
               {/* Game Item Details */}
-              <div className="flex items-center gap-3 p-3 rounded-2xl bg-[#FAF8FD] border border-brand-border/60">
+              <div className="game-detail-soft-panel flex items-center gap-3 p-3 rounded-2xl border">
                 <img
                   src={game.logoUrl || "/placeholder.png"}
                   alt={game.name}
@@ -583,7 +583,7 @@ export const GameDetailPage = () => {
               </div>
 
               {/* Player Account Summary */}
-              <div className="space-y-1.5 p-3 rounded-2xl bg-brand-surface border border-brand-border/60">
+              <div className="game-detail-soft-panel space-y-1.5 p-3 rounded-2xl border">
                 <div className="text-[11px] font-bold text-brand-muted uppercase tracking-wider font-kulen">
                   ព័ត៌មានគណនី (Account)
                 </div>
@@ -615,7 +615,7 @@ export const GameDetailPage = () => {
               </div>
 
               {/* Selected Package Summary */}
-              <div className="space-y-1.5 p-3 rounded-2xl bg-brand-surface border border-brand-border/60">
+              <div className="game-detail-soft-panel space-y-1.5 p-3 rounded-2xl border">
                 <div className="text-[11px] font-bold text-brand-muted uppercase tracking-wider font-kulen">
                   កញ្ចប់បានជ្រើសរើស (Package)
                 </div>
@@ -639,7 +639,7 @@ export const GameDetailPage = () => {
               </div>
 
               {/* Payment Method Matching User's ABA KHQR Design */}
-              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-[#EEF6FC] border-2 border-[#1E75A0] shadow-xs">
+              <div className="game-detail-payment flex items-center justify-between p-3.5 rounded-2xl border-2 shadow-xs">
                 <div className="flex items-center gap-3">
                   <img
                     src="/aba-khqr.svg"
@@ -721,7 +721,7 @@ export const GameDetailPage = () => {
                 type="button"
                 onClick={handleProceedToPayment}
                 disabled={isSubmittingOrder}
-                className="hidden w-full items-center justify-center gap-2 rounded-xl bg-brand-violet px-4 py-3.5 font-kulen text-sm font-bold text-white shadow-md transition-all hover:bg-[#7D67C7] hover:shadow-lg active:scale-98 lg:flex cursor-pointer"
+                className="game-detail-primary-button hidden w-full items-center justify-center gap-2 rounded-xl px-4 py-3.5 font-kulen text-sm font-bold text-white shadow-md transition-all hover:shadow-lg active:scale-98 lg:flex cursor-pointer"
               >
                 {isSubmittingOrder ? (
                   <>
@@ -744,10 +744,10 @@ export const GameDetailPage = () => {
           {/* STEP 1: បញ្ចូល អាយឌី (Enter ID) */}
           <div
             ref={step1Ref}
-            className="rounded-2xl sm:rounded-3xl overflow-hidden shadow-card border border-brand-border bg-white"
+            className="game-detail-card rounded-2xl sm:rounded-3xl overflow-hidden shadow-card border bg-white"
           >
             {/* Solid Brand Violet Top Header Ribbon (No Gradient) */}
-            <div className="bg-brand-violet text-white px-5 py-3 font-kulen font-bold text-sm sm:text-base flex items-center gap-2.5 shadow-sm">
+            <div className="game-detail-card-header text-white px-5 py-3 font-kulen font-bold text-sm sm:text-base flex items-center gap-2.5 shadow-sm">
               <UserCheck className="w-5 h-5" />
               <span>បញ្ចូល អាយឌី</span>
             </div>
@@ -805,7 +805,7 @@ export const GameDetailPage = () => {
                       value={playerFields[field.fieldKey] || ""}
                       onChange={(e) => handleFieldChange(field.fieldKey, e.target.value)}
                       placeholder={field.placeholder || "ឧ: 12345678"}
-                      className="w-full px-4 py-3 rounded-xl text-sm bg-brand-surface border border-brand-border focus:border-brand-violet focus:outline-none focus:ring-2 focus:ring-brand-violet/20 font-medium tracking-wide"
+                      className="game-detail-input w-full px-4 py-3 rounded-xl text-sm border focus:outline-none focus:ring-2 font-medium tracking-wide"
                     />
                   </div>
                 ))}
@@ -816,7 +816,7 @@ export const GameDetailPage = () => {
                     type="button"
                     onClick={handleValidatePlayer}
                     disabled={isValidatingPlayer}
-                    className="w-full py-3 px-4 rounded-xl text-xs sm:text-sm font-kulen font-bold bg-brand-violet hover:bg-[#7D67C7] text-white shadow-soft hover:opacity-95 active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                    className="game-detail-primary-button w-full py-3 px-4 rounded-xl text-xs sm:text-sm font-kulen font-bold text-white shadow-soft hover:opacity-95 active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer"
                   >
                     {isValidatingPlayer ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -850,12 +850,12 @@ export const GameDetailPage = () => {
           {/* STEP 2: ជ្រើសរើសកញ្ចប់ ពេជ្រ (Select Package) */}
           <div
             ref={step2Ref}
-            className={`rounded-2xl sm:rounded-3xl overflow-hidden shadow-card border bg-white transition-all ${
+            className={`game-detail-card rounded-2xl sm:rounded-3xl overflow-hidden shadow-card border bg-white transition-all ${
               packageAlertMessage ? "border-brand-violet ring-2 ring-brand-violet/40" : "border-brand-border"
             }`}
           >
             {/* Solid Brand Violet Top Header Ribbon */}
-            <div className="bg-brand-violet text-white px-5 py-3 font-kulen font-bold text-sm sm:text-base flex items-center justify-between shadow-sm">
+            <div className="game-detail-card-header text-white px-5 py-3 font-kulen font-bold text-sm sm:text-base flex items-center justify-between shadow-sm">
               <div className="flex items-center gap-2.5">
                 <Gem className="w-5 h-5" />
                 <span>ជ្រើសរើសកញ្ចប់ ពេជ្រ</span>
@@ -870,7 +870,7 @@ export const GameDetailPage = () => {
                 <section key={group.id} aria-labelledby={`packages-${group.id}`}>
                   <h3
                     id={`packages-${group.id}`}
-                    className="mb-3 border-b border-gray-100 pb-3 text-sm sm:text-base font-heading font-bold text-brand-violet"
+                    className="game-detail-group-title mb-3 border-b pb-3 text-sm sm:text-base font-heading font-bold"
                   >
                     {group.title}
                   </h3>

@@ -66,7 +66,7 @@ export const NavbarSearch = () => {
     <div ref={container} className="relative order-3 w-full pb-3 lg:order-none lg:max-w-md lg:flex-1 lg:pb-0"
       onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false); }}
       onKeyDown={(event) => { if (event.key === "Escape") { setOpen(false); input.current?.focus(); } }}>
-      <form role="search" className="flex h-11 items-center gap-2 rounded-2xl border border-brand-border bg-white/90 px-3 text-brand-muted transition-shadow focus-within:border-brand-violet focus-within:ring-4 focus-within:ring-brand-violet/10"
+      <form role="search" className="navbar-search-form flex h-11 items-center gap-2 rounded-2xl border px-3 transition-all"
         onSubmit={async (event) => {
           event.preventDefault();
           if (!term) return;
@@ -102,7 +102,7 @@ export const NavbarSearch = () => {
           onClick={() => { setQuery(""); input.current?.focus(); }}><X className="h-4 w-4" /></button>}
       </form>
       {visible && (
-        <div id="navbar-search-results" className="absolute inset-x-0 top-full z-50 mt-1 max-h-[min(60dvh,24rem)] overflow-y-auto rounded-2xl border border-brand-border bg-white p-2 shadow-xl">
+        <div id="navbar-search-results" className="navbar-search-results absolute inset-x-0 top-full z-50 mt-1 max-h-[min(60dvh,24rem)] overflow-y-auto rounded-2xl border p-2 shadow-xl">
           {isLoading || isError || !matches.length ? (
             <p role="status" className="px-3 py-4 text-sm text-brand-muted">
               {isLoading ? "កំពុងផ្ទុក..." : isError ? "មិនអាចផ្ទុកហ្គេមបានទេ។ សូមព្យាយាមម្តងទៀត។" : "រកមិនឃើញហ្គេមទេ"}

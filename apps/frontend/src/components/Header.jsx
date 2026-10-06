@@ -39,16 +39,16 @@ export const Header = () => {
 
   return (
     <>
-      <header className={`site-header sticky top-0 z-40 border-b transition-all duration-200 ${isScrolled ? "border-brand-border bg-white/95 shadow-soft backdrop-blur-md" : "border-brand-border/60 bg-white/85 backdrop-blur-sm"}`}>
+      <header className={`site-header sticky top-0 z-40 border-b transition-all duration-200 ${isScrolled ? "is-scrolled" : ""}`}>
         <div className="mx-auto max-w-[1440px] px-3 sm:px-6 lg:px-8">
           <div className="flex flex-wrap items-center justify-between gap-x-2 sm:gap-x-4 lg:flex-nowrap lg:gap-x-6">
-            <div className="flex h-[68px] shrink-0 items-center sm:h-20 lg:h-24">
+            <div className="flex h-[72px] shrink-0 items-center sm:h-20 lg:h-24">
               <Link to="/" className="na-brand group flex min-w-0 select-none items-center gap-1.5 sm:gap-2.5 lg:gap-3" aria-label="NA TOPUP home">
-                <div className="na-brand-emblem relative flex h-16 w-16 shrink-0 items-center justify-center sm:h-[72px] sm:w-[72px] lg:h-[88px] lg:w-[88px]">
-                  <img src="/na-topup-brand-uppercase-2026.png?v=20260924" alt="NA TOPUP" className="h-full w-full object-contain animate-logo-box" />
+                <div className="na-brand-emblem relative flex h-[68px] w-[68px] shrink-0 items-center justify-center sm:h-[74px] sm:w-[74px] lg:h-[90px] lg:w-[90px]">
+                  <img src="/na-topup-icon-2026.png?v=20261006" alt="NA TOPUP" className="header-brand-logo h-full w-full object-contain" />
                 </div>
                 <div className="flex items-center gap-1 sm:gap-1.5" aria-hidden="true">
-                  <span className="font-heading text-lg font-black tracking-tight text-[#ffdf51] sm:text-2xl lg:text-3xl">NA</span>
+                  <span className="na-brand-prefix font-heading text-xl font-black tracking-tight sm:text-2xl lg:text-3xl">NA</span>
                   <span className="na-brand-word font-heading text-lg font-black tracking-tight sm:text-2xl lg:text-3xl">TOPUP</span>
                 </div>
               </Link>
