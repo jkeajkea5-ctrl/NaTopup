@@ -25,11 +25,10 @@ export const ProductCard = ({ product, isSelected, onSelect }) => {
     <button
       type="button"
       onClick={() => onSelect(product)}
-      className={`relative w-full rounded-xl sm:rounded-2xl p-2 sm:p-3 ${product.customBadge ? "pt-10 sm:pt-12" : ""} transition-all duration-200 cursor-pointer border overflow-hidden select-none group flex flex-col justify-between items-center text-center gap-1.5 min-h-[84px] ${
-        isSelected
+      className={`relative w-full rounded-xl sm:rounded-2xl p-2 sm:p-3 ${product.customBadge ? "pt-7 sm:pt-8" : ""} transition-all duration-200 cursor-pointer border overflow-hidden select-none group flex flex-col justify-between items-center text-center gap-1.5 min-h-[84px] ${isSelected
           ? "bg-[#6777DE] border-2 border-[#C95A6E] ring-2 ring-[#C95A6E]/40 shadow-lg scale-[1.02]"
           : "bg-[#7E8FEF] border-[#6D7EE8] hover:bg-[#7283E6] hover:border-white/60 hover:scale-[1.01] shadow-xs"
-      }`}
+        }`}
     >
       {/* Top Right Corner Selected Badge with Checkmark */}
       {isSelected && (
@@ -38,18 +37,18 @@ export const ProductCard = ({ product, isSelected, onSelect }) => {
         </div>
       )}
       {product.customBadge && (
-        <>
-          <span className="pointer-events-none absolute -top-10 left-1/2 h-24 w-28 -translate-x-1/2 rounded-full bg-[#FFF3A3]/20 blur-2xl" aria-hidden="true" />
-          <span
-            className={`product-custom-badge absolute left-2 top-2 z-10 flex min-w-0 items-center gap-1 overflow-hidden rounded-[10px] border border-white/80 px-1.5 py-1 text-left text-[7px] font-black leading-[1.15] text-[#56344F] transition-transform duration-200 group-hover:-translate-y-0.5 sm:left-2.5 sm:top-2.5 sm:gap-1.5 sm:rounded-[12px] sm:px-2 sm:py-1.5 sm:text-[9px] ${isSelected ? "right-6 sm:right-8" : "right-2 sm:right-2.5"}`}
-            title={product.customBadge}
-          >
-            <span className="product-custom-badge-icon relative flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full bg-white/90 text-[#C65B82] shadow-[0_2px_5px_rgba(94,54,91,0.2)] ring-1 ring-white sm:h-5 sm:w-5">
-              <Sparkles className="h-2 w-2 stroke-[2.8] sm:h-3 sm:w-3" aria-hidden="true" />
-            </span>
-            <span className="relative z-[1] min-w-0 flex-1 overflow-hidden break-all pr-0.5 drop-shadow-[0_1px_0_rgba(255,255,255,0.65)]">{product.customBadge}</span>
+        <div
+          className={`absolute top-0 left-0 z-10 flex items-center gap-1 overflow-hidden rounded-br-xl sm:rounded-br-2xl bg-gradient-to-r from-[#FF2B66] via-[#FF5E36] to-[#FFA726] px-1.5 py-0.5 sm:px-2 sm:py-0.5 text-white shadow-[0_2px_8px_rgba(255,43,102,0.35)] border-b border-r border-white/40 transition-transform duration-200 group-hover:scale-[1.03] select-none ${isSelected ? "max-w-[calc(100%-18px)] sm:max-w-[calc(100%-24px)]" : "max-w-[92%]"
+            }`}
+          title={product.customBadge}
+        >
+          {/* Subtle sweep light on hover */}
+          <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent transition-transform duration-700 group-hover:translate-x-full" aria-hidden="true" />
+          <Sparkles className="h-2 w-2 sm:h-2.5 sm:w-2.5 stroke-[2.8] text-white shrink-0 drop-shadow-xs" aria-hidden="true" />
+          <span className="relative z-[1] whitespace-nowrap font-sans font-black text-[7px] sm:text-[8.5px] tracking-tight leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]">
+            {product.customBadge}
           </span>
-        </>
+        </div>
       )}
 
       {/* Diamond Amount / Name + Price */}

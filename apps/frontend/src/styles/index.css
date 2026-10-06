@@ -32,61 +32,6 @@
   font-style: normal;
 }
 
-.product-custom-badge {
-  isolation: isolate;
-  background: linear-gradient(125deg, #fff9b8 0%, #ffd568 48%, #ffafca 100%);
-  box-shadow:
-    0 4px 0 rgba(82, 55, 115, 0.18),
-    0 8px 15px rgba(42, 31, 80, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    inset 0 -1px 0 rgba(184, 92, 121, 0.14);
-}
-
-.product-custom-badge::before {
-  position: absolute;
-  top: -20%;
-  bottom: -20%;
-  left: -45%;
-  z-index: 0;
-  width: 32%;
-  content: "";
-  transform: skewX(-20deg);
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.72), transparent);
-  animation: productBadgeShine 3.2s ease-in-out infinite;
-}
-
-.product-custom-badge::after {
-  position: absolute;
-  inset: 1px;
-  z-index: 0;
-  border: 1px solid rgba(255, 255, 255, 0.38);
-  border-radius: inherit;
-  content: "";
-  pointer-events: none;
-}
-
-.product-custom-badge-icon {
-  z-index: 1;
-  animation: productBadgeSparkle 2s ease-in-out infinite;
-}
-
-@keyframes productBadgeShine {
-  0%, 48% { left: -45%; }
-  72%, 100% { left: 120%; }
-}
-
-@keyframes productBadgeSparkle {
-  0%, 100% { transform: rotate(-6deg) scale(1); }
-  50% { transform: rotate(7deg) scale(1.1); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .product-custom-badge::before,
-  .product-custom-badge-icon {
-    animation: none;
-  }
-}
-
 /* Responsive foundation shared by every public page. */
 html {
   min-width: 280px;
