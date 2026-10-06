@@ -2,9 +2,33 @@
 @tailwind components;
 @tailwind utilities;
 
-.siemreap-regular {
-  font-family: "Siemreap", sans-serif;
+.battambang-thin {
+  font-family: "Battambang", system-ui;
+  font-weight: 100;
+  font-style: normal;
+}
+
+.battambang-light {
+  font-family: "Battambang", system-ui;
+  font-weight: 300;
+  font-style: normal;
+}
+
+.battambang-regular {
+  font-family: "Battambang", system-ui;
   font-weight: 400;
+  font-style: normal;
+}
+
+.battambang-bold {
+  font-family: "Battambang", system-ui;
+  font-weight: 700;
+  font-style: normal;
+}
+
+.battambang-black {
+  font-family: "Battambang", system-ui;
+  font-weight: 900;
   font-style: normal;
 }
 
@@ -213,7 +237,7 @@ dialog {
 .announcement-popup-content h2 {
   margin: 0;
   color: #3b2434;
-  font-family: "Siemreap", "Noto Sans Khmer", sans-serif;
+  font-family: "Battambang", "Noto Sans Khmer", system-ui;
   font-size: clamp(21px, 3vw, 30px);
   font-weight: 800;
   line-height: 1.5;
@@ -552,7 +576,7 @@ dialog {
 .mobile-rail-section h2 {
   margin: 0 -8px 16px;
   color: #112c43;
-  font-family: "Siemreap", sans-serif;
+  font-family: "Battambang", system-ui;
   font-size: clamp(13px, 3.8vw, 17px);
   font-weight: 400;
   line-height: 1.55;
@@ -1083,7 +1107,7 @@ dialog {
 }
 
 body {
-  font-family: "Siemreap", "Noto Sans Khmer", "Inter", sans-serif;
+  font-family: "Battambang", "Noto Sans Khmer", "Inter", system-ui;
   background-color: #ebe3f0;
   background-image:
     radial-gradient(at 15% 15%, rgba(246, 224, 237, 0.8) 0px, transparent 55%),
@@ -1105,7 +1129,7 @@ h3,
 h4,
 h5,
 h6 {
-  font-family: "Siemreap", "Noto Sans Khmer", "Poppins", "Inter", sans-serif;
+  font-family: "Battambang", "Noto Sans Khmer", "Poppins", "Inter", system-ui;
   letter-spacing: 0.02em;
 }
 

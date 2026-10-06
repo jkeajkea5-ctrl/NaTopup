@@ -24,9 +24,9 @@ export default {
         },
       },
       fontFamily: {
-        sans: ["Siemreap", "Noto Sans Khmer", "Inter", "system-ui", "sans-serif"],
-        heading: ["Siemreap", "Noto Sans Khmer", "Poppins", "Inter", "sans-serif"],
-        kulen: ["Siemreap", "Noto Sans Khmer", "sans-serif"],
+        sans: ["Battambang", "Noto Sans Khmer", "Inter", "system-ui", "sans-serif"],
+        heading: ["Battambang", "Noto Sans Khmer", "Poppins", "Inter", "system-ui", "sans-serif"],
+        kulen: ["Battambang", "Noto Sans Khmer", "system-ui", "sans-serif"],
       },
       borderRadius: {
         card: "16px",
