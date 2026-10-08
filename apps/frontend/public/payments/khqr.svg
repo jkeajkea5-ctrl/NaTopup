@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 100" role="img" aria-labelledby="title">
+  <title id="title">KHQR</title>
+  <defs>
+    <linearGradient id="khqr-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f12b44"/>
+      <stop offset="1" stop-color="#d9102d"/>
+    </linearGradient>
+  </defs>
+  <rect x="1.5" y="1.5" width="177" height="97" rx="14" fill="url(#khqr-bg)" stroke="#fff" stroke-opacity=".72" stroke-width="3"/>
+  <text x="90" y="64" text-anchor="middle" fill="#fff" font-family="Arial, Helvetica, sans-serif" font-size="39" font-weight="800" letter-spacing="2">KHQR</text>
+</svg>

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 100" role="img" aria-labelledby="title">
+  <title id="title">ABA</title>
+  <defs>
+    <linearGradient id="aba-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#087d99"/>
+      <stop offset="1" stop-color="#005b75"/>
+    </linearGradient>
+  </defs>
+  <rect x="1.5" y="1.5" width="177" height="97" rx="14" fill="url(#aba-bg)" stroke="#fff" stroke-opacity=".72" stroke-width="3"/>
+  <text x="90" y="65" text-anchor="middle" fill="#fff" font-family="Arial, Helvetica, sans-serif" font-size="45" font-weight="800" letter-spacing="7">ABA</text>
+  <path d="m142 25 7 7-7 7-7-7 7-7Z" fill="#ed1b35"/>
+</svg>
