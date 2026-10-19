@@ -1,11 +1,32 @@
 import dns from "node:dns";
 import dotenv from "dotenv";
+import fs from "node:fs";
+import path from "node:path";
 
 try {
   dns.setDefaultResultOrder("ipv4first");
 } catch (e) {}
 
 dotenv.config();
+
+// Workspace development starts Next.js from apps/backend, while the complete
+// local payment configuration lives in the repository root .env. Read only
+// payment-related values from that file so stale credentials in a nested .env
+// cannot produce misleading provider errors. Hosted environments continue to
+// use their injected variables because the repository root file is absent.
+let rootDevelopmentEnv: Record<string, string> = {};
+if (process.env.NODE_ENV !== "production") {
+  try {
+    const rootEnvPath = path.resolve(process.cwd(), "../../.env");
+    if (fs.existsSync(rootEnvPath)) {
+      rootDevelopmentEnv = dotenv.parse(fs.readFileSync(rootEnvPath));
+    }
+  } catch {}
+}
+
+function paymentEnv(name: string): string | undefined {
+  return rootDevelopmentEnv[name] || process.env[name];
+}
 
 function callbackOrigin(...values: Array<string | undefined>): string {
   for (const value of values) {
@@ -19,6 +40,7 @@ function callbackOrigin(...values: Array<string | undefined>): string {
 
 const frontendUrl = process.env.FRONTEND_URL || process.env.CLIENT_URL || "http://localhost:5173";
 const backendUrl =
+  rootDevelopmentEnv.PUBLIC_BASE_URL ||
   process.env.BACKEND_URL ||
   process.env.PUBLIC_BASE_URL ||
   callbackOrigin(process.env.G2BULK_CALLBACK_URL, process.env.VIZO_CALLBACK_URL);
@@ -49,14 +71,14 @@ export const config = {
   },
 
   khqrcc: {
-    enabled: process.env.KHQRCC_ENABLED === "true",
-    baseUrl: process.env.KHQRCC_BASE_URL || "https://anajakpay.com",
-    checkoutUrl: process.env.KHQRCC_CHECKOUT_URL || "https://anajakpay.com/api/payment/requestv2",
-    profileId: process.env.KHQRCC_PROFILE_ID || "",
-    secretKey: process.env.KHQRCC_SECRET_KEY || "",
-    sessionSeconds: parseInt(process.env.KHQRCC_SESSION_SECONDS || "420", 10),
-    webhookTimeoutMinutes: parseInt(process.env.KHQRCC_WEBHOOK_TIMEOUT_MINUTES || "5", 10),
-    webhookMaxAgeSeconds: parseInt(process.env.KHQRCC_WEBHOOK_MAX_AGE_SECONDS || "300", 10),
+    enabled: paymentEnv("KHQRCC_ENABLED") === "true",
+    baseUrl: paymentEnv("KHQRCC_BASE_URL") || "https://anajakpay.com",
+    checkoutUrl: paymentEnv("KHQRCC_CHECKOUT_URL") || "https://anajakpay.com/api/payment/requestv2",
+    profileId: paymentEnv("KHQRCC_PROFILE_ID") || "",
+    secretKey: paymentEnv("KHQRCC_SECRET_KEY") || "",
+    sessionSeconds: parseInt(paymentEnv("KHQRCC_SESSION_SECONDS") || "420", 10),
+    webhookTimeoutMinutes: parseInt(paymentEnv("KHQRCC_WEBHOOK_TIMEOUT_MINUTES") || "5", 10),
+    webhookMaxAgeSeconds: parseInt(paymentEnv("KHQRCC_WEBHOOK_MAX_AGE_SECONDS") || "300", 10),
   },
   
   g2bulk: {

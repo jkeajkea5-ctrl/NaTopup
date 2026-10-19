@@ -13,6 +13,9 @@ import { g2bulkAdapter } from "./g2bulk/client";
 import { ISupplierAdapter } from "./supplierAdapter";
 import { vizoAdapter } from "./vizo/client";
 
+const PLAYER_VERIFICATION_UNAVAILABLE =
+  "Player verification is temporarily unavailable. Please try again.";
+
 export class SupplierManager {
   private adapters: Map<SupplierCode, ISupplierAdapter> = new Map();
   private balanceRefreshes = new Map<SupplierCode, Promise<SupplierBalance>>();
@@ -65,14 +68,21 @@ export class SupplierManager {
     }
 
     try {
-      return await this.getAdapter(secondarySupplier).checkPlayer(input);
+      const secondaryRes = await this.getAdapter(secondarySupplier).checkPlayer(input);
+      if (!secondaryRes.extraData?.providerUnavailable) {
+        return secondaryRes;
+      }
+      logger.warn(`${secondarySupplier} player check fallback is unavailable`, {
+        error: secondaryRes.errorMessage,
+      });
     } catch (err: any) {
       logger.warn(`${secondarySupplier} player check fallback also failed`, { error: err.message });
     }
 
     return {
       valid: false,
-      errorMessage: "មិនអាចពិនិត្យគណនីអ្នកលេងបានទេនៅពេលនេះ។ សូមព្យាយាមម្តងទៀត។",
+      errorMessage: PLAYER_VERIFICATION_UNAVAILABLE,
+      extraData: { providerUnavailable: true },
     };
   }
 

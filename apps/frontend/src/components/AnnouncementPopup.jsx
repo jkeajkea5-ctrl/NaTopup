@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Sparkles, X } from "lucide-react";
+import { CalendarDays, Sparkles, Ticket, X } from "lucide-react";
 
-const POPUP_SESSION_KEY = "na-topup-pchum-ben-popup-seen";
+const POPUP_SESSION_KEY = "na-topup-aspirants-5-premium-supply-seen";
 
 export function AnnouncementPopup() {
   const closeButtonRef = useRef(null);
@@ -12,6 +12,15 @@ export function AnnouncementPopup() {
       return true;
     }
   });
+
+  const closePopup = () => {
+    try {
+      sessionStorage.setItem(POPUP_SESSION_KEY, "true");
+    } catch {
+      // The popup still closes when browser storage is unavailable.
+    }
+    setIsOpen(false);
+  };
 
   useEffect(() => {
     if (!isOpen) return undefined;
@@ -37,15 +46,6 @@ export function AnnouncementPopup() {
     };
   }, [isOpen]);
 
-  const closePopup = () => {
-    try {
-      sessionStorage.setItem(POPUP_SESSION_KEY, "true");
-    } catch {
-      // The popup still closes when browser storage is unavailable.
-    }
-    setIsOpen(false);
-  };
-
   if (!isOpen) return null;
 
   return (
@@ -68,15 +68,15 @@ export function AnnouncementPopup() {
           type="button"
           className="announcement-popup-close"
           onClick={closePopup}
-          aria-label="បិទសារជូនដំណឹង"
+          aria-label="បិទសេចក្តីជូនដំណឹង"
         >
           <X aria-hidden="true" />
         </button>
 
         <div className="announcement-popup-image-wrap">
           <img
-            src="/banners/phchum-ben-popup.jpg"
-            alt="NA TOPUP សូមអបអរសាទរពិធីបុណ្យភ្ជុំបិណ្ឌ"
+            src="/banners/aspirants-5-premium-supply.webp"
+            alt="Aspirants 5.0 Premium Supply — Free Tickets"
             className="announcement-popup-image"
           />
         </div>
@@ -84,18 +84,26 @@ export function AnnouncementPopup() {
         <div className="announcement-popup-content">
           <span className="announcement-popup-label">
             <Sparkles aria-hidden="true" />
-            សារជូនពរពី NA TOPUP
+            ព្រឹត្តិការណ៍ពិសេស
           </span>
+
           <h2 id="announcement-popup-title">
-            អបអរសាទរពិធីបុណ្យភ្ជុំបិណ្ឌ ជាមួយ NA TOPUP
+            ព្រឹត្តិការណ៍ <strong>Aspirants 5.0 Premium Supply</strong> បានមកដល់ហើយ!
           </h2>
-          <p id="announcement-popup-detail">
-            ក្នុងឱកាសពិធីបុណ្យភ្ជុំបិណ្ឌនេះ <strong>NA TOPUP</strong> សូមជូនពរលោកអ្នក និងក្រុមគ្រួសារ
-            ឲ្យពោរពេញដោយសេចក្តីសុខ សំណាងល្អ និងសុភមង្គល។ រីករាយ Top Up ហ្គេមបានយ៉ាងរហ័ស
-            និងងាយស្រួលជាមួយយើង។
+          <p id="announcement-popup-detail" className="announcement-popup-intro">
+            កុំភ្លេចចូលរួមបំពេញបេសកកម្ម ដើម្បីទទួលបានសំបុត្រសម្រាប់បង្វិលយកស្គីនពិសេស!
           </p>
+
+          <div className="announcement-popup-details">
+            <section className="announcement-popup-detail-block">
+              <h3><CalendarDays aria-hidden="true" /> កាលបរិច្ឆេទព្រឹត្តិការណ៍</h3>
+              <p><Ticket aria-hidden="true" /> <strong>វគ្គទី 1៖</strong> ថ្ងៃទី 16–20 ខែតុលា ឆ្នាំ 2026 (រហូតដល់ 16 សន្លឹក)</p>
+            </section>
+
+          </div>
+
           <button type="button" className="announcement-popup-action" onClick={closePopup}>
-            ចាប់ផ្តើម Top Up
+            យល់ព្រម
           </button>
         </div>
       </section>

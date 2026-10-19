@@ -15,7 +15,6 @@ import { SupportPage } from "./pages/SupportPage";
 import { PaymentReturnPage } from "./pages/PaymentReturnPage";
 import { FloatingSupportButton } from "./components/FloatingSupportButton";
 import { InstallPrompt } from "./components/InstallPrompt";
-import { AnnouncementPopup } from "./components/AnnouncementPopup";
 import { MotionEffects } from "./components/MotionEffects";
 
 const queryClient = new QueryClient({
@@ -55,7 +54,6 @@ function AppFrame() {
           {!minimalRoute && <Footer />}
           {!minimalRoute && <FloatingSupportButton />}
           {!minimalRoute && <InstallPrompt />}
-          {!minimalRoute && <AnnouncementPopup />}
         </div>
     </>
   );

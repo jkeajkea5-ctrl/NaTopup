@@ -58,6 +58,11 @@ export class G2BulkAdapter implements ISupplierAdapter {
   }
 
   private mapCatalogueGameCode(gameCode: string): string {
+    const code = (gameCode || "").toLowerCase().trim();
+    // G2Bulk uses `pubgm` for catalogue, order, and order-status routes.
+    // Player verification is different and continues to use `pubg_mobile`
+    // through mapPlayerCheckGameCode/mapGameCode.
+    if (code === "pubg-mobile" || code === "pubgm" || code === "pubg_mobile") return "pubgm";
     return this.mapGameCode(gameCode);
   }
 

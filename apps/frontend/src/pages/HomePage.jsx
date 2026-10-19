@@ -1,14 +1,19 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
   Gamepad2,
+  Grid3X3,
+  X,
 } from "lucide-react";
 import { fetchGames } from "../services/api";
 import { HeroSlider } from "../components/HeroSlider";
 import { GameCard } from "../components/GameCard";
 
 export const HomePage = () => {
+  const [allGamesOpen, setAllGamesOpen] = useState(false);
+  const closeAllGamesRef = useRef(null);
   const { data, isLoading } = useQuery({
     queryKey: ["games"],
     queryFn: fetchGames,
@@ -21,6 +26,24 @@ export const HomePage = () => {
   const marqueeGames = featuredGames.length < 4
     ? [...featuredGames, ...featuredGames, ...featuredGames]
     : featuredGames;
+
+  useEffect(() => {
+    if (!allGamesOpen) return undefined;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    closeAllGamesRef.current?.focus();
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") setAllGamesOpen(false);
+    };
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [allGamesOpen]);
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -67,9 +90,17 @@ export const HomePage = () => {
             <h2 id="popular-games-title" className="popular-games-title font-kulen">
               ហ្គេមពេញនិយម
             </h2>
-            <span className="popular-games-count" aria-label={`${games.length} games`}>
-              {isLoading ? "…" : games.length}
-            </span>
+            <button
+              type="button"
+              className="all-games-trigger"
+              onClick={() => setAllGamesOpen(true)}
+              disabled={isLoading || games.length === 0}
+              aria-haspopup="dialog"
+            >
+              <Grid3X3 aria-hidden="true" />
+              <span>ALL GAMES</span>
+              <strong aria-label={`${games.length} games`}>{isLoading ? "…" : games.length}</strong>
+            </button>
           </div>
           <div className="popular-games-rule" aria-hidden="true" />
         </div>
@@ -102,6 +133,56 @@ export const HomePage = () => {
           </div>
         )}
       </section>
+
+      {allGamesOpen && createPortal(
+        <div className="all-games-layer" role="dialog" aria-modal="true" aria-labelledby="all-games-modal-title">
+          <button
+            type="button"
+            className="all-games-backdrop"
+            aria-label="Close all games"
+            onClick={() => setAllGamesOpen(false)}
+          />
+          <section className="all-games-modal">
+            <header>
+              <img src="/na-topup-icon-2026.png" alt="" />
+              <div>
+                <h2 id="all-games-modal-title">ALL GAMES</h2>
+                <p>Choose a game to top up</p>
+              </div>
+              <span>{games.length} Games</span>
+              <button
+                ref={closeAllGamesRef}
+                type="button"
+                className="all-games-close"
+                onClick={() => setAllGamesOpen(false)}
+                aria-label="Close"
+              >
+                <X aria-hidden="true" />
+              </button>
+            </header>
+
+            <div className="all-games-list">
+              {games.map((game, index) => (
+                <Link
+                  key={game.id}
+                  to={`/game/${game.slug}`}
+                  onClick={() => setAllGamesOpen(false)}
+                  style={{ "--all-games-index": index }}
+                >
+                  <span className="all-games-thumb">
+                    <img src={game.logoUrl} alt="" loading="lazy" />
+                  </span>
+                  <span className="all-games-copy">
+                    <strong>{game.name}</strong>
+                    <small><i aria-hidden="true" /> Available</small>
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </section>
+        </div>,
+        document.body
+      )}
 
     </div>
   );

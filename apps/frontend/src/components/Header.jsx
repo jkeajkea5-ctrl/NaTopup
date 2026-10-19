@@ -39,24 +39,24 @@ export const Header = () => {
 
   return (
     <>
-      <header className={`site-header sticky top-0 z-40 border-b transition-all duration-200 ${isScrolled ? "is-scrolled" : ""}`}>
+      <header className={`site-header fixed inset-x-0 top-0 z-40 border-b transition-all duration-200 ${isScrolled ? "is-scrolled" : ""}`}>
         <div className="mx-auto max-w-[1440px] px-3 sm:px-6 lg:px-8">
-          <div className="flex flex-wrap items-center justify-between gap-x-2 sm:gap-x-4 lg:flex-nowrap lg:gap-x-6">
+          <div className="relative flex flex-nowrap items-center justify-between gap-x-2 sm:gap-x-4 lg:gap-x-6">
             <div className="flex h-[72px] shrink-0 items-center sm:h-20 lg:h-24">
               <Link to="/" className="na-brand group flex min-w-0 select-none items-center gap-1.5 sm:gap-2.5 lg:gap-3" aria-label="NA TOPUP home">
                 <div className="na-brand-emblem relative flex h-[68px] w-[68px] shrink-0 items-center justify-center sm:h-[74px] sm:w-[74px] lg:h-[90px] lg:w-[90px]">
                   <img src="/na-topup-icon-2026.png?v=20261006" alt="NA TOPUP" className="header-brand-logo h-full w-full object-contain" />
                 </div>
-                <div className="flex items-center gap-1 sm:gap-1.5" aria-hidden="true">
+                <div className="na-brand-name flex items-center gap-1 sm:gap-1.5" aria-hidden="true">
                   <span className="na-brand-prefix font-heading text-xl font-black tracking-tight sm:text-2xl lg:text-3xl">NA</span>
                   <span className="na-brand-word font-heading text-lg font-black tracking-tight sm:text-2xl lg:text-3xl">TOPUP</span>
                 </div>
               </Link>
             </div>
-            <NavbarSearch />
-            <div className="flex items-center gap-2 sm:gap-3">
-              <a href={CONTACT_LINKS.telegram} target="_blank" rel="noopener noreferrer" className="navbar-contact flex shrink-0 items-center justify-center gap-2 p-1.5 md:px-2 md:py-2" title="ទាក់ទង Telegram" aria-label="ទាក់ទង Telegram">
-                <TelegramBrandIcon bare className="h-10 w-10" />
+            <div className="flex items-center gap-1 sm:gap-3">
+              <NavbarSearch />
+              <a href={CONTACT_LINKS.telegram} target="_blank" rel="noopener noreferrer" className="navbar-contact hidden shrink-0 items-center justify-center gap-2 p-1.5 sm:flex md:px-2 md:py-2" title="ទាក់ទង Telegram" aria-label="ទាក់ទង Telegram">
+                <TelegramBrandIcon bare className="h-9 w-9 sm:h-10 sm:w-10" />
                 <span className="relative z-10 hidden whitespace-nowrap pr-0.5 font-kulen text-xs font-bold tracking-tight text-[#2489b6] lg:inline lg:text-sm">ទាក់ទង Telegram</span>
               </a>
               <button type="button" onClick={() => setIsMenuOpen(true)} className="shrink-0 cursor-pointer rounded-xl p-2 text-gray-700 transition-all hover:bg-brand-violet/10 hover:text-brand-violet active:scale-90 lg:hidden" aria-label="បើកម៉ឺនុយ" aria-expanded={isMenuOpen} aria-controls="mobile-navigation">
@@ -66,6 +66,7 @@ export const Header = () => {
           </div>
         </div>
       </header>
+      <div className="site-header-spacer" aria-hidden="true" />
 
       <button type="button" className={`mobile-drawer-backdrop fixed inset-0 z-50 lg:hidden ${isMenuOpen ? "is-open" : ""}`} onClick={() => setIsMenuOpen(false)} aria-label="បិទម៉ឺនុយ" tabIndex={isMenuOpen ? 0 : -1} />
 

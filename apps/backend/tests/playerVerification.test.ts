@@ -71,3 +71,26 @@ test("Free Fire verification falls back to G2Bulk when Vizo is unavailable", asy
   assert.equal(result.playerName, "loveXnt");
   assert.equal(fallback.mock.callCount(), 1);
 });
+
+test("verification hides supplier names when both providers are unavailable", async (t) => {
+  t.mock.method(g2bulkAdapter, "checkPlayer", async () => ({
+    valid: false,
+    errorMessage: "G2Bulk player verification is temporarily unavailable.",
+    extraData: { providerUnavailable: true },
+  }));
+  t.mock.method(vizoAdapter, "checkPlayer", async () => ({
+    valid: false,
+    errorMessage: "Vizo player verification is temporarily unavailable.",
+    extraData: { providerUnavailable: true },
+  }));
+
+  const result = await supplierManager.checkPlayer("mobile-legends", {
+    userId: "563087296",
+    zoneId: "3484",
+  });
+
+  assert.equal(result.valid, false);
+  assert.equal(result.errorMessage, "Player verification is temporarily unavailable. Please try again.");
+  assert.equal(result.errorMessage?.includes("G2Bulk"), false);
+  assert.equal(result.errorMessage?.includes("Vizo"), false);
+});

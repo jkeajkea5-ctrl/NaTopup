@@ -50,10 +50,21 @@ export const NavbarSearch = () => {
   const navigate = useNavigate();
   const { data, isLoading, isError, refetch } = useQuery({ queryKey: ["games"], queryFn: fetchGames });
   const term = normalizeSearch(query);
-  const matches = findGameMatches(data?.games || [], term);
-  const visible = open && !!term;
+  const matches = term ? findGameMatches(data?.games || [], term) : (data?.games || []);
+  const visible = open;
 
   useEffect(() => { setOpen(false); setQuery(""); }, [location.pathname]);
+  useEffect(() => {
+    if (!open) return undefined;
+    const frame = requestAnimationFrame(() => input.current?.focus());
+    return () => cancelAnimationFrame(frame);
+  }, [open]);
+  useEffect(() => {
+    if (!open) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = previousOverflow; };
+  }, [open]);
   useEffect(() => {
     const dismiss = (event) => {
       if (!container.current?.contains(event.target)) setOpen(false);
@@ -63,64 +74,103 @@ export const NavbarSearch = () => {
   }, []);
 
   return (
-    <div ref={container} className="relative order-3 w-full pb-3 lg:order-none lg:max-w-md lg:flex-1 lg:pb-0"
+    <div
+      ref={container}
+      className="navbar-search-container relative shrink-0"
       onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false); }}
-      onKeyDown={(event) => { if (event.key === "Escape") { setOpen(false); input.current?.focus(); } }}>
-      <form role="search" className="navbar-search-form flex h-11 items-center gap-2 rounded-2xl border px-3 transition-all"
-        onSubmit={async (event) => {
-          event.preventDefault();
-          if (!term) return;
+      onKeyDown={(event) => { if (event.key === "Escape") setOpen(false); }}
+    >
+      <button
+        type="button"
+        className="navbar-search-trigger"
+        onClick={() => setOpen((current) => !current)}
+        aria-label="ស្វែងរកហ្គេម"
+        aria-expanded={open}
+        aria-controls="navbar-search-popover"
+      >
+        <Search aria-hidden="true" />
+      </button>
 
-          let firstMatch = matches[0];
-          if (!firstMatch) {
-            const refreshed = await refetch();
-            firstMatch = findGameMatches(refreshed.data?.games || [], term)[0];
-          }
+      {open && (
+        <div className="navbar-search-layer" role="dialog" aria-modal="true" aria-label="Search games">
+          <button type="button" className="navbar-search-backdrop" onClick={() => setOpen(false)} aria-label="Close search" />
+          <section id="navbar-search-popover" className="navbar-search-popover">
+          <form
+            role="search"
+            className="navbar-search-form flex h-11 items-center gap-2 rounded-2xl border px-3 transition-all"
+            onSubmit={async (event) => {
+              event.preventDefault();
+              if (!term) return;
 
-          if (firstMatch) {
-            navigate(`/game/${firstMatch.slug}`);
-            setOpen(false);
-            setQuery("");
-          } else {
-            setOpen(true);
-          }
-        }}>
-        <button
-          type="submit"
-          aria-label="ស្វែងរកហ្គេម"
-          title="ស្វែងរកហ្គេម"
-          className="-ml-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors hover:bg-brand-violet/10 hover:text-brand-violet focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-violet"
-        >
-          <Search className="h-[18px] w-[18px]" aria-hidden="true" />
-        </button>
-        <input ref={input} type="search" value={query} aria-label="ស្វែងរកហ្គេម" placeholder="ស្វែងរកហ្គេម..."
-          aria-controls={visible ? "navbar-search-results" : undefined}
-          className="min-w-0 flex-1 bg-transparent py-2 text-sm outline-none placeholder:font-kulen placeholder:text-brand-muted/70 [&::-webkit-search-cancel-button]:hidden"
-          onChange={(event) => { setQuery(event.target.value); setOpen(true); }}
-          onFocus={() => setOpen(true)} />
-        {query && <button type="button" aria-label="Clear search" className="rounded-lg p-1.5 hover:bg-brand-violet/10 focus-visible:outline-brand-violet"
-          onClick={() => { setQuery(""); input.current?.focus(); }}><X className="h-4 w-4" /></button>}
-      </form>
-      {visible && (
-        <div id="navbar-search-results" className="navbar-search-results absolute inset-x-0 top-full z-50 mt-1 max-h-[min(60dvh,24rem)] overflow-y-auto rounded-2xl border p-2 shadow-xl">
-          {isLoading || isError || !matches.length ? (
-            <p role="status" className="px-3 py-4 text-sm text-brand-muted">
-              {isLoading ? "កំពុងផ្ទុក..." : isError ? "មិនអាចផ្ទុកហ្គេមបានទេ។ សូមព្យាយាមម្តងទៀត។" : "រកមិនឃើញហ្គេមទេ"}
-            </p>
-          ) : (
-            <ul aria-label="Search results">
-              {matches.map((game) => (
-                <li key={game.id}>
-                  <Link to={`/game/${game.slug}`} onClick={() => { setOpen(false); setQuery(""); }}
-                    className="flex items-center gap-3 rounded-xl p-2 transition-colors hover:bg-brand-violet/10 focus-visible:bg-brand-violet/10 focus-visible:outline-brand-violet">
-                    <img src={game.logoUrl} alt="" className="h-11 w-11 rounded-xl object-cover" />
-                    <span className="min-w-0 flex-1 break-words text-sm font-semibold text-brand-text">{game.name}</span>
-                    <span aria-hidden="true" className="text-brand-violet">&rarr;</span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
+              let firstMatch = matches[0];
+              if (!firstMatch) {
+                const refreshed = await refetch();
+                firstMatch = findGameMatches(refreshed.data?.games || [], term)[0];
+              }
+
+              if (firstMatch) {
+                navigate(`/game/${firstMatch.slug}`);
+                setOpen(false);
+                setQuery("");
+              }
+            }}
+          >
+            <button type="submit" aria-label="ស្វែងរកហ្គេម" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-brand-violet hover:bg-brand-violet/10">
+              <Search className="h-[18px] w-[18px]" aria-hidden="true" />
+            </button>
+            <input
+              ref={input}
+              type="search"
+              value={query}
+              aria-label="ស្វែងរកហ្គេម"
+              placeholder="ស្វែងរកហ្គេម..."
+              aria-controls={visible ? "navbar-search-results" : undefined}
+              className="min-w-0 flex-1 bg-transparent py-2 text-sm outline-none placeholder:font-kulen placeholder:text-brand-muted/70 [&::-webkit-search-cancel-button]:hidden"
+              onChange={(event) => setQuery(event.target.value)}
+            />
+            <button
+              type="button"
+              aria-label={query ? "Clear search" : "Close search"}
+              className="rounded-lg p-1.5 hover:bg-brand-violet/10 focus-visible:outline-brand-violet"
+              onClick={() => {
+                if (query) {
+                  setQuery("");
+                  input.current?.focus();
+                } else {
+                  setOpen(false);
+                }
+              }}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </form>
+
+          {visible && (
+            <div id="navbar-search-results" className="navbar-search-results mt-2 max-h-[min(60dvh,24rem)] overflow-y-auto rounded-2xl border p-2 shadow-xl">
+              {isLoading || isError || !matches.length ? (
+                <p role="status" className="px-3 py-4 text-sm text-brand-muted">
+                  {isLoading ? "កំពុងផ្ទុក..." : isError ? "មិនអាចផ្ទុកហ្គេមបានទេ។ សូមព្យាយាមម្តងទៀត។" : "រកមិនឃើញហ្គេមទេ"}
+                </p>
+              ) : (
+                <ul aria-label="Search results">
+                  {matches.map((game) => (
+                    <li key={game.id}>
+                      <Link
+                        to={`/game/${game.slug}`}
+                        onClick={() => { setOpen(false); setQuery(""); }}
+                        className="flex items-center gap-3 rounded-xl p-2 transition-colors hover:bg-brand-violet/10 focus-visible:bg-brand-violet/10 focus-visible:outline-brand-violet"
+                      >
+                        <img src={game.logoUrl} alt="" className="h-11 w-11 rounded-xl object-cover" />
+                        <span className="min-w-0 flex-1 break-words text-sm font-semibold text-brand-text">{game.name}</span>
+                        <span aria-hidden="true" className="text-brand-violet">&rarr;</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           )}
+          </section>
         </div>
       )}
     </div>

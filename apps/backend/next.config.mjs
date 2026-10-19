@@ -1,6 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Compress API responses when the backend is served with `next start`.
+  // Vercel also applies compression automatically at its edge network.
+  compress: true,
   async headers() {
     return [
       {

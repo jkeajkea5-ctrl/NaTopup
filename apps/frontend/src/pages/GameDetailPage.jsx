@@ -25,6 +25,47 @@ import { SuccessInvoiceModal } from "../components/SuccessInvoiceModal";
 import { TermsModal } from "../components/TermsModal";
 import { closeProviderCheckout, showProviderCloseButton } from "../services/paymentCheckout";
 
+const SAVED_PLAYER_FIELDS_KEY = "na-topup:saved-player-fields:v1";
+
+function getSavedPlayerFields(gameSlug, fields) {
+  if (!gameSlug || typeof window === "undefined") return {};
+
+  try {
+    const savedByGame = JSON.parse(window.localStorage.getItem(SAVED_PLAYER_FIELDS_KEY) || "{}");
+    const savedFields = savedByGame?.[gameSlug];
+    if (!savedFields || typeof savedFields !== "object" || Array.isArray(savedFields)) return {};
+
+    return (fields || []).reduce((restored, field) => {
+      const value = savedFields[field.fieldKey];
+      if (typeof value === "string" && value.length > 0) restored[field.fieldKey] = value;
+      return restored;
+    }, {});
+  } catch {
+    return {};
+  }
+}
+
+function savePlayerFields(gameSlug, fields, playerFields) {
+  if (!gameSlug || typeof window === "undefined") return;
+
+  const valuesToSave = (fields || []).reduce((saved, field) => {
+    const value = playerFields[field.fieldKey];
+    if (typeof value === "string" && value.trim().length > 0) saved[field.fieldKey] = value.trim();
+    return saved;
+  }, {});
+
+  if (Object.keys(valuesToSave).length === 0) return;
+
+  try {
+    const existing = JSON.parse(window.localStorage.getItem(SAVED_PLAYER_FIELDS_KEY) || "{}");
+    const savedByGame = existing && typeof existing === "object" && !Array.isArray(existing) ? existing : {};
+    savedByGame[gameSlug] = valuesToSave;
+    window.localStorage.setItem(SAVED_PLAYER_FIELDS_KEY, JSON.stringify(savedByGame));
+  } catch {
+    // Private browsing or a full storage quota should not block checkout.
+  }
+}
+
 let khqrPluginPromise;
 
 async function openProviderCheckout(checkoutUrl, onSuccess, onError, onClose) {
@@ -70,6 +111,7 @@ export const GameDetailPage = () => {
   const toastTimerRef = useRef(null);
   const toastSequenceRef = useRef(0);
   const verificationSequenceRef = useRef(0);
+  const restoredPlayerSlugRef = useRef(null);
 
   // Dynamic player fields state
   const [playerFields, setPlayerFields] = useState({});
@@ -101,6 +143,7 @@ export const GameDetailPage = () => {
   });
 
   useEffect(() => {
+    restoredPlayerSlugRef.current = null;
     setPackageToast(null);
     setPlayerFields({});
     setVerifiedPlayerName(null);
@@ -116,6 +159,13 @@ export const GameDetailPage = () => {
       verificationSequenceRef.current += 1;
     };
   }, [slug]);
+
+  useEffect(() => {
+    const loadedGame = data?.game;
+    if (!loadedGame?.slug || loadedGame.slug !== slug || restoredPlayerSlugRef.current === loadedGame.slug) return;
+    restoredPlayerSlugRef.current = loadedGame.slug;
+    setPlayerFields(getSavedPlayerFields(loadedGame.slug, loadedGame.fields));
+  }, [data?.game, slug]);
 
   const showSuccessfulInvoice = useCallback(async (publicOrderId, status) => {
     closeProviderCheckout();
@@ -410,6 +460,7 @@ export const GameDetailPage = () => {
         throw err;
       }
       setPaymentSession({ ...paymentRes, publicOrderId: orderRes.publicOrderId });
+      savePlayerFields(game.slug, game.fields, playerFields);
 
     } catch (err) {
       setSubmitError(err.message || "ការបញ្ជាទិញមានបញ្ហា។ សូមព្យាយាមម្តងទៀត!");
@@ -875,7 +926,7 @@ export const GameDetailPage = () => {
                     {group.title}
                   </h3>
                   {group.products.length > 0 ? (
-                    <div className="grid grid-cols-3 min-[560px]:grid-cols-4 xl:grid-cols-5 gap-1.5 sm:gap-3">
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 xl:grid-cols-4">
                       {group.products.map((prod) => (
                         <ProductCard
                           key={prod.id}
