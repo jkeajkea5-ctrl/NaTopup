@@ -114,6 +114,22 @@ async function main() {
       products: [],
     },
     {
+      slug: "free-fire-kh",
+      name: "Free Fire KH/SG",
+      category: "Battle Royale",
+      logoUrl: "/games/free-fire.png",
+      bannerUrl: "https://images.unsplash.com/photo-1563089145-599997674d42?w=1200&auto=format&fit=crop&q=80",
+      region: "Cambodia / Singapore",
+      instructions: "Enter your Free Fire Player ID. This catalog is for supported KH/SG accounts.",
+      deliveryTime: "Instant (1-2 mins)",
+      isPopular: true,
+      sortOrder: 3,
+      fields: [
+        { fieldKey: "playerId", fieldLabel: "Player ID", placeholder: "e.g. 987654321", fieldType: "text", isRequired: true, sortOrder: 1 },
+      ],
+      products: [],
+    },
+    {
       slug: "pubg-mobile",
       name: "PUBG Mobile",
       category: "Battle Royale",

@@ -55,6 +55,13 @@ test("Free Fire verification uses the supplier-specific SG/MY game code", () => 
   assert.equal((g2bulkAdapter as any).mapCatalogueGameCode("free-fire"), "free_fire");
 });
 
+test("Free Fire KH keeps its catalogue code and uses the supported SG player checker", () => {
+  assert.equal((vizoAdapter as any).mapGameCode("free-fire-kh"), "freefire_kh");
+  assert.equal((vizoAdapter as any).mapGameCode("freefire_kh"), "freefire_kh");
+  assert.equal((vizoAdapter as any).mapPlayerCheckGameCode("free-fire-kh"), "freefire_sg");
+  assert.equal((vizoAdapter as any).mapPlayerCheckGameCode("freefire_kh"), "freefire_sg");
+});
+
 test("Free Fire verification falls back to G2Bulk when Vizo is unavailable", async (t) => {
   t.mock.method(vizoAdapter, "checkPlayer", async () => ({
     valid: false,

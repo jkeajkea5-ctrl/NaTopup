@@ -59,6 +59,23 @@ export const FALLBACK_GAMES = [
     products: [],
   },
   {
+    id: "6aaf9a3f431e16926147c9b6",
+    slug: "free-fire-kh",
+    name: "Free Fire KH/SG",
+    category: "Battle Royale",
+    logoUrl: "/games/free-fire.png",
+    bannerUrl: "https://images.unsplash.com/photo-1563089145-599997674d42?w=1200&auto=format&fit=crop&q=80",
+    region: "Cambodia / Singapore",
+    instructions: "Enter your Free Fire Player ID. This catalog is for supported KH/SG accounts.",
+    deliveryTime: "Instant (1-2 mins)",
+    isPopular: true,
+    _count: { products: 0 },
+    fields: [
+      { id: "ffkh1", fieldKey: "playerId", fieldLabel: "Player ID", placeholder: "e.g. 987654321", fieldType: "text", isRequired: true },
+    ],
+    products: [],
+  },
+  {
     id: "6aaf9a46431e16926147c9cf",
     slug: "pubg-mobile",
     name: "PUBG Mobile",

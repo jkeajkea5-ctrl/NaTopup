@@ -43,7 +43,7 @@ const packageCustomerPrice = (product) => {
 };
 
 const threeCatalogGameSlugs = new Set([
-  "free-fire", "free-fire-khsgmy", "pubg-mobile", "honor-of-kings", "hok",
+  "free-fire", "free-fire-khsgmy", "free-fire-kh", "pubg-mobile", "honor-of-kings", "hok",
   "delta-force", "blood-strike",
 ]);
 

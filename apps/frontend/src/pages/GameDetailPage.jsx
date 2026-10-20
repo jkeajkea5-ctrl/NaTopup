@@ -334,7 +334,7 @@ export const GameDetailPage = () => {
     }
   };
 
-  const usesThreeCatalogs = ["free-fire", "free-fire-khsgmy", "pubg-mobile", "honor-of-kings", "hok", "delta-force", "blood-strike"].includes(game.slug);
+  const usesThreeCatalogs = ["free-fire", "free-fire-khsgmy", "free-fire-kh", "pubg-mobile", "honor-of-kings", "hok", "delta-force", "blood-strike"].includes(game.slug);
   const packageGroups = usesThreeCatalogs
     ? [
         { id: "pass", title: "Pass", products: products.filter((product) => product.isPopular) },

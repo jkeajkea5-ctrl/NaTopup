@@ -59,11 +59,20 @@ export class VizoAdapter implements ISupplierAdapter {
     const code = (gameCode || "").toLowerCase().trim();
     if (code === "mobile-legends" || code === "mlbb") return "mlbb";
     if (code === "free-fire" || code === "freefire" || code === "freefire_sgmy") return "freefire_sgmy";
+    if (code === "free-fire-kh" || code === "freefire_kh") return "freefire_kh";
     if (code === "pubg-mobile" || code === "pubgm" || code === "pubg_mobile") return "pubgm";
     if (code === "genshin-impact") return "genshin";
     if (code === "honor-of-kings" || code === "hok") return "hok";
     if (code === "valorant") return "valorant";
     return code.replace(/-/g, "_");
+  }
+
+  private mapPlayerCheckGameCode(gameCode: string): string {
+    const code = (gameCode || "").toLowerCase().trim();
+    // Vizo sells the KH catalogue as `freefire_kh`, but its player-check
+    // endpoint validates Cambodian accounts through the supported SG route.
+    if (code === "free-fire-kh" || code === "freefire_kh") return "freefire_sg";
+    return this.mapGameCode(gameCode);
   }
 
   private mapProductCode(supplierProductCode: string): string {
@@ -134,7 +143,7 @@ export class VizoAdapter implements ISupplierAdapter {
   async checkPlayer(input: PlayerCheckInput): Promise<PlayerCheckResult> {
     if (this.apiKey) {
       try {
-        const game = this.mapGameCode(input.gameCode);
+        const game = this.mapPlayerCheckGameCode(input.gameCode);
         const userId = input.fields.userId || input.fields.playerId || input.fields.characterId || input.fields.uid;
         const serverId = input.fields.zoneId || input.fields.serverId;
 

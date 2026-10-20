@@ -21,6 +21,7 @@
     "catalogue:mlbb-best-selling": "tsx scripts/update-mlbb-best-selling.ts",
     "catalogue:mlbb-images": "tsx scripts/update-mlbb-images.ts",
     "catalogue:freefire-my": "tsx scripts/replace-freefire-my.ts",
+    "catalogue:freefire-kh": "tsx scripts/import-freefire-kh.ts",
     "catalogue:hok": "tsx scripts/replace-honor-of-kings.ts",
     "catalogue:hok-images": "tsx scripts/update-hok-images.ts",
     "catalogue:pubg": "tsx scripts/replace-pubg-global.ts",

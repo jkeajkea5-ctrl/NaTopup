@@ -7,6 +7,7 @@ import { fetchGames } from "../services/api";
 const GAME_SEARCH_ALIASES = {
   "mobile-legends": ["ml", "mlbb", "mobile legend", "bang bang"],
   "free-fire": ["ff", "freefire", "free fire my", "ff my", "sgmy"],
+  "free-fire-kh": ["ff kh", "freefire kh", "free fire cambodia", "free fire kh sg"],
   "pubg-mobile": ["pubg", "pubgm", "uc"],
   "honor-of-kings": ["hok", "honour of kings", "honor kings"],
   valorant: ["valo", "valorant kh", "valorant cambodia"],

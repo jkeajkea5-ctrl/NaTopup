@@ -6,8 +6,19 @@ test("classifies FreeFire MY products into Pass, Normal, and Other", () => {
   assert.equal(getFreeFireCategory("Weekly Lit x3"), "pass");
   assert.equal(getFreeFireCategory("Monthly Membership"), "pass");
   assert.equal(getFreeFireCategory("520"), "normal");
+  assert.equal(getFreeFireCategory("100 Diamonds"), "normal");
   assert.equal(getFreeFireCategory("Level Up Package - Level 10"), "other");
   assert.equal(getFreeFireCategory("3 in 1"), "other");
+});
+
+test("prepares KH diamond labels without duplicating the unit", () => {
+  const [entry] = prepareFreeFireCatalogue([
+    { product_code: "freefire_kh_100_diamonds", name: "100 Diamonds", sell_price: 0.87, status: "active" },
+  ], "Free Fire KH/SG");
+
+  assert.equal(entry.product.name, "100 Diamonds");
+  assert.equal(entry.product.amount, "100");
+  assert.equal(entry.product.description, "Free Fire KH/SG | normal");
 });
 
 test("prepares Vizo codes, prices, and storefront category flags", () => {

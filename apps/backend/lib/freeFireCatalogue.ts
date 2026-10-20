@@ -14,13 +14,13 @@ export function getFreeFireIconUrl(name: string, category = getFreeFireCategory(
 export function getFreeFireCategory(name: string): FreeFireCategory {
   const normalized = name.toLowerCase();
   if (normalized.includes("weekly") || normalized.includes("monthly")) return "pass";
-  if (/^\d+$/.test(normalized.trim())) return "normal";
+  if (/^\d+(?:\s+diamonds?)?$/.test(normalized.trim())) return "normal";
   return "other";
 }
 
-export function prepareFreeFireCatalogue(items: unknown) {
+export function prepareFreeFireCatalogue(items: unknown, catalogName = "FreeFire MY") {
   if (!Array.isArray(items) || items.length === 0) {
-    throw new Error("Vizo FreeFire MY catalogue is empty; existing packages were not changed.");
+    throw new Error(`Vizo ${catalogName} catalogue is empty; existing packages were not changed.`);
   }
 
   const codes = new Set<string>();
@@ -37,7 +37,7 @@ export function prepareFreeFireCatalogue(items: unknown) {
 
     const catalogCategory = getFreeFireCategory(name);
     const markupValue = Math.max(0.05, Math.round(supplierCost * 0.1 * 100) / 100);
-    const displayName = catalogCategory === "normal" ? `${name} Diamonds` : name;
+    const displayName = catalogCategory === "normal" && !/diamonds?/i.test(name) ? `${name} Diamonds` : name;
     return {
       catalogCategory,
       supplierProductCode: productCode,
@@ -46,8 +46,8 @@ export function prepareFreeFireCatalogue(items: unknown) {
         sku: `VIZO_${productCode.toUpperCase()}`,
         name: displayName,
         iconUrl: getFreeFireIconUrl(name, catalogCategory),
-        description: `FreeFire MY | ${catalogCategory}`,
-        amount: catalogCategory === "normal" ? name : "1 Package",
+        description: `${catalogName} | ${catalogCategory}`,
+        amount: catalogCategory === "normal" ? name.replace(/\s+diamonds?$/i, "") : "1 Package",
         isPopular: catalogCategory === "pass",
         isFeatured: catalogCategory === "other",
         isActive: true,
