@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma, safeDbQuery } from "../../../lib/prisma";
 import { FALLBACK_GAMES, FALLBACK_PROMOTIONS } from "../../../lib/fallbackData";
+import { toPublicGameSummary } from "../../../lib/publicCatalog";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +41,7 @@ export async function GET() {
   return NextResponse.json({
     success: true,
     data: {
-      games: result.games,
+      games: result.games.map(toPublicGameSummary),
       promotions: result.promotions,
     },
   });

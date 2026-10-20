@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma, safeDbQuery } from "../../../../lib/prisma";
 import { config } from "../../../../lib/config";
 import { FALLBACK_GAMES } from "../../../../lib/fallbackData";
+import { toPublicProducts } from "../../../../lib/publicCatalog";
 import { g2bulkAdapter } from "../../../../suppliers/g2bulk/client";
 
 const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
@@ -199,7 +200,7 @@ export async function GET(
           deliveryTime: "Instant (30 seconds)",
           fields: fallbackValSg.fields,
         },
-        products: liveProducts && liveProducts.length > 0 ? liveProducts : fallbackValSg.products,
+        products: toPublicProducts(liveProducts && liveProducts.length > 0 ? liveProducts : fallbackValSg.products),
       },
     });
   }
@@ -231,7 +232,7 @@ export async function GET(
           deliveryTime: fallback.deliveryTime,
           fields: fallback.fields,
         },
-        products: fallback.products,
+        products: toPublicProducts(fallback.products),
       },
     });
   }

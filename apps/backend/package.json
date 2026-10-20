@@ -14,7 +14,7 @@
     "admin:invite": "tsx scripts/create-admin-invite.ts",
     "cron:setup": "tsx scripts/setup-cron-job-org.ts",
     "test:mongo": "tsx scripts/test-mongo.ts",
-    "test": "node --test tests/**/*.test.js || tsx --test tests/**/*.test.ts",
+    "test": "tsx --test tests/*.test.ts",
     "catalogue:mlbb": "tsx scripts/replace-mlbb-global.ts",
     "catalogue:mlbb-ph": "tsx scripts/import-mlbb-philippines.ts",
     "catalogue:mlbb-id": "tsx scripts/import-mlbb-indonesia.ts",
