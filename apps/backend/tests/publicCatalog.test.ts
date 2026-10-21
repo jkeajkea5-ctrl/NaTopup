@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { toPublicGameSummary, toPublicProduct } from "../lib/publicCatalog";
 
-test("public products omit supplier pricing and routing metadata", () => {
+test("public products omit internal SKUs, supplier pricing, and routing metadata", () => {
   const product = toPublicProduct({
     id: "product-1",
     sku: "PUBLIC-SKU",
@@ -19,6 +19,7 @@ test("public products omit supplier pricing and routing metadata", () => {
 
   assert.equal(product.id, "product-1");
   assert.equal(product.finalPriceUsd, 1.25);
+  assert.equal("sku" in product, false);
   assert.equal("supplierCost" in product, false);
   assert.equal("supplier" in product, false);
   assert.equal("supplierGameCode" in product, false);

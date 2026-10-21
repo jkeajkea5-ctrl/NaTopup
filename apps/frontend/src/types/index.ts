@@ -26,7 +26,6 @@ export interface GameField {
 
 export interface ProductItem {
   id: string;
-  sku: string;
   name: string;
   description?: string;
   amount: string;

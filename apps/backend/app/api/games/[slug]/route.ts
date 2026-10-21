@@ -136,7 +136,6 @@ export async function GET(
 
       return {
         id: p.id,
-        sku: p.sku,
         name: p.name,
         description: p.description,
         customBadge: p.customBadge,

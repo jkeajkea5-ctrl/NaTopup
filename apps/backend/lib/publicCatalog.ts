@@ -1,6 +1,5 @@
 const PUBLIC_PRODUCT_KEYS = [
   "id",
-  "sku",
   "name",
   "description",
   "amount",
