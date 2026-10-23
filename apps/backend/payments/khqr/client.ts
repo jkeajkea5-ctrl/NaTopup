@@ -70,6 +70,10 @@ export function isWebhookTimestampFresh(
 }
 
 export class KhqrClient {
+  private khqrpayEnabled: boolean;
+  private khqrpayBaseUrl: string;
+  private khqrpayApiKey: string;
+  private khqrpayWebhookSecret: string;
   private khqrccEnabled: boolean;
   private khqrccBaseUrl: string;
   private khqrccCheckoutUrl: string;
@@ -81,6 +85,10 @@ export class KhqrClient {
   private khqrWebhookSecret: string;
 
   constructor() {
+    this.khqrpayEnabled = config.khqrpay.enabled;
+    this.khqrpayBaseUrl = config.khqrpay.baseUrl.replace(/\/$/, "");
+    this.khqrpayApiKey = config.khqrpay.apiKey;
+    this.khqrpayWebhookSecret = config.khqrpay.webhookSecret;
     this.khqrccEnabled = config.khqrcc.enabled;
     this.khqrccBaseUrl = config.khqrcc.baseUrl.replace(/\/$/, "");
     this.khqrccCheckoutUrl = config.khqrcc.checkoutUrl.replace(/\/$/, "");
@@ -96,25 +104,19 @@ export class KhqrClient {
    * Build AnajakPay's managed checkout URL after the direct QR session exists.
    * The checkout parameters are signed here so the browser never receives a key.
    */
-  getCheckoutUrl(orderReference: string, amount: number): string {
-    if (!this.khqrccEnabled || !this.khqrccProfileId || !this.khqrccSecretKey) {
-      throw new Error("AnajakPay Direct QR is not configured");
+  getCheckoutUrl(orderReference: string, amount: number, provider = "KHQRPAY_ABA_V2"): string {
+    if (provider === "KHQRPAY_ABA_V2") {
+      if (!this.khqrpayEnabled || !this.khqrpayApiKey) throw new Error("ABA KHQR v2 is not configured");
+      return `${this.khqrpayBaseUrl}/pay/${encodeURIComponent(orderReference)}`;
     }
-
+    if (!this.khqrccEnabled || !this.khqrccProfileId || !this.khqrccSecretKey) throw new Error("ABA Anajak is not configured");
     const amountStr = amount.toFixed(2);
     const successUrlObject = new URL("/api/payments/anajakpay/success", config.backendUrl);
     successUrlObject.searchParams.set("orderId", orderReference);
     const successUrl = successUrlObject.toString();
     const remark = `Order ${orderReference}`;
     const hash = sha1(this.khqrccSecretKey + orderReference + amountStr + successUrl + remark);
-
-    return `${this.khqrccCheckoutUrl}/${this.khqrccProfileId}?${new URLSearchParams({
-      transaction_id: orderReference,
-      amount: amountStr,
-      success_url: successUrl,
-      remark,
-      hash,
-    }).toString()}`;
+    return `${this.khqrccCheckoutUrl}/${this.khqrccProfileId}?${new URLSearchParams({ transaction_id: orderReference, amount: amountStr, success_url: successUrl, remark, hash }).toString()}`;
   }
 
   /**
@@ -124,6 +126,48 @@ export class KhqrClient {
    * a provider transaction and therefore cannot be reconciled reliably.
    */
   async generatePayment(input: KhqrGenerateInput): Promise<KhqrGenerateOutput> {
+    if ((input.provider || "KHQRPAY_ABA_V2") === "KHQRPAY_ABA_V2") {
+      if (!this.khqrpayApiKey) throw new Error("KHQR PAY v2 API key is not configured");
+      const webhook = new URL("/api/webhooks/khqr", config.backendUrl);
+      if (config.isProduction && webhook.protocol !== "https:") {
+        throw new Error("BACKEND_URL must be public HTTPS for KHQR PAY v2 webhooks");
+      }
+      let response: Response;
+      try {
+        response = await fetch(`${this.khqrpayBaseUrl}/api/v1/aba/create`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${this.khqrpayApiKey}`,
+            "Content-Type": "application/json",
+            "Idempotency-Key": input.orderReference,
+          },
+          body: JSON.stringify({ amount: Number(input.amount.toFixed(2)), webhook: webhook.toString() }),
+        });
+      } catch (err: any) {
+        logger.error("KHQR PAY v2 ABA creation request failed", { orderId: input.orderReference, error: err.message });
+        throw new Error("Unable to contact the payment provider. Please try again.");
+      }
+      let result: any;
+      try { result = await response.json(); } catch { throw new Error("The payment provider returned invalid JSON."); }
+      if (!response.ok || result?.ok !== true || !result?.id || !result?.qr) {
+        logger.error("KHQR PAY v2 ABA creation rejected", { orderId: input.orderReference, httpStatus: response.status, error: result?.error });
+        throw new Error(result?.error_text || result?.msg || "Payment session could not be created.");
+      }
+      const expiresAt = result.expires_at ? new Date(result.expires_at) : new Date(Date.now() + 10 * 60 * 1000);
+      if (Number.isNaN(expiresAt.getTime())) throw new Error("The payment provider returned an invalid expiry time.");
+      return {
+        qrString: result.qr,
+        qrImageUrl: result.qr_image,
+        merchantName: result.merchant_name,
+        abaDeepLink: result.aba_deeplink,
+        checkoutUrl: result.checkout_url || `${this.khqrpayBaseUrl}/pay/${result.id}`,
+        md5: result.md5 || "",
+        amount: Number(result.amount ?? input.amount),
+        currency: "USD",
+        orderReference: String(result.id),
+        expiresAt,
+      };
+    }
     const expirationMinutes = input.expirationMinutes || config.business.paymentExpiryMinutes;
     const expiresAt = new Date(Date.now() + expirationMinutes * 60 * 1000);
 
@@ -206,7 +250,7 @@ export class KhqrClient {
     return {
       qrString: result.data.qr,
       qrImageUrl,
-      checkoutUrl: this.getCheckoutUrl(txId, input.amount),
+      checkoutUrl: this.getCheckoutUrl(txId, input.amount, "ANJAKPAY"),
       md5: result.data.md5 || "",
       amount: input.amount,
       currency: input.currency,
@@ -222,6 +266,33 @@ export class KhqrClient {
    */
   async verifyPayment(input: KhqrVerifyInput): Promise<KhqrVerifyOutput> {
     const txId = input.transactionId || input.orderReference;
+
+    if (input.provider === "KHQRPAY_ABA_V2") {
+      if (!this.khqrpayApiKey) return { paid: false, status: "PENDING", rawResponse: { message: "KHQR PAY v2 API key is not configured" } };
+      try {
+        const response = await fetch(`${this.khqrpayBaseUrl}/api/v1/payment?id=${encodeURIComponent(txId)}`, {
+          cache: "no-store",
+          headers: { Authorization: `Bearer ${this.khqrpayApiKey}`, "Cache-Control": "no-cache" },
+        });
+        const result: any = await response.json();
+        const payment = result?.payment;
+        if (!response.ok || result?.ok !== true || payment?.type !== "aba") {
+          return { paid: false, status: "PENDING", rawResponse: result };
+        }
+        const providerStatus = String(payment?.status || "Pending").toUpperCase();
+        return {
+          paid: providerStatus === "PAID",
+          status: providerStatus === "PAID" ? "PAID" : providerStatus === "EXPIRED" ? "EXPIRED" : providerStatus === "FAILED" || providerStatus === "UNDERPAID" ? "FAILED" : "PENDING",
+          transactionId: payment?.id ? String(payment.id) : txId,
+          paidAmount: Number(payment?.amount),
+          currency: "USD",
+          rawResponse: result,
+        };
+      } catch (err: any) {
+        logger.error("KHQR PAY v2 payment check failed", { orderId: input.orderReference, error: err.message });
+        return { paid: false, status: "PENDING", rawResponse: { message: "KHQR PAY v2 payment check failed" } };
+      }
+    }
 
     // 1. Check with AnajakPay / KHQRcc Check Transaction V2 API
     if (this.khqrccEnabled && this.khqrccProfileId && this.khqrccSecretKey) {
@@ -386,10 +457,25 @@ export class KhqrClient {
       // not JSON
     }
 
-    // Legacy KHQR webhooks use a HMAC header. Reject everything else rather
-    // than treating an unsigned callback as a completed payment.
+    // KHQR PAY sends X-Webhook-Signature as `sha256=<hex>`; its dedicated
+    // ABA V2 secret must never be shared with another provider.
+    try {
+      const payload = JSON.parse(payloadString);
+      if (payload?.event === "payment.update" && payload?.type === "aba") {
+        const digest = signature?.trim().replace(/^sha256=/i, "") || "";
+        return !!this.khqrpayWebhookSecret && verifyHmacSha256(payloadString, digest, this.khqrpayWebhookSecret);
+      }
+    } catch {
+      // The JSON validation performed by the route will reject malformed input.
+    }
+
+    // Older KHQR integrations use a separate HMAC secret.
+    // integrations may send only the hexadecimal digest. Both sign the exact
+    // raw request body with HMAC-SHA256. Reject everything else rather than
+    // treating an unsigned callback as a completed payment.
     if (this.khqrWebhookSecret && this.khqrWebhookSecret.trim().length > 0 && signature) {
-      return verifyHmacSha256(payloadString, signature, this.khqrWebhookSecret);
+      const digest = signature.trim().replace(/^sha256=/i, "");
+      return verifyHmacSha256(payloadString, digest, this.khqrWebhookSecret);
     }
 
     return false;

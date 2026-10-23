@@ -8,8 +8,9 @@ export async function POST(request: Request) {
       request.headers.get("x-khqr-signature") ||
       request.headers.get("x-signature") ||
       request.headers.get("authorization");
+    const deliveryId = request.headers.get("x-webhook-delivery");
 
-    const result = await webhookService.handleKhqrWebhook(rawBody, signature);
+    const result = await webhookService.handleKhqrWebhook(rawBody, signature, deliveryId);
 
     return NextResponse.json(
       { success: result.success, message: result.message },

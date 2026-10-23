@@ -70,6 +70,14 @@ export const config = {
     bakongAccountId: process.env.KHQR_BAKONG_ACCOUNT_ID || "natopup@abaa",
   },
 
+  // ABA KHQR v2 is the only supported payment provider.
+  khqrpay: {
+    enabled: paymentEnv("KHQR_PAY_ABA_ENABLED") !== "false",
+    baseUrl: paymentEnv("KHQR_PAY_ABA_BASE_URL") || "https://khqrpay.site",
+    apiKey: paymentEnv("KHQR_PAY_ABA_API_KEY") || "",
+    webhookSecret: paymentEnv("KHQR_PAY_ABA_WEBHOOK_SECRET") || "",
+  },
+
   khqrcc: {
     enabled: paymentEnv("KHQRCC_ENABLED") === "true",
     baseUrl: paymentEnv("KHQRCC_BASE_URL") || "https://anajakpay.com",

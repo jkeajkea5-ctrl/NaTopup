@@ -70,6 +70,12 @@ let khqrPluginPromise;
 
 async function openProviderCheckout(checkoutUrl, onSuccess, onError, onClose) {
   if (!checkoutUrl) throw new Error("Payment checkout is unavailable. Please try again.");
+  // KHQR PAY v2 provides its own secure hosted KHQR card. It is not compatible
+  // with AnajakPay's browser plugin, so leave this page for that checkout.
+  if (new URL(checkoutUrl, window.location.origin).hostname === "khqrpay.site") {
+    window.location.assign(checkoutUrl);
+    return;
+  }
   if (!window.KhqrPayway?.openCheckout) {
     if (!khqrPluginPromise) {
       khqrPluginPromise = new Promise((resolve, reject) => {
@@ -121,6 +127,7 @@ export const GameDetailPage = () => {
 
   // Selected package
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [paymentProvider, setPaymentProvider] = useState("KHQRPAY_ABA_V2");
 
   // Top-right toast alert when package selected (Matching LisaTopup screenshot)
   const [packageToast, setPackageToast] = useState(null);
@@ -134,6 +141,7 @@ export const GameDetailPage = () => {
   const [paymentErrorPopup, setPaymentErrorPopup] = useState(null);
   const [paymentNotice, setPaymentNotice] = useState(null);
   const [paymentSession, setPaymentSession] = useState(null);
+  const [paymentSecondsLeft, setPaymentSecondsLeft] = useState(0);
   const [successInvoice, setSuccessInvoice] = useState(null);
 
   const { data, isLoading, error } = useQuery({
@@ -243,6 +251,14 @@ export const GameDetailPage = () => {
       clearInterval(timer);
     };
   }, [paymentSession, showSuccessfulInvoice]);
+
+  useEffect(() => {
+    if (!paymentSession?.expiresAt) return;
+    const update = () => setPaymentSecondsLeft(Math.max(0, Math.ceil((new Date(paymentSession.expiresAt).getTime() - Date.now()) / 1000)));
+    update();
+    const timer = window.setInterval(update, 1000);
+    return () => window.clearInterval(timer);
+  }, [paymentSession]);
 
   // Always show the top when opening new game page
   useEffect(() => {
@@ -429,14 +445,19 @@ export const GameDetailPage = () => {
 
       let paymentRes;
       try {
-        paymentRes = await initKhqrPayment(orderRes.publicOrderId);
+        paymentRes = await initKhqrPayment(orderRes.publicOrderId, paymentProvider);
       } catch (err) {
         showPaymentError(err.message || "Unable to generate the payment QR code. Please try again.");
         throw err;
       }
 
-      try {
-        await openProviderCheckout(
+      if (paymentProvider === "KHQRPAY_ABA_V2") {
+        // Display the KHQR PAY QR immediately in our checkout popup. The
+        // modal polls the order status while the customer pays.
+        setPaymentSession({ ...paymentRes, publicOrderId: orderRes.publicOrderId });
+      } else {
+        try {
+          await openProviderCheckout(
           paymentRes.checkoutUrl,
           async () => {
             closeProviderCheckout();
@@ -454,12 +475,13 @@ export const GameDetailPage = () => {
             setPaymentSession(null);
             setPaymentNotice(null);
           }
-        );
-      } catch (err) {
-        showPaymentError(err.message || "Unable to open secure payment. Please try again.");
-        throw err;
+          );
+        } catch (err) {
+          showPaymentError(err.message || "Unable to open secure payment. Please try again.");
+          throw err;
+        }
+        setPaymentSession({ ...paymentRes, publicOrderId: orderRes.publicOrderId });
       }
-      setPaymentSession({ ...paymentRes, publicOrderId: orderRes.publicOrderId });
       savePlayerFields(game.slug, game.fields, playerFields);
 
     } catch (err) {
@@ -479,6 +501,28 @@ export const GameDetailPage = () => {
           navigate("/");
         }}
       />
+      {!!paymentSession && paymentProvider === "KHQRPAY_ABA_V2" && (
+        <div className="fixed inset-0 z-[10000] flex items-end justify-center bg-slate-950/45 sm:items-center sm:p-4" role="presentation">
+          <section role="dialog" aria-modal="true" aria-label="ABA KHQR v2 payment" className="w-full max-w-md overflow-hidden bg-white shadow-2xl sm:rounded-2xl">
+            <header className="relative flex h-12 items-center justify-center bg-[#ed1c24] text-white">
+              <span className="font-heading text-lg font-black tracking-wide">KHQR</span>
+              <button type="button" onClick={() => { setPaymentSession(null); setPaymentNotice(null); }} aria-label="Close payment" className="absolute right-4 flex h-8 w-8 items-center justify-center rounded-full text-white/90 hover:bg-white/15"><X className="h-5 w-5" /></button>
+            </header>
+            <div className="flex items-center justify-center gap-2 bg-[#101814] px-4 py-2 text-xs font-bold tracking-wide text-[#d7ff46]"><span className="h-2 w-2 rounded-full bg-[#d7ff46]" />NA TOPUP SECURE CHECKOUT</div>
+            <div className="p-5 pb-7">
+              <div className="flex items-start justify-between border-b border-slate-100 pb-4">
+                <div><p className="text-xs font-bold uppercase tracking-wide text-slate-500">{paymentSession.merchantName || "Payment Recipient"}</p><p className="mt-1 text-2xl font-bold text-slate-800">${Number(paymentSession.amount || 0).toFixed(2)} <span className="text-xs font-semibold text-slate-500">USD</span></p></div>
+                <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-500">⏱ {String(Math.floor(paymentSecondsLeft / 60)).padStart(2, "0")}:{String(paymentSecondsLeft % 60).padStart(2, "0")}</span>
+              </div>
+              <div className="border-t-2 border-dotted border-slate-200 pt-6"><div className="mx-auto mt-1 flex aspect-square w-full max-w-[265px] items-center justify-center bg-white p-1">
+                {paymentSession.qrImageUrl ? <img src={paymentSession.qrImageUrl} alt="ABA KHQR v2 payment QR code" className="h-full w-full object-contain" /> : <p className="text-sm text-slate-500">Loading payment QR…</p>}
+              </div></div>
+              <p className="mt-6 text-center text-sm font-semibold text-slate-600">Scan with ABA Mobile or another banking app</p>
+              <p className="mt-1 text-center text-xs text-slate-400">Payment is confirmed automatically.</p>
+            </div>
+          </section>
+        </div>
+      )}
 
       {paymentErrorPopup && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm" role="presentation">
@@ -689,8 +733,12 @@ export const GameDetailPage = () => {
                 )}
               </div>
 
-              {/* Payment Method Matching User's ABA KHQR Design */}
-              <div className="game-detail-payment flex items-center justify-between p-3.5 rounded-2xl border-2 shadow-xs">
+              {/* Choose the payment provider before creating the payment. */}
+              <div className="space-y-2">
+              <button type="button" disabled aria-disabled="true" className="game-detail-payment flex w-full cursor-not-allowed items-center justify-between p-3.5 rounded-2xl border-2 shadow-xs opacity-45">
+                <div className="flex items-center gap-3"><img src="/aba-khqr.svg" alt="ABA KHQR" className="w-10 h-10 rounded-xl object-contain shadow-xs flex-shrink-0 bg-white" /><div><h4 className="font-heading font-bold text-sm text-[#005E7B] leading-tight">ABA KHQR</h4><p className="text-[11px] text-[#2E79A6] font-medium leading-tight mt-0.5">Not available yet</p></div></div>
+              </button>
+              <button type="button" onClick={() => setPaymentProvider("KHQRPAY_ABA_V2")} className={`game-detail-payment flex w-full items-center justify-between p-3.5 rounded-2xl border-2 shadow-xs ${paymentProvider === "KHQRPAY_ABA_V2" ? "ring-2 ring-brand-violet" : "opacity-75"}`}>
                 <div className="flex items-center gap-3">
                   <img
                     src="/aba-khqr.svg"
@@ -699,16 +747,19 @@ export const GameDetailPage = () => {
                   />
                   <div>
                     <h4 className="font-heading font-bold text-sm text-[#005E7B] leading-tight">
-                      ABA KHQR
+                      ABA KHQR v2
                     </h4>
                     <p className="text-[11px] text-[#2E79A6] font-medium leading-tight mt-0.5">
-                      Scan to pay with any banking app
+                      Powered by KHQR PAY — scan with any banking app
                     </p>
                   </div>
                 </div>
-                <div className="w-5 h-5 rounded-full bg-[#005E7B] text-white flex items-center justify-center shadow-xs flex-shrink-0">
-                  <Check className="w-3.5 h-3.5 stroke-[3]" />
-                </div>
+                {paymentProvider === "KHQRPAY_ABA_V2" && (
+                  <div className="w-5 h-5 rounded-full bg-[#005E7B] text-white flex items-center justify-center shadow-xs flex-shrink-0">
+                    <Check className="w-3.5 h-3.5 stroke-[3]" />
+                  </div>
+                )}
+              </button>
               </div>
 
               {/* Total Price Breakdown */}

@@ -62,8 +62,6 @@ export const KhqrModal = ({
       qrPayload || ""
     )}&ecc=M&margin=10`;
 
-  // Bakong Mobile App Deeplink
-  const bakongDeeplink = `bakong://qr?data=${encodeURIComponent(qrPayload || "")}`;
   const abaMobileDeeplink = `abamobilebank://ababank.com?type=payway&qrcode=${encodeURIComponent(qrPayload || "")}`;
 
   // Use the server deadline so background tabs do not extend QR validity.
@@ -359,7 +357,8 @@ export const KhqrModal = ({
 
               {/* Secondary Deeplink: Open in Bakong App */}
               <a
-                href={bakongDeeplink}
+                href="#"
+                hidden
                 className="w-full py-2.5 px-4 rounded-xl text-xs sm:text-sm bg-[#E11D2A] hover:bg-[#C91521] active:scale-98 text-white shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Smartphone className="w-4 h-4" />

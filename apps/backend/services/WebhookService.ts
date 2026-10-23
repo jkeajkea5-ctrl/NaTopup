@@ -58,7 +58,8 @@ export class WebhookService {
    */
   async handleKhqrWebhook(
     rawBody: string,
-    signature: string | null | undefined
+    signature: string | null | undefined,
+    deliveryId?: string | null
   ): Promise<{ success: boolean; message: string; statusCode: number }> {
     const eventHash = sha256(rawBody);
 
@@ -95,7 +96,7 @@ export class WebhookService {
         eventRecord = await prisma.webhookEvent.create({
           data: {
             provider: "KHQR",
-            eventId: payload.transactionId || payload.transaction_id || `KHQR-${Date.now()}`,
+            eventId: deliveryId || payload.transactionId || payload.transaction_id || payload.id || `KHQR-${Date.now()}`,
             eventHash,
             eventType: "PAYMENT_CONFIRMED",
             payload: rawBody,
@@ -114,11 +115,12 @@ export class WebhookService {
     }
 
     // 3. Extract & Match Payment
-    // For AnajakPay / KHQRcc, transaction_id is the transaction_id we sent
-    // while creating the QR, i.e. our public order ID.
+    // KHQR PAY v2 uses its own numeric payment id. AnajakPay/KHQRcc instead
+    // returns the merchant transaction ID that we supplied.
+    const providerPaymentId = payload.id || payload.transactionId || payload.transaction_id;
     const orderReference =
-      payload.orderReference || payload.order_reference || payload.orderId || payload.transaction_id;
-    const transactionId = payload.transactionId || payload.transaction_id;
+      payload.orderReference || payload.order_reference || payload.orderId || payload.transaction_id || providerPaymentId;
+    const transactionId = providerPaymentId;
     const amount = Number.parseFloat(payload.amount);
     const currency = payload.currency;
 
@@ -147,10 +149,17 @@ export class WebhookService {
       return { success: false, message: "Missing order reference", statusCode: 400 };
     }
 
-    const order = await prisma.order.findUnique({
-      where: { publicOrderId: orderReference },
+    let order = await prisma.order.findUnique({
+      where: { publicOrderId: String(orderReference) },
       include: { payment: true },
     });
+    if (!order && providerPaymentId) {
+      const payment = await prisma.payment.findUnique({
+        where: { providerTransactionId: String(providerPaymentId) },
+        include: { order: { include: { payment: true } } },
+      });
+      order = payment?.order || null;
+    }
 
     if (!order || !order.payment) {
       logger.error("Order or payment record not found for webhook", {
@@ -200,6 +209,7 @@ export class WebhookService {
       md5: order.payment.md5Hash || undefined,
       orderReference: order.publicOrderId,
       transactionId: order.payment.providerTransactionId || order.publicOrderId,
+      provider: order.payment.provider,
     });
     if (!verifiedPaymentMatches(verification, order.payment.amount, order.payment.currency)) {
       const errorMsg = "Authenticated payment confirmation is pending or does not match the order";

@@ -74,6 +74,7 @@ export async function GET(
             md5: order.payment?.md5Hash || undefined,
             orderReference: publicId,
             transactionId: order.payment?.providerTransactionId,
+            provider: order.payment?.provider,
           });
 
           if (

@@ -6,11 +6,14 @@ export interface KhqrGenerateInput {
   currency: "USD" | "KHR";
   orderReference: string;
   expirationMinutes?: number;
+  provider?: "ANJAKPAY" | "KHQRPAY_ABA_V2";
 }
 
 export interface KhqrGenerateOutput {
   qrString: string;
   qrImageUrl?: string;
+  merchantName?: string;
+  abaDeepLink?: string;
   checkoutUrl?: string;
   md5: string;
   amount: number;
@@ -23,6 +26,7 @@ export interface KhqrVerifyInput {
   md5?: string;
   orderReference: string;
   transactionId?: string;
+  provider?: string;
 }
 
 export interface KhqrVerifyOutput {

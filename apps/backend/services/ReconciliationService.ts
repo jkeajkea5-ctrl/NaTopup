@@ -62,6 +62,7 @@ export class ReconciliationService {
           md5: payment.md5Hash || undefined,
           orderReference: payment.order.publicOrderId,
           transactionId: payment.providerTransactionId || undefined,
+          provider: payment.provider,
         });
 
         if (verifyResult.paid) {

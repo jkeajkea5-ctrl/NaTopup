@@ -7,7 +7,15 @@ export async function POST(
 ) {
   try {
     const { publicId } = params;
-    const payment = await paymentService.getOrCreatePayment(publicId);
+    const body = await request.json().catch(() => ({}));
+    if (body?.provider === "ANJAKPAY") {
+      return NextResponse.json(
+        { success: false, error: { code: "PAYMENT_METHOD_UNAVAILABLE", message: "ABA KHQR is not available yet. Please use ABA KHQR v2." } },
+        { status: 400 }
+      );
+    }
+    const provider = "KHQRPAY_ABA_V2";
+    const payment = await paymentService.getOrCreatePayment(publicId, provider);
 
     return NextResponse.json({
       success: true,

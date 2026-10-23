@@ -9,7 +9,7 @@ export class PaymentService {
   /**
    * Generates or retrieves an existing valid KHQR payment session for an order.
    */
-  async getOrCreatePayment(publicOrderId: string) {
+  async getOrCreatePayment(publicOrderId: string, paymentProvider: "ANJAKPAY" | "KHQRPAY_ABA_V2" = "KHQRPAY_ABA_V2") {
     let order: any = await safeDbQuery(
       () =>
         prisma.order.findUnique({
@@ -52,7 +52,7 @@ export class PaymentService {
         order.payment = repairedPayment;
       }
       const remainingSeconds = Math.max(0, Math.floor((order.payment.qrExpiresAt.getTime() - now.getTime()) / 1000));
-      const txId = order.publicOrderId;
+      const txId = order.payment.providerTransactionId || order.publicOrderId;
       return {
         paymentId: order.payment.id,
         orderId: order.id,
@@ -60,8 +60,10 @@ export class PaymentService {
         qrString: order.payment.qrPayload,
         qrImageUrl:
           order.payment.qrImageUrl ||
-          `${config.khqrcc.baseUrl}/api/khqrcc/qr/${txId}`,
-        checkoutUrl: khqrClient.getCheckoutUrl(txId, order.payment.amount),
+          (config.khqrpay.enabled ? undefined : `${config.khqrcc.baseUrl}/api/khqrcc/qr/${txId}`),
+        checkoutUrl: khqrClient.getCheckoutUrl(txId, order.payment.amount, order.payment.provider),
+        merchantName: undefined,
+        abaDeepLink: undefined,
         md5: order.payment.md5Hash || "",
         amount: order.payment.amount,
         currency: order.payment.currency,
@@ -81,6 +83,7 @@ export class PaymentService {
       currency: "USD",
       orderReference: order.publicOrderId,
       expirationMinutes: config.business.paymentExpiryMinutes,
+      provider: paymentProvider,
     });
 
     // Persist the provider session. If persistence fails, do not return a QR
@@ -91,6 +94,10 @@ export class PaymentService {
             where: { orderId: order.id },
             update: {
               status: PaymentStatus.PENDING,
+              provider: paymentProvider,
+              providerReference: order.publicOrderId,
+              providerPaymentId: khqrResult.orderReference,
+              providerTransactionId: khqrResult.orderReference,
               // Store an explicit null for MongoDB. A missing optional field
               // does not match `verifiedAt: null` during reconciliation.
               verifiedAt: null,
@@ -102,11 +109,10 @@ export class PaymentService {
             },
             create: {
               orderId: order.id,
-              provider: "KHQR",
+              provider: paymentProvider,
               providerReference: order.publicOrderId,
-              // MongoDB unique indexes allow only one null value. The AnajakPay
-              // transaction ID is our merchant order ID until payment confirms.
-              providerTransactionId: order.publicOrderId,
+              providerPaymentId: khqrResult.orderReference,
+              providerTransactionId: khqrResult.orderReference,
               amount: order.total,
               amountKhr: order.totalKhr,
               currency: "USD",
@@ -140,6 +146,8 @@ export class PaymentService {
       qrString: payment.qrPayload,
       qrImageUrl: khqrResult.qrImageUrl,
       checkoutUrl: khqrResult.checkoutUrl,
+      merchantName: khqrResult.merchantName,
+      abaDeepLink: khqrResult.abaDeepLink,
       md5: payment.md5Hash || "",
       amount: payment.amount,
       currency: payment.currency,

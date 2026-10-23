@@ -113,11 +113,13 @@ export async function createOrder(data: {
   return json.data;
 }
 
-export async function initKhqrPayment(publicOrderId: string): Promise<{
+export async function initKhqrPayment(publicOrderId: string, provider: "ANJAKPAY" | "KHQRPAY_ABA_V2" = "KHQRPAY_ABA_V2"): Promise<{
   paymentId: string;
   publicOrderId: string;
   qrString: string;
   qrImageUrl?: string;
+  merchantName?: string;
+  abaDeepLink?: string;
   checkoutUrl?: string;
   md5: string;
   amount: number;
@@ -129,6 +131,8 @@ export async function initKhqrPayment(publicOrderId: string): Promise<{
 }> {
   const res = await fetch(`${API_BASE}/orders/${publicOrderId}/payment`, {
     method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ provider }),
   });
   const json = await res.json();
   if (!res.ok || !json.success) {
