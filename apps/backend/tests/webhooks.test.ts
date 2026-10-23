@@ -9,7 +9,11 @@ import {
   verifyVizoWebhookSignature,
 } from "../services/WebhookService";
 import { generatePublicOrderId, timingSafeEqualHex } from "../lib/security";
-import { isWebhookTimestampFresh, parseWebhookTimestamp } from "../payments/khqr/client";
+import {
+  isWebhookTimestampFresh,
+  parseWebhookTimestamp,
+  verifiedPaymentMatches,
+} from "../payments/khqr/client";
 import { g2bulkAdapter } from "../suppliers/g2bulk/client";
 import { vizoAdapter } from "../suppliers/vizo/client";
 
@@ -49,6 +53,21 @@ test("validates an explicit KHQR callback currency", () => {
   assert.equal(paymentCurrencyMatches(undefined, "USD"), true);
   assert.equal(paymentCurrencyMatches("usd", "USD"), true);
   assert.equal(paymentCurrencyMatches("KHR", "USD"), false);
+});
+
+test("requires authenticated payment amount and currency before fulfilment", () => {
+  assert.equal(verifiedPaymentMatches({
+    paid: true, status: "PAID", paidAmount: 3.7, currency: "USD",
+  }, 3.7, "USD"), true);
+  assert.equal(verifiedPaymentMatches({
+    paid: true, status: "PAID", paidAmount: 5, currency: "USD",
+  }, 3.7, "USD"), false);
+  assert.equal(verifiedPaymentMatches({
+    paid: true, status: "PAID", currency: "USD",
+  }, 3.7, "USD"), false);
+  assert.equal(verifiedPaymentMatches({
+    paid: false, status: "PENDING", paidAmount: 3.7, currency: "USD",
+  }, 3.7, "USD"), false);
 });
 
 test("infers the G2Bulk game required by its order status endpoint", () => {

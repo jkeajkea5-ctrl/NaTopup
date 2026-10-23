@@ -2,7 +2,7 @@ import { FulfilmentStatus, OrderStatus, PaymentStatus } from "@topup/shared";
 import { config } from "../lib/config";
 import { logger } from "../lib/logger";
 import { prisma } from "../lib/prisma";
-import { khqrClient } from "../payments/khqr/client";
+import { khqrClient, verifiedPaymentMatches } from "../payments/khqr/client";
 import { supplierManager } from "../suppliers/supplierManager";
 import { fulfilmentService } from "./FulfilmentService";
 import { orderService } from "./OrderService";
@@ -65,13 +65,7 @@ export class ReconciliationService {
         });
 
         if (verifyResult.paid) {
-          const amountMatches =
-            verifyResult.paidAmount === undefined ||
-            Math.abs(verifyResult.paidAmount - payment.amount) <= 0.01;
-          const currencyMatches =
-            !verifyResult.currency ||
-            verifyResult.currency.trim().toUpperCase() === payment.currency.trim().toUpperCase();
-          if (!amountMatches || !currencyMatches) {
+          if (!verifiedPaymentMatches(verifyResult, payment.amount, payment.currency)) {
             logger.error("Reconciliation rejected mismatched payment details", {
               paymentId: payment.id,
               orderId: payment.order.publicOrderId,

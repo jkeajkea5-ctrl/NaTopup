@@ -4,6 +4,26 @@ import { sha1, sha256, timingSafeEqualHex, verifyHmacSha256 } from "../../lib/se
 import { mapProviderStatusToInternal } from "./mapper";
 import { KhqrGenerateInput, KhqrGenerateOutput, KhqrVerifyInput, KhqrVerifyOutput } from "./types";
 
+/**
+ * A provider "paid" flag is not sufficient to release a supplier order.
+ * Require the authenticated status response to contain the exact amount and
+ * currency that were persisted for the local payment.
+ */
+export function verifiedPaymentMatches(
+  verification: KhqrVerifyOutput,
+  expectedAmount: number,
+  expectedCurrency: string
+): boolean {
+  return (
+    verification.paid === true &&
+    typeof verification.paidAmount === "number" &&
+    Number.isFinite(verification.paidAmount) &&
+    Math.abs(verification.paidAmount - expectedAmount) <= 0.01 &&
+    typeof verification.currency === "string" &&
+    verification.currency.trim().toUpperCase() === expectedCurrency.trim().toUpperCase()
+  );
+}
+
 export function parseWebhookTimestamp(value: unknown): number | null {
   if (typeof value === "number" && Number.isFinite(value)) {
     return value < 1_000_000_000_000 ? value * 1000 : value;

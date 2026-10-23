@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { OrderStatus, PaymentStatus } from "@topup/shared";
 import { prisma, safeDbQuery } from "@/lib/prisma";
 import { inMemoryOrders, orderService } from "@/services/OrderService";
-import { khqrClient } from "@/payments/khqr/client";
+import { khqrClient, verifiedPaymentMatches } from "@/payments/khqr/client";
 import { fulfilmentService } from "@/services/FulfilmentService";
 import { logger } from "@/lib/logger";
 
@@ -29,6 +29,9 @@ export async function GET(
                 qrExpiresAt: true,
                 paidAt: true,
                 providerTransactionId: true,
+                md5Hash: true,
+                amount: true,
+                currency: true,
               },
             },
             fulfilment: {
@@ -68,11 +71,15 @@ export async function GET(
 
         try {
           const verifyResult = await khqrClient.verifyPayment({
+            md5: order.payment?.md5Hash || undefined,
             orderReference: publicId,
             transactionId: order.payment?.providerTransactionId,
           });
 
-          if (verifyResult.paid) {
+          if (
+            order.payment &&
+            verifiedPaymentMatches(verifyResult, order.payment.amount, order.payment.currency)
+          ) {
             logger.info("Payment confirmed via Check Transaction V2 polling", {
               publicOrderId: publicId,
               transactionId: verifyResult.transactionId,
@@ -81,13 +88,13 @@ export async function GET(
 
             // 1. Update Payment record
             if (!String(order.id).startsWith("mem_")) {
-              await safeDbQuery(
+              const claimed = await safeDbQuery(
                 () =>
                   prisma.payment.updateMany({
-                    where: { orderId: order.id },
+                    where: { orderId: order.id, status: { not: PaymentStatus.PAID } },
                     data: {
                       status: PaymentStatus.PAID,
-                      providerTransactionId: verifyResult.transactionId || `TXN-${Date.now()}`,
+                      providerTransactionId: verifyResult.transactionId || publicId,
                       paidAt: new Date(),
                       verifiedAt: new Date(),
                     },
@@ -95,6 +102,18 @@ export async function GET(
                 null,
                 1000
               );
+              if (!claimed || claimed.count !== 1) {
+                return NextResponse.json({
+                  success: true,
+                  data: {
+                    publicOrderId: order.publicOrderId,
+                    status: order.status,
+                    customerStatusText: "Verifying Payment...",
+                    isTerminal: false,
+                    paymentStatus: order.payment.status,
+                  },
+                });
+              }
             }
 
             // 2. Transition Order Status

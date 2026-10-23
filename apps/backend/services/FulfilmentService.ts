@@ -2,6 +2,7 @@ import {
   FulfilmentStatus,
   isSupplierPriceSafe,
   OrderStatus,
+  PaymentStatus,
   SupplierCode,
   SupplierOrderStatus,
 } from "@topup/shared";
@@ -33,6 +34,9 @@ export class FulfilmentService {
             },
           },
         },
+        payment: {
+          select: { status: true },
+        },
         fulfilment: true,
       },
     });
@@ -46,13 +50,15 @@ export class FulfilmentService {
       order.status === OrderStatus.PROCESSING &&
       order.fulfilment?.status === FulfilmentStatus.QUEUED;
     if (
-      order.status !== OrderStatus.PAID &&
-      order.status !== OrderStatus.FULFILMENT_QUEUED &&
-      !recoverableQueuedDispatch
+      order.payment?.status !== PaymentStatus.PAID ||
+      (order.status !== OrderStatus.PAID &&
+        order.status !== OrderStatus.FULFILMENT_QUEUED &&
+        !recoverableQueuedDispatch)
     ) {
-      logger.warn("Refusing fulfilment: Order is not paid", {
+      logger.warn("Refusing fulfilment: verified payment is required", {
         orderId: order.publicOrderId,
-        status: order.status,
+        orderStatus: order.status,
+        paymentStatus: order.payment?.status,
       });
       return;
     }

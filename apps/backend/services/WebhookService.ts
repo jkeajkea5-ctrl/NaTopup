@@ -3,7 +3,7 @@ import { config } from "../lib/config";
 import { logger } from "../lib/logger";
 import { prisma } from "../lib/prisma";
 import { sha256, verifyHmacSha256 } from "../lib/security";
-import { khqrClient } from "../payments/khqr/client";
+import { khqrClient, verifiedPaymentMatches } from "../payments/khqr/client";
 import { supplierManager } from "../suppliers/supplierManager";
 import { fulfilmentService } from "./FulfilmentService";
 import { orderService } from "./OrderService";
@@ -189,6 +189,36 @@ export class WebhookService {
         });
       }
       return { success: false, message: errorMsg, statusCode: 400 };
+    }
+
+    // A callback signature only proves that the callback has the configured
+    // shared secret. It is not sufficient proof that money settled: a leaked
+    // key or a provider-side test callback can still produce a valid hash.
+    // Confirm the transaction through the authenticated status endpoint before
+    // changing local state or allowing a real supplier purchase.
+    const verification = await khqrClient.verifyPayment({
+      md5: order.payment.md5Hash || undefined,
+      orderReference: order.publicOrderId,
+      transactionId: order.payment.providerTransactionId || order.publicOrderId,
+    });
+    if (!verifiedPaymentMatches(verification, order.payment.amount, order.payment.currency)) {
+      const errorMsg = "Authenticated payment confirmation is pending or does not match the order";
+      logger.error("KHQR callback rejected by provider confirmation", {
+        orderId: order.publicOrderId,
+        callbackAmount: amount,
+        verifiedStatus: verification.status,
+        verifiedAmount: verification.paidAmount,
+        verifiedCurrency: verification.currency,
+      });
+      if (eventRecord) {
+        await prisma.webhookEvent.update({
+          where: { id: eventRecord.id },
+          data: { error: errorMsg },
+        });
+      }
+      // A retryable response lets a legitimate callback arrive again if the
+      // provider's read endpoint was briefly behind its notification.
+      return { success: false, message: errorMsg, statusCode: 503 };
     }
 
     // 5. Idempotent Payment & Order Update
