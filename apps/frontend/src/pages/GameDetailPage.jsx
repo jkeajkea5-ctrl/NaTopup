@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import QRCode from "qrcode";
 import {
   ShieldCheck,
   CheckCircle2,
@@ -18,6 +19,8 @@ import {
   Send,
   ShoppingBag,
   ArrowLeft,
+  Clock3,
+  Smartphone,
 } from "lucide-react";
 import { checkPlayerId, createOrder, fetchGameDetail, initKhqrPayment, fetchOrderDetail, fetchOrderStatus } from "../services/api";
 import { ProductCard } from "../components/ProductCard";
@@ -31,6 +34,12 @@ import {
 } from "../services/paymentCheckout";
 
 const SAVED_PLAYER_FIELDS_KEY = "na-topup:saved-player-fields:v1";
+
+function getPaymentAbaDeepLink(session) {
+  if (session?.abaDeepLink) return session.abaDeepLink;
+  if (!session?.qrString) return null;
+  return `abamobilebank://ababank.com?type=payway&qrcode=${encodeURIComponent(session.qrString)}`;
+}
 
 function createCheckoutRequestId() {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") return crypto.randomUUID();
@@ -154,6 +163,7 @@ export const GameDetailPage = () => {
   const [paymentNotice, setPaymentNotice] = useState(null);
   const [paymentSession, setPaymentSession] = useState(null);
   const [paymentSecondsLeft, setPaymentSecondsLeft] = useState(0);
+  const [paymentQrDataUrl, setPaymentQrDataUrl] = useState("");
   const [successInvoice, setSuccessInvoice] = useState(null);
 
   const { data, isLoading, error } = useQuery({
@@ -274,16 +284,29 @@ export const GameDetailPage = () => {
   }, [paymentSession]);
 
   useEffect(() => {
-    if (!paymentSession?.abaDeepLink || !isMobilePaymentDevice()) return;
-    const sessionKey = `${paymentSession.paymentId || paymentSession.publicOrderId}:${paymentSession.abaDeepLink}`;
+    let cancelled = false;
+    setPaymentQrDataUrl("");
+    if (!paymentSession?.qrString) return undefined;
+    QRCode.toDataURL(paymentSession.qrString, { errorCorrectionLevel: "M", margin: 1, width: 660 })
+      .then((url) => { if (!cancelled) setPaymentQrDataUrl(url); })
+      .catch(() => undefined);
+    return () => { cancelled = true; };
+  }, [paymentSession?.qrString]);
+
+  useEffect(() => {
+    const abaAppDeepLink = getPaymentAbaDeepLink(paymentSession);
+    if (!abaAppDeepLink || !isMobilePaymentDevice()) return;
+    const sessionKey = `${paymentSession.paymentId || paymentSession.publicOrderId}:${abaAppDeepLink}`;
     if (autoOpenedAbaPaymentRef.current === sessionKey) return;
     autoOpenedAbaPaymentRef.current = sessionKey;
 
     // Let the QR modal render before handing off to ABA Mobile. It stays open
     // when the customer returns, so status polling and manual fallback remain.
-    const timer = window.setTimeout(() => openAbaMobileApp(paymentSession.abaDeepLink), 250);
+    const timer = window.setTimeout(() => openAbaMobileApp(abaAppDeepLink), 250);
     return () => window.clearTimeout(timer);
-  }, [paymentSession?.abaDeepLink, paymentSession?.paymentId, paymentSession?.publicOrderId]);
+  }, [paymentSession?.abaDeepLink, paymentSession?.paymentId, paymentSession?.publicOrderId, paymentSession?.qrString]);
+
+  const abaAppDeepLink = getPaymentAbaDeepLink(paymentSession);
 
   // Always show the top when opening new game page
   useEffect(() => {
@@ -530,32 +553,37 @@ export const GameDetailPage = () => {
         }}
       />
       {!!paymentSession && paymentProvider === "KHQRPAY_ABA_V2" && (
-        <div className="fixed inset-0 z-[10000] flex items-end justify-center bg-slate-950/45 sm:items-center sm:p-4" role="presentation">
-          <section role="dialog" aria-modal="true" aria-label="ABA KHQR v2 payment" className="w-full max-w-md overflow-hidden bg-white shadow-2xl sm:rounded-2xl">
-            <header className="relative flex h-12 items-center justify-center bg-[#ed1c24] text-white">
-              <span className="font-heading text-lg font-black tracking-wide">KHQR</span>
-              <button type="button" onClick={() => { setPaymentSession(null); setPaymentNotice(null); }} aria-label="Close payment" className="absolute right-4 flex h-8 w-8 items-center justify-center rounded-full text-white/90 hover:bg-white/15"><X className="h-5 w-5" /></button>
+        <div className="fixed inset-0 z-[10000] flex items-end justify-center bg-[#1e1111]/70 backdrop-blur-[2px] sm:items-center sm:p-4" role="presentation">
+          <section role="dialog" aria-modal="true" aria-label="ABA KHQR v2 payment" className="flex max-h-[100dvh] w-full max-w-[480px] flex-col overflow-y-auto bg-white shadow-2xl sm:max-h-[calc(100dvh-2rem)] sm:rounded-2xl">
+            <header className="relative flex min-h-[72px] items-center justify-center bg-[#f21824] text-white">
+              <div className="absolute inset-y-0 left-1/2 w-[116px] -translate-x-1/2 bg-[#e91d2c]" aria-hidden="true" />
+              <span className="relative font-sans text-xl font-black tracking-[-0.075em]">KHQR</span>
+              <button type="button" onClick={() => { setPaymentSession(null); setPaymentNotice(null); }} aria-label="Close payment" className="absolute right-5 flex h-10 w-10 items-center justify-center rounded-full text-white transition-colors hover:bg-white/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"><X className="h-6 w-6" /></button>
             </header>
-            <div className="flex items-center justify-center gap-2 bg-[#101814] px-4 py-2 text-xs font-bold tracking-wide text-[#d7ff46]"><span className="h-2 w-2 rounded-full bg-[#d7ff46]" />NA TOPUP SECURE CHECKOUT</div>
-            <div className="p-5 pb-7">
-              <div className="flex items-start justify-between border-b border-slate-100 pb-4">
-                <div><p className="text-xs font-bold uppercase tracking-wide text-slate-500">{paymentSession.merchantName || "Payment Recipient"}</p><p className="mt-1 text-2xl font-bold text-slate-800">${Number(paymentSession.amount || 0).toFixed(2)} <span className="text-xs font-semibold text-slate-500">USD</span></p></div>
-                <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-500">⏱ {String(Math.floor(paymentSecondsLeft / 60)).padStart(2, "0")}:{String(paymentSecondsLeft % 60).padStart(2, "0")}</span>
+            <div className="flex min-h-[124px] items-center justify-between gap-4 border-b border-dashed border-[#b9cce1] px-7 py-5 sm:px-8">
+              <div className="min-w-0">
+                <p className="truncate text-base font-medium uppercase tracking-wide text-[#12223c] sm:text-lg">{paymentSession.merchantName || "NA TOPUP"}</p>
+                <p className="mt-2 text-[30px] font-medium leading-none text-[#071a35] sm:text-[32px]">${Number(paymentSession.amount || 0).toFixed(2)} <span className="text-sm font-medium text-[#365578]">USD</span></p>
               </div>
-              <div className="border-t-2 border-dotted border-slate-200 pt-6"><div className="mx-auto mt-1 flex aspect-square w-full max-w-[265px] items-center justify-center bg-white p-1">
-                {paymentSession.qrImageUrl ? <img src={paymentSession.qrImageUrl} alt="ABA KHQR v2 payment QR code" className="h-full w-full object-contain" /> : <p className="text-sm text-slate-500">Loading payment QR…</p>}
-              </div></div>
-              <p className="mt-6 text-center text-sm font-semibold text-slate-600">Scan with ABA Mobile or another banking app</p>
-              <p className="mt-1 text-center text-xs text-slate-400">Payment is confirmed automatically.</p>
-              {paymentSession.abaDeepLink && (
+              <span className="flex shrink-0 items-center gap-1.5 rounded-xl border border-[#cfe0f2] bg-[#f1f7fd] px-3 py-2 text-sm font-medium text-[#285d91]"><Clock3 className="h-4 w-4" aria-hidden="true" />{Math.floor(paymentSecondsLeft / 60)}:{String(paymentSecondsLeft % 60).padStart(2, "0")}</span>
+            </div>
+            <div className="flex flex-1 flex-col px-6 pb-[max(24px,env(safe-area-inset-bottom))] pt-10 sm:px-8 sm:pt-12">
+              <div className="mx-auto flex aspect-square w-full max-w-[330px] items-center justify-center bg-white">
+                {(paymentSession.qrImageUrl || paymentQrDataUrl) ? <img src={paymentSession.qrImageUrl || paymentQrDataUrl} onError={(event) => { if (paymentQrDataUrl && event.currentTarget.src !== paymentQrDataUrl) event.currentTarget.src = paymentQrDataUrl; }} alt="ABA KHQR v2 payment QR code" className="h-full w-full object-contain" /> : <div className="flex h-full w-full items-center justify-center border border-slate-100 text-sm text-slate-500">Loading payment QR…</div>}
+              </div>
+              <p className="mt-8 text-center text-sm font-semibold text-[#30435b]">Scan with ABA Mobile or another banking app</p>
+              <p className="mt-1 text-center text-xs text-slate-400">Payment is verified automatically and securely.</p>
+              {abaAppDeepLink && (
                 <button
                   type="button"
-                  onClick={() => openAbaMobileApp(paymentSession.abaDeepLink)}
-                  className="mt-5 w-full rounded-xl bg-[#ed1c24] px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-[#cf171e] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ed1c24]"
+                  onClick={() => openAbaMobileApp(abaAppDeepLink)}
+                  className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-[#ed1c24] px-4 py-3.5 text-sm font-bold text-white shadow-lg shadow-red-600/15 transition-colors hover:bg-[#cf171e] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ed1c24]"
                 >
+                  <Smartphone className="h-5 w-5" aria-hidden="true" />
                   Open ABA Mobile
                 </button>
               )}
+              {abaAppDeepLink && isMobilePaymentDevice() && <p className="mt-2 text-center text-[11px] text-slate-400">ABA Mobile opens automatically. Tap the button if your browser blocks it.</p>}
             </div>
           </section>
         </div>
