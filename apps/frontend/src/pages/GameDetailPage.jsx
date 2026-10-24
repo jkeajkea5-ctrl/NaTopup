@@ -35,9 +35,12 @@ import {
 const SAVED_PLAYER_FIELDS_KEY = "na-topup:saved-player-fields:v1";
 
 function getPaymentAbaDeepLink(session) {
-  if (session?.abaDeepLink) return session.abaDeepLink;
-  if (!session?.qrString) return null;
-  return `abamobilebank://ababank.com?type=payway&qrcode=${encodeURIComponent(session.qrString)}`;
+  // Use ABA Mobile's native QR scheme first. On iOS Safari this produces the
+  // system confirmation "Open this page in ABA Mobile?" shown by the user.
+  if (session?.qrString) {
+    return `abamobilebank://ababank.com?type=payway&qrcode=${encodeURIComponent(session.qrString)}`;
+  }
+  return session?.abaDeepLink || null;
 }
 
 function createCheckoutRequestId() {
