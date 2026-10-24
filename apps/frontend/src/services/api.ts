@@ -137,7 +137,7 @@ export async function createOrder(data: {
   playerData: Record<string, string>;
   customerEmail?: string;
   customerPhone?: string;
-}, idempotencyKey: string): Promise<{
+}, idempotencyKey: string, turnstileToken: string): Promise<{
   publicOrderId: string;
   lookupToken: string;
   status: string;
@@ -148,7 +148,7 @@ export async function createOrder(data: {
   const res = await fetch(`${API_BASE}/orders`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "Idempotency-Key": idempotencyKey },
-    body: JSON.stringify(data),
+    body: JSON.stringify({ ...data, turnstileToken }),
   });
   const json = await readJsonResponse(res);
   if (!res.ok || !json.success) {
