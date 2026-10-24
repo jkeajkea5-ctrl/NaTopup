@@ -1,5 +1,33 @@
 const CLOSE_BUTTON_ID = "na-topup-khqr-close";
 
+export function isMobilePaymentDevice() {
+  if (typeof navigator === "undefined" || typeof window === "undefined") return false;
+  const mobileUserAgent = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+    navigator.userAgent
+  );
+  const touchMac = navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
+  return mobileUserAgent || touchMac || window.matchMedia?.("(pointer: coarse)").matches === true;
+}
+
+export function getSafeAbaDeepLink(value) {
+  if (typeof value !== "string" || !value.trim()) return null;
+
+  try {
+    const url = new URL(value.trim());
+    if (!["aba:", "abamobilebank:", "https:"].includes(url.protocol.toLowerCase())) return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+export function openAbaMobileApp(value) {
+  const deepLink = getSafeAbaDeepLink(value);
+  if (!deepLink || typeof window === "undefined") return false;
+  window.location.assign(deepLink);
+  return true;
+}
+
 function removeProviderCloseButton() {
   document.getElementById(CLOSE_BUTTON_ID)?.remove();
 }

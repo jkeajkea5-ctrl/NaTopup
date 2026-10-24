@@ -242,6 +242,10 @@ model Payment {
   status               String           @default("PENDING") // PENDING, VERIFYING, PAID, EXPIRED, FAILED
   
   qrPayload            String           // EMVCo QR String
+  qrImageUrl           String?
+  checkoutUrl          String?
+  merchantName         String?
+  abaDeepLink          String?
   md5Hash              String?          // Checksum for Bakong/KHQR verify
   qrExpiresAt          DateTime
   

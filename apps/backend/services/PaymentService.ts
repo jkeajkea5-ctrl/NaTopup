@@ -61,9 +61,11 @@ export class PaymentService {
         qrImageUrl:
           order.payment.qrImageUrl ||
           (config.khqrpay.enabled ? undefined : `${config.khqrcc.baseUrl}/api/khqrcc/qr/${txId}`),
-        checkoutUrl: khqrClient.getCheckoutUrl(txId, order.payment.amount, order.payment.provider),
-        merchantName: undefined,
-        abaDeepLink: undefined,
+        checkoutUrl:
+          order.payment.checkoutUrl ||
+          khqrClient.getCheckoutUrl(txId, order.payment.amount, order.payment.provider),
+        merchantName: order.payment.merchantName || undefined,
+        abaDeepLink: order.payment.abaDeepLink || undefined,
         md5: order.payment.md5Hash || "",
         amount: order.payment.amount,
         currency: order.payment.currency,
@@ -102,6 +104,10 @@ export class PaymentService {
               // does not match `verifiedAt: null` during reconciliation.
               verifiedAt: null,
               qrPayload: khqrResult.qrString,
+              qrImageUrl: khqrResult.qrImageUrl,
+              checkoutUrl: khqrResult.checkoutUrl,
+              merchantName: khqrResult.merchantName,
+              abaDeepLink: khqrResult.abaDeepLink,
               md5Hash: khqrResult.md5,
               qrExpiresAt: khqrResult.expiresAt,
               amount: order.total,
@@ -119,6 +125,10 @@ export class PaymentService {
               status: PaymentStatus.PENDING,
               verifiedAt: null,
               qrPayload: khqrResult.qrString,
+              qrImageUrl: khqrResult.qrImageUrl,
+              checkoutUrl: khqrResult.checkoutUrl,
+              merchantName: khqrResult.merchantName,
+              abaDeepLink: khqrResult.abaDeepLink,
               md5Hash: khqrResult.md5,
               qrExpiresAt: khqrResult.expiresAt,
             },

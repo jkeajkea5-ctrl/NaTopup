@@ -23,7 +23,12 @@ import { checkPlayerId, createOrder, fetchGameDetail, initKhqrPayment, fetchOrde
 import { ProductCard } from "../components/ProductCard";
 import { SuccessInvoiceModal } from "../components/SuccessInvoiceModal";
 import { TermsModal } from "../components/TermsModal";
-import { closeProviderCheckout, showProviderCloseButton } from "../services/paymentCheckout";
+import {
+  closeProviderCheckout,
+  isMobilePaymentDevice,
+  openAbaMobileApp,
+  showProviderCloseButton,
+} from "../services/paymentCheckout";
 
 const SAVED_PLAYER_FIELDS_KEY = "na-topup:saved-player-fields:v1";
 
@@ -118,6 +123,7 @@ export const GameDetailPage = () => {
   const toastSequenceRef = useRef(0);
   const verificationSequenceRef = useRef(0);
   const restoredPlayerSlugRef = useRef(null);
+  const autoOpenedAbaPaymentRef = useRef(null);
 
   // Dynamic player fields state
   const [playerFields, setPlayerFields] = useState({});
@@ -259,6 +265,18 @@ export const GameDetailPage = () => {
     const timer = window.setInterval(update, 1000);
     return () => window.clearInterval(timer);
   }, [paymentSession]);
+
+  useEffect(() => {
+    if (!paymentSession?.abaDeepLink || !isMobilePaymentDevice()) return;
+    const sessionKey = `${paymentSession.paymentId || paymentSession.publicOrderId}:${paymentSession.abaDeepLink}`;
+    if (autoOpenedAbaPaymentRef.current === sessionKey) return;
+    autoOpenedAbaPaymentRef.current = sessionKey;
+
+    // Let the QR modal render before handing off to ABA Mobile. It stays open
+    // when the customer returns, so status polling and manual fallback remain.
+    const timer = window.setTimeout(() => openAbaMobileApp(paymentSession.abaDeepLink), 250);
+    return () => window.clearTimeout(timer);
+  }, [paymentSession?.abaDeepLink, paymentSession?.paymentId, paymentSession?.publicOrderId]);
 
   // Always show the top when opening new game page
   useEffect(() => {
@@ -519,6 +537,15 @@ export const GameDetailPage = () => {
               </div></div>
               <p className="mt-6 text-center text-sm font-semibold text-slate-600">Scan with ABA Mobile or another banking app</p>
               <p className="mt-1 text-center text-xs text-slate-400">Payment is confirmed automatically.</p>
+              {paymentSession.abaDeepLink && (
+                <button
+                  type="button"
+                  onClick={() => openAbaMobileApp(paymentSession.abaDeepLink)}
+                  className="mt-5 w-full rounded-xl bg-[#ed1c24] px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-[#cf171e] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ed1c24]"
+                >
+                  Open ABA Mobile
+                </button>
+              )}
             </div>
           </section>
         </div>
