@@ -10,6 +10,12 @@ async function main() {
         unique: true,
         partialFilterExpression: { checkoutRequestId: { $type: "string" } },
       },
+      {
+        key: { activeCheckoutKey: 1 },
+        name: "Order_activeCheckoutKey_key",
+        unique: true,
+        partialFilterExpression: { activeCheckoutKey: { $type: "string" } },
+      },
     ],
   });
 

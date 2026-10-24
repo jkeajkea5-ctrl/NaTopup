@@ -4,6 +4,7 @@ import { verifyBearerToken } from "../../../../../lib/security";
 import { reconciliationService } from "../../../../../services/ReconciliationService";
 import { telegramAlertService } from "../../../../../services/TelegramAlertService";
 import { cleanupExpiredRateLimits } from "../../../../../lib/rateLimit";
+import { prisma } from "../../../../../lib/prisma";
 
 async function runAllReconciliation(request: Request) {
   if (!verifyBearerToken(request.headers.get("authorization"), config.cronSecret)) {
@@ -20,6 +21,14 @@ async function runAllReconciliation(request: Request) {
     const fulfilments = await reconciliationService.reconcilePendingFulfilments();
     const telegram = await telegramAlertService.retryPendingOrderAlerts();
     await cleanupExpiredRateLimits();
+    await prisma.order.updateMany({
+      where: {
+        activeCheckoutKey: { not: null },
+        createdAt: { lt: new Date(Date.now() - 15 * 60_000) },
+        status: { in: ["AWAITING_PAYMENT", "PAYMENT_VERIFYING"] },
+      },
+      data: { activeCheckoutKey: null },
+    });
 
     return NextResponse.json({
       success: true,

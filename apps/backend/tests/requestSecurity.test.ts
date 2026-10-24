@@ -4,6 +4,8 @@ import {
   getCheckoutIdempotencyKey,
   getClientIp,
   hashCheckoutRequest,
+  hashActiveCheckoutKey,
+  hashPlayerRateLimitKey,
   verifyOrderLookupToken,
 } from "../lib/requestSecurity";
 
@@ -36,4 +38,42 @@ test("normalizes the first forwarded client address", () => {
     headers: { "X-Forwarded-For": "203.0.113.5, 10.0.0.1" },
   });
   assert.equal(getClientIp(request), "203.0.113.5");
+});
+
+test("deduplicates equivalent player identities while ignoring attacker-added fields", () => {
+  const first = hashActiveCheckoutKey({
+    gameSlug: "mobile-legends",
+    productId: "diamonds-86",
+    playerData: { userId: " 12345 ", zoneId: " 678 ", ignoredNonce: "one" },
+  });
+  const second = hashActiveCheckoutKey({
+    gameSlug: "MOBILE-LEGENDS",
+    productId: "diamonds-86",
+    playerData: { userId: "12345", zoneId: "678", ignoredNonce: "two" },
+  });
+  assert.equal(first, second);
+  assert.equal(
+    first,
+    hashActiveCheckoutKey({
+      gameSlug: "mobile-legends",
+      productId: "diamonds-86",
+      playerData: { playerId: "12345", serverId: "678" },
+    })
+  );
+  assert.notEqual(
+    first,
+    hashActiveCheckoutKey({
+      gameSlug: "mobile-legends",
+      productId: "diamonds-172",
+      playerData: { userId: "12345", zoneId: "678" },
+    })
+  );
+});
+
+test("player abuse limits span product changes", () => {
+  const fields = { riotId: " Player ", tagline: " KH1 " };
+  assert.equal(
+    hashPlayerRateLimitKey("valorant", fields),
+    hashPlayerRateLimitKey("VALORANT", { ...fields, ignoredNonce: "bypass" })
+  );
 });

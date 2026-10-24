@@ -37,6 +37,39 @@ export function hashCheckoutRequest(input: Record<string, unknown>): string {
   return crypto.createHash("sha256").update(JSON.stringify(canonicalize(input))).digest("hex");
 }
 
+function normalizedPlayerIdentity(playerData: Record<string, string>): Record<string, string> {
+  const normalize = (value?: string) => value?.trim().toLowerCase() || "";
+  const primaryId = normalize(
+    playerData.userId || playerData.playerId || playerData.characterId || playerData.uid || playerData.riotId
+  );
+  const secondaryId = normalize(
+    playerData.zoneId || playerData.serverId || playerData.tagline || playerData.server
+  );
+  return {
+    primaryId,
+    ...(secondaryId ? { secondaryId } : {}),
+  };
+}
+
+export function hashActiveCheckoutKey(input: {
+  gameSlug: string;
+  productId: string;
+  playerData: Record<string, string>;
+}): string {
+  return hashCheckoutRequest({
+    gameSlug: input.gameSlug.trim().toLowerCase(),
+    productId: input.productId.trim(),
+    playerData: normalizedPlayerIdentity(input.playerData),
+  });
+}
+
+export function hashPlayerRateLimitKey(gameSlug: string, playerData: Record<string, string>): string {
+  return hashCheckoutRequest({
+    gameSlug: gameSlug.trim().toLowerCase(),
+    playerData: normalizedPlayerIdentity(playerData),
+  });
+}
+
 export function rateLimitHeaders(limit: { remaining: number; resetMs: number }): Record<string, string> {
   return {
     "X-RateLimit-Remaining": String(limit.remaining),

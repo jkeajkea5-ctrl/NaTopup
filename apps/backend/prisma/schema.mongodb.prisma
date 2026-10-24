@@ -183,6 +183,9 @@ model Order {
   id                   String        @id @default(auto()) @map("_id") @db.ObjectId
   publicOrderId        String        @unique // e.g. TP-8K9F2A1M
   publicLookupToken    String        // Secure token for customer check-order access
+  checkoutRequestId    String?       @unique
+  checkoutRequestHash  String?
+  activeCheckoutKey    String?       @unique
   userId               String?       @db.ObjectId
   status               String        @default("AWAITING_PAYMENT")
   

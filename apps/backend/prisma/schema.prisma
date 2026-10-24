@@ -185,6 +185,7 @@ model Order {
   publicLookupToken    String        // Secure token for customer check-order access
   checkoutRequestId    String?       @unique // Browser idempotency key for duplicate submission protection
   checkoutRequestHash  String?       // Binds the idempotency key to the original order input
+  activeCheckoutKey    String?       @unique // One active unpaid checkout per game/product/player identity
   userId               String?       @db.ObjectId
   status               String        @default("AWAITING_PAYMENT")
   

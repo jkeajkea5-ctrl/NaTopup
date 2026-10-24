@@ -183,6 +183,9 @@ model Order {
   id                   String        @id @default(uuid())
   publicOrderId        String        @unique
   publicLookupToken    String
+  checkoutRequestId    String?       @unique
+  checkoutRequestHash  String?
+  activeCheckoutKey    String?       @unique
   userId               String?
   status               String        @default("AWAITING_PAYMENT")
   

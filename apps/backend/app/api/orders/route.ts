@@ -4,7 +4,9 @@ import { checkRateLimit } from "../../../lib/rateLimit";
 import {
   getCheckoutIdempotencyKey,
   getClientIp,
+  hashActiveCheckoutKey,
   hashCheckoutRequest,
+  hashPlayerRateLimitKey,
   rateLimitHeaders,
 } from "../../../lib/requestSecurity";
 import { orderService } from "../../../services/OrderService";
@@ -59,6 +61,25 @@ export async function POST(request: Request) {
       );
     }
 
+    const playerLimit = await checkRateLimit(
+      `order-player:${hashPlayerRateLimitKey(parsed.data.gameSlug, parsed.data.playerData)}`,
+      { windowMs: 15 * 60_000, maxRequests: 6 }
+    );
+    if (!playerLimit.allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: "PLAYER_ORDER_LIMIT_REACHED",
+            message: playerLimit.unavailable
+              ? "Order security check is temporarily unavailable. Please try again."
+              : "Too many checkout attempts for this player account. Please wait before trying again.",
+          },
+        },
+        { status: playerLimit.unavailable ? 503 : 429, headers: rateLimitHeaders(playerLimit) }
+      );
+    }
+
     const order = await orderService.createOrder({
       gameSlug: parsed.data.gameSlug,
       productId: parsed.data.productId,
@@ -69,6 +90,7 @@ export async function POST(request: Request) {
       customerPhone: parsed.data.customerPhone,
       checkoutRequestId,
       checkoutRequestHash: hashCheckoutRequest(parsed.data),
+      activeCheckoutKey: hashActiveCheckoutKey(parsed.data),
     });
 
     return NextResponse.json({
@@ -84,15 +106,18 @@ export async function POST(request: Request) {
       },
     });
   } catch (err: any) {
+    const activeCheckoutExists = String(err?.message || "").startsWith("An unpaid checkout already exists");
     return NextResponse.json(
       {
         success: false,
         error: {
-          code: "ORDER_CREATION_FAILED",
-          message: err.message || "Failed to create order",
+          code: activeCheckoutExists ? "ACTIVE_CHECKOUT_EXISTS" : "ORDER_CREATION_FAILED",
+          message: activeCheckoutExists
+            ? err.message
+            : "The order could not be created. Please check the details and try again.",
         },
       },
-      { status: 400 }
+      { status: activeCheckoutExists ? 409 : 400 }
     );
   }
 }

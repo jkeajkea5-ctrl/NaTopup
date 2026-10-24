@@ -182,6 +182,9 @@ model Order {
   id                   String        @id @default(uuid())
   publicOrderId        String        @unique // e.g. TP-8K9F2A1M
   publicLookupToken    String        // Secure token for customer check-order access
+  checkoutRequestId    String?       @unique
+  checkoutRequestHash  String?
+  activeCheckoutKey    String?       @unique
   userId               String?
   status               String        @default("AWAITING_PAYMENT")
   

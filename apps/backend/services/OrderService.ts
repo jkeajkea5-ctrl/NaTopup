@@ -12,6 +12,8 @@ export const inMemoryOrders: Map<string, any> =
   (global as any).__inMemoryOrders || ((global as any).__inMemoryOrders = new Map<string, any>());
 
 const MONGO_OBJECT_ID = /^[a-f\d]{24}$/i;
+const ACTIVE_CHECKOUT_WINDOW_MS = 15 * 60_000;
+const ACTIVE_CHECKOUT_STATUSES = [OrderStatus.AWAITING_PAYMENT, OrderStatus.PAYMENT_VERIFYING];
 
 export class OrderService {
   /**
@@ -28,6 +30,7 @@ export class OrderService {
     customerPhone?: string;
     checkoutRequestId?: string;
     checkoutRequestHash?: string;
+    activeCheckoutKey?: string;
   }) {
     const existingOrder = input.checkoutRequestId
       ? await prisma.order.findUnique({ where: { checkoutRequestId: input.checkoutRequestId } }).catch(() => null)
@@ -37,6 +40,30 @@ export class OrderService {
         throw new Error("This checkout request key was already used for different order details.");
       }
       return existingOrder;
+    }
+
+    if (input.activeCheckoutKey) {
+      const existingActive = await prisma.order.findUnique({
+        where: { activeCheckoutKey: input.activeCheckoutKey },
+      }).catch(() => null);
+      if (existingActive) {
+        const isReusable =
+          ACTIVE_CHECKOUT_STATUSES.includes(existingActive.status as OrderStatus) &&
+          existingActive.createdAt.getTime() >= Date.now() - ACTIVE_CHECKOUT_WINDOW_MS;
+        if (isReusable) {
+          if (input.checkoutRequestId && existingActive.checkoutRequestId === input.checkoutRequestId) {
+            return existingActive;
+          }
+          throw new Error("An unpaid checkout already exists for this player and package. Please use the original checkout or wait for it to expire.");
+        }
+
+        // Release an expired or completed checkout lock before allowing a new
+        // purchase for the same player and product.
+        await prisma.order.updateMany({
+          where: { id: existingActive.id, activeCheckoutKey: input.activeCheckoutKey },
+          data: { activeCheckoutKey: null },
+        });
+      }
     }
 
     // 1. Fetch the product. Live G2Bulk catalogue IDs (for example,
@@ -213,6 +240,7 @@ export class OrderService {
             publicLookupToken,
             checkoutRequestId: input.checkoutRequestId,
             checkoutRequestHash: input.checkoutRequestHash,
+            activeCheckoutKey: input.activeCheckoutKey,
             status: OrderStatus.AWAITING_PAYMENT,
             gameId: product.gameId,
             productId: product.id,
@@ -246,17 +274,28 @@ export class OrderService {
     } catch (error: any) {
       // A unique-key race is expected when a browser retries the exact same
       // checkout. Do not trip the shared database circuit breaker for it.
-      if (error?.code !== "P2002" || !input.checkoutRequestId) throw error;
+      if (error?.code !== "P2002" || (!input.checkoutRequestId && !input.activeCheckoutKey)) throw error;
     }
 
     if (!order) {
       // A concurrent request with the same idempotency key may have won the
       // unique insert. Return that exact order instead of creating a duplicate.
-      const concurrentOrder = input.checkoutRequestId
+      let concurrentOrder = input.checkoutRequestId
         ? await prisma.order.findUnique({ where: { checkoutRequestId: input.checkoutRequestId } }).catch(() => null)
         : null;
+      if (!concurrentOrder && input.activeCheckoutKey) {
+        concurrentOrder = await prisma.order.findUnique({
+          where: { activeCheckoutKey: input.activeCheckoutKey },
+        }).catch(() => null);
+      }
       if (concurrentOrder) {
-        if (concurrentOrder.checkoutRequestHash !== input.checkoutRequestHash) {
+        const sameActiveCheckout = Boolean(
+          input.activeCheckoutKey && concurrentOrder.activeCheckoutKey === input.activeCheckoutKey
+        );
+        if (sameActiveCheckout && concurrentOrder.checkoutRequestId !== input.checkoutRequestId) {
+          throw new Error("An unpaid checkout already exists for this player and package. Please use the original checkout or wait for it to expire.");
+        }
+        if (!sameActiveCheckout && concurrentOrder.checkoutRequestHash !== input.checkoutRequestHash) {
           throw new Error("This checkout request key was already used for different order details.");
         }
         return concurrentOrder;
@@ -399,6 +438,10 @@ export class OrderService {
     const updateData: any = {
       status: toStatus,
     };
+
+    if (!ACTIVE_CHECKOUT_STATUSES.includes(toStatus)) {
+      updateData.activeCheckoutKey = null;
+    }
 
     if (toStatus === OrderStatus.PAID) {
       updateData.paidAt = new Date();
