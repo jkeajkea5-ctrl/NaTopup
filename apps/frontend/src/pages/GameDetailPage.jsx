@@ -20,7 +20,6 @@ import {
   ShoppingBag,
   ArrowLeft,
   Clock3,
-  Smartphone,
 } from "lucide-react";
 import { checkPlayerId, createOrder, fetchGameDetail, initKhqrPayment, fetchOrderDetail, fetchOrderStatus } from "../services/api";
 import { ProductCard } from "../components/ProductCard";
@@ -306,8 +305,6 @@ export const GameDetailPage = () => {
     return () => window.clearTimeout(timer);
   }, [paymentSession?.abaDeepLink, paymentSession?.paymentId, paymentSession?.publicOrderId, paymentSession?.qrString]);
 
-  const abaAppDeepLink = getPaymentAbaDeepLink(paymentSession);
-
   // Always show the top when opening new game page
   useEffect(() => {
     try {
@@ -567,23 +564,10 @@ export const GameDetailPage = () => {
               </div>
               <span className="flex shrink-0 items-center gap-1.5 rounded-xl border border-[#cfe0f2] bg-[#f1f7fd] px-3 py-2 text-sm font-medium text-[#285d91]"><Clock3 className="h-4 w-4" aria-hidden="true" />{Math.floor(paymentSecondsLeft / 60)}:{String(paymentSecondsLeft % 60).padStart(2, "0")}</span>
             </div>
-            <div className="flex flex-1 flex-col px-6 pb-[max(24px,env(safe-area-inset-bottom))] pt-10 sm:px-8 sm:pt-12">
+            <div className="flex flex-1 flex-col px-6 pb-[max(32px,env(safe-area-inset-bottom))] pt-10 sm:px-8 sm:pb-12 sm:pt-12">
               <div className="mx-auto flex aspect-square w-full max-w-[330px] items-center justify-center bg-white">
                 {(paymentSession.qrImageUrl || paymentQrDataUrl) ? <img src={paymentSession.qrImageUrl || paymentQrDataUrl} onError={(event) => { if (paymentQrDataUrl && event.currentTarget.src !== paymentQrDataUrl) event.currentTarget.src = paymentQrDataUrl; }} alt="ABA KHQR v2 payment QR code" className="h-full w-full object-contain" /> : <div className="flex h-full w-full items-center justify-center border border-slate-100 text-sm text-slate-500">Loading payment QR…</div>}
               </div>
-              <p className="mt-8 text-center text-sm font-semibold text-[#30435b]">Scan with ABA Mobile or another banking app</p>
-              <p className="mt-1 text-center text-xs text-slate-400">Payment is verified automatically and securely.</p>
-              {abaAppDeepLink && (
-                <button
-                  type="button"
-                  onClick={() => openAbaMobileApp(abaAppDeepLink)}
-                  className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-[#ed1c24] px-4 py-3.5 text-sm font-bold text-white shadow-lg shadow-red-600/15 transition-colors hover:bg-[#cf171e] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ed1c24]"
-                >
-                  <Smartphone className="h-5 w-5" aria-hidden="true" />
-                  Open ABA Mobile
-                </button>
-              )}
-              {abaAppDeepLink && isMobilePaymentDevice() && <p className="mt-2 text-center text-[11px] text-slate-400">ABA Mobile opens automatically. Tap the button if your browser blocks it.</p>}
             </div>
           </section>
         </div>
