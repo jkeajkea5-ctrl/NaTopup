@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { ADMIN_COOKIE, SESSION_SECONDS, createAdminSession, getActiveAdminSession, isAdminIpAllowed, getClientIp, hashAdminPassword, trustedAdminOrigin, verifyAdminPassword } from "../../../../lib/adminAuth";
 import { prisma } from "../../../../lib/prisma";
+import { checkRateLimit } from "../../../../lib/rateLimit";
+import { rateLimitHeaders } from "../../../../lib/requestSecurity";
 
 export const dynamic = "force-dynamic";
-const attempts = new Map<string, number[]>();
 
 export async function GET(request: Request) {
   const allowed = await isAdminIpAllowed(request);
@@ -15,10 +16,13 @@ export async function POST(request: Request) {
   if (!trustedAdminOrigin(request)) return NextResponse.json({ success: false, error: "Untrusted request origin." }, { status: 403 });
   if (!(await isAdminIpAllowed(request))) return NextResponse.json({ success: false, code: "ADMIN_IP_DENIED", error: "This network is not approved for admin access." }, { status: 403 });
   const ip = getClientIp(request);
-  const now = Date.now();
-  const recent = (attempts.get(ip) || []).filter((time) => time >= now - 60_000);
-  if (recent.length >= 10) return NextResponse.json({ success: false, error: "Too many attempts. Try again in a minute." }, { status: 429 });
-  recent.push(now); attempts.set(ip, recent);
+  const limit = await checkRateLimit(`admin-login:${ip}`, { windowMs: 60_000, maxRequests: 10 });
+  if (!limit.allowed) {
+    return NextResponse.json(
+      { success: false, error: limit.unavailable ? "Login security check unavailable." : "Too many attempts. Try again in a minute." },
+      { status: limit.unavailable ? 503 : 429, headers: rateLimitHeaders(limit) }
+    );
+  }
   const body = await request.json().catch(() => null);
   if (typeof body?.username !== "string" || typeof body?.password !== "string") return NextResponse.json({ success: false, error: "Username and password are required." }, { status: 400 });
   const identifier = body.username.trim();

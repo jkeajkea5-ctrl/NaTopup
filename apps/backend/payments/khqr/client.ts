@@ -12,7 +12,8 @@ import { KhqrGenerateInput, KhqrGenerateOutput, KhqrVerifyInput, KhqrVerifyOutpu
 export function verifiedPaymentMatches(
   verification: KhqrVerifyOutput,
   expectedAmount: number,
-  expectedCurrency: string
+  expectedCurrency: string,
+  expectedTransactionId?: string | null
 ): boolean {
   return (
     verification.paid === true &&
@@ -20,7 +21,8 @@ export function verifiedPaymentMatches(
     Number.isFinite(verification.paidAmount) &&
     Math.abs(verification.paidAmount - expectedAmount) <= 0.01 &&
     typeof verification.currency === "string" &&
-    verification.currency.trim().toUpperCase() === expectedCurrency.trim().toUpperCase()
+    verification.currency.trim().toUpperCase() === expectedCurrency.trim().toUpperCase() &&
+    (!expectedTransactionId || verification.transactionId === expectedTransactionId)
   );
 }
 

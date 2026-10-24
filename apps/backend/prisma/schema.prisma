@@ -183,6 +183,8 @@ model Order {
   id                   String        @id @default(auto()) @map("_id") @db.ObjectId
   publicOrderId        String        @unique // e.g. TP-8K9F2A1M
   publicLookupToken    String        // Secure token for customer check-order access
+  checkoutRequestId    String?       @unique // Browser idempotency key for duplicate submission protection
+  checkoutRequestHash  String?       // Binds the idempotency key to the original order input
   userId               String?       @db.ObjectId
   status               String        @default("AWAITING_PAYMENT")
   
@@ -225,6 +227,19 @@ model Order {
 
   @@index([status])
   @@index([createdAt])
+}
+
+model ApiRateLimit {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  key         String
+  windowStart DateTime
+  count       Int      @default(1)
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([key, windowStart])
+  @@index([expiresAt])
 }
 
 model Payment {

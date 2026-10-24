@@ -1,22 +1,46 @@
 import { NextResponse } from "next/server";
 import { CreateOrderRequestSchema } from "@topup/shared";
 import { checkRateLimit } from "../../../lib/rateLimit";
+import {
+  getCheckoutIdempotencyKey,
+  getClientIp,
+  hashCheckoutRequest,
+  rateLimitHeaders,
+} from "../../../lib/requestSecurity";
 import { orderService } from "../../../services/OrderService";
 
 export async function POST(request: Request) {
   try {
-    const ip = request.headers.get("x-forwarded-for") || "127.0.0.1";
-    const limit = checkRateLimit(`order-create-${ip}`, { windowMs: 60000, maxRequests: 20 });
-    if (!limit.allowed) {
+    const ip = getClientIp(request);
+    const minuteLimit = await checkRateLimit(`order-create:minute:${ip}`, { windowMs: 60000, maxRequests: 6 });
+    if (!minuteLimit.allowed) {
       return NextResponse.json(
         {
           success: false,
           error: {
             code: "RATE_LIMIT_EXCEEDED",
-            message: "Too many orders created. Please slow down.",
+            message: minuteLimit.unavailable
+              ? "Order security check is temporarily unavailable. Please try again."
+              : "Too many orders created. Please slow down.",
           },
         },
-        { status: 429 }
+        { status: minuteLimit.unavailable ? 503 : 429, headers: rateLimitHeaders(minuteLimit) }
+      );
+    }
+
+    const hourLimit = await checkRateLimit(`order-create:hour:${ip}`, { windowMs: 3600000, maxRequests: 30 });
+    if (!hourLimit.allowed) {
+      return NextResponse.json(
+        { success: false, error: { code: "RATE_LIMIT_EXCEEDED", message: "Order creation limit reached. Please try again later." } },
+        { status: hourLimit.unavailable ? 503 : 429, headers: rateLimitHeaders(hourLimit) }
+      );
+    }
+
+    const checkoutRequestId = getCheckoutIdempotencyKey(request);
+    if (!checkoutRequestId) {
+      return NextResponse.json(
+        { success: false, error: { code: "IDEMPOTENCY_KEY_REQUIRED", message: "A valid checkout request key is required." } },
+        { status: 400 }
       );
     }
 
@@ -43,6 +67,8 @@ export async function POST(request: Request) {
       clientIp: ip,
       customerEmail: parsed.data.customerEmail,
       customerPhone: parsed.data.customerPhone,
+      checkoutRequestId,
+      checkoutRequestHash: hashCheckoutRequest(parsed.data),
     });
 
     return NextResponse.json({

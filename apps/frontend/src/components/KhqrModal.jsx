@@ -18,6 +18,7 @@ import { fetchOrderStatus } from "../services/api";
 
 export const KhqrModal = ({
   publicOrderId,
+  lookupToken,
   totalUsd,
   totalKhr,
   qrPayload,
@@ -87,7 +88,7 @@ export const KhqrModal = ({
       if (inFlight || cancelled) return;
       inFlight = true;
       try {
-        const data = await fetchOrderStatus(publicOrderId);
+        const data = await fetchOrderStatus(publicOrderId, lookupToken);
         if (cancelled) return;
         if (data.paymentStatus === "PAID" || ["PAID", "FULFILMENT_QUEUED", "PROCESSING", "DELIVERED"].includes(data.status)) {
           setPaymentStatus("PAID");
@@ -108,7 +109,7 @@ export const KhqrModal = ({
       cancelled = true;
       clearInterval(timer);
     };
-  }, [isOpen, publicOrderId, paymentStatus]);
+  }, [isOpen, publicOrderId, lookupToken, paymentStatus]);
 
   useEffect(() => {
     if (!isOpen || paymentStatus !== "PAID") return;

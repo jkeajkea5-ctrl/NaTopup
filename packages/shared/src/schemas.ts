@@ -1,9 +1,15 @@
 import { z } from "zod";
 import { Currency, OrderStatus, PaymentStatus, PricingStrategy, SupplierCode } from "./enums";
 
+const PlayerFieldsSchema = z.record(z.string().trim().min(1).max(128)).superRefine((fields, ctx) => {
+  const entries = Object.entries(fields);
+  if (entries.length > 12) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Too many player fields" });
+  if (entries.some(([key]) => key.length > 64)) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Player field name is too long" });
+});
+
 export const PlayerCheckRequestSchema = z.object({
-  gameSlug: z.string().min(1),
-  fields: z.record(z.string().min(1)),
+  gameSlug: z.string().trim().min(1).max(64),
+  fields: PlayerFieldsSchema,
 });
 
 export type PlayerCheckRequest = z.infer<typeof PlayerCheckRequestSchema>;
@@ -18,13 +24,13 @@ export const PlayerCheckResponseSchema = z.object({
 export type PlayerCheckResponse = z.infer<typeof PlayerCheckResponseSchema>;
 
 export const CreateOrderRequestSchema = z.object({
-  gameSlug: z.string().min(1),
-  productId: z.string().min(1),
-  playerData: z.record(z.string().min(1)),
+  gameSlug: z.string().trim().min(1).max(64),
+  productId: z.string().trim().min(1).max(128),
+  playerData: PlayerFieldsSchema,
   currency: z.nativeEnum(Currency).default(Currency.USD),
-  clientIp: z.string().optional(),
-  customerEmail: z.string().email().optional(),
-  customerPhone: z.string().optional(),
+  clientIp: z.string().max(64).optional(),
+  customerEmail: z.string().email().max(254).optional(),
+  customerPhone: z.string().max(32).optional(),
 });
 
 export type CreateOrderRequest = z.infer<typeof CreateOrderRequestSchema>;

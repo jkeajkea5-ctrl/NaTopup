@@ -5,6 +5,8 @@ import { inMemoryOrders, orderService } from "@/services/OrderService";
 import { khqrClient, verifiedPaymentMatches } from "@/payments/khqr/client";
 import { fulfilmentService } from "@/services/FulfilmentService";
 import { logger } from "@/lib/logger";
+import { checkRateLimit } from "@/lib/rateLimit";
+import { getClientIp, getOrderLookupToken, rateLimitHeaders, verifyOrderLookupToken } from "@/lib/requestSecurity";
 
 const lastCheckMap = new Map<string, number>();
 
@@ -16,6 +18,14 @@ export async function GET(
 ) {
   try {
     const { publicId } = params;
+
+    const limit = await checkRateLimit(`order-status:${getClientIp(request)}:${publicId}`, { windowMs: 60000, maxRequests: 30 });
+    if (!limit.allowed) {
+      return NextResponse.json(
+        { success: false, error: { message: "Too many status checks. Please wait." } },
+        { status: limit.unavailable ? 503 : 429, headers: rateLimitHeaders(limit) }
+      );
+    }
 
     let order: any = await safeDbQuery(
       () =>
@@ -57,6 +67,13 @@ export async function GET(
       );
     }
 
+    if (!verifyOrderLookupToken(getOrderLookupToken(request), order.publicLookupToken || "")) {
+      return NextResponse.json(
+        { success: false, error: { message: "Order not found" } },
+        { status: 404 }
+      );
+    }
+
     const now = new Date();
 
     // If order is awaiting payment, poll Check Transaction V2 no more than
@@ -79,7 +96,12 @@ export async function GET(
 
           if (
             order.payment &&
-            verifiedPaymentMatches(verifyResult, order.payment.amount, order.payment.currency)
+            verifiedPaymentMatches(
+              verifyResult,
+              order.payment.amount,
+              order.payment.currency,
+              order.payment.providerTransactionId
+            )
           ) {
             logger.info("Payment confirmed via Check Transaction V2 polling", {
               publicOrderId: publicId,

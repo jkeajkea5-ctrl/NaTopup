@@ -66,7 +66,7 @@ export class ReconciliationService {
         });
 
         if (verifyResult.paid) {
-          if (!verifiedPaymentMatches(verifyResult, payment.amount, payment.currency)) {
+          if (!verifiedPaymentMatches(verifyResult, payment.amount, payment.currency, payment.providerTransactionId)) {
             logger.error("Reconciliation rejected mismatched payment details", {
               paymentId: payment.id,
               orderId: payment.order.publicOrderId,

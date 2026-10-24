@@ -1,22 +1,25 @@
 import { NextResponse } from "next/server";
 import { PlayerCheckRequestSchema } from "@topup/shared";
 import { checkRateLimit } from "../../../../lib/rateLimit";
+import { getClientIp, rateLimitHeaders } from "../../../../lib/requestSecurity";
 import { supplierManager } from "../../../../suppliers/supplierManager";
 
 export async function POST(request: Request) {
   try {
-    const ip = request.headers.get("x-forwarded-for") || "127.0.0.1";
-    const limit = checkRateLimit(`player-check-${ip}`, { windowMs: 60000, maxRequests: 30 });
+    const ip = getClientIp(request);
+    const limit = await checkRateLimit(`player-check:minute:${ip}`, { windowMs: 60000, maxRequests: 20 });
     if (!limit.allowed) {
       return NextResponse.json(
         {
           success: false,
           error: {
             code: "RATE_LIMIT_EXCEEDED",
-            message: "Too many player verification requests. Please wait a moment.",
+            message: limit.unavailable
+              ? "Player verification security check is temporarily unavailable."
+              : "Too many player verification requests. Please wait a moment.",
           },
         },
-        { status: 429 }
+        { status: limit.unavailable ? 503 : 429, headers: rateLimitHeaders(limit) }
       );
     }
 

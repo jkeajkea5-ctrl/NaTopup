@@ -9,7 +9,7 @@ import {
   Clock,
   RefreshCw,
 } from "lucide-react";
-import { fetchOrderDetail, fetchOrderStatus } from "../services/api";
+import { fetchOrderDetail, fetchOrderStatus, getStoredOrderLookupToken } from "../services/api";
 import { OrderTimeline } from "../components/OrderTimeline";
 import { SuccessInvoiceModal } from "../components/SuccessInvoiceModal";
 
@@ -19,6 +19,7 @@ export const CheckOrderPage = () => {
   const initialOrderId = searchParams.get("orderId") || "";
 
   const [orderCode, setOrderCode] = useState(initialOrderId);
+  const [lookupToken, setLookupToken] = useState(() => initialOrderId ? getStoredOrderLookupToken(initialOrderId) : "");
   const [isLoading, setIsLoading] = useState(false);
   const [orderData, setOrderData] = useState(null);
   const [statusData, setStatusData] = useState(null);
@@ -67,20 +68,22 @@ export const CheckOrderPage = () => {
     }
   };
 
-  const loadOrder = async (codeToSearch) => {
+  const loadOrder = async (codeToSearch, suppliedToken = "") => {
     if (!codeToSearch || !codeToSearch.trim()) return;
     const cleanCode = codeToSearch.trim().toUpperCase();
+    const secureToken = suppliedToken.trim() || getStoredOrderLookupToken(cleanCode);
 
     setIsLoading(true);
     setError(null);
 
     try {
       const [detail, status] = await Promise.all([
-        fetchOrderDetail(cleanCode),
-        fetchOrderStatus(cleanCode),
+        fetchOrderDetail(cleanCode, secureToken),
+        fetchOrderStatus(cleanCode, secureToken),
       ]);
       setOrderData(detail);
       setStatusData(status);
+      setLookupToken(secureToken);
       setSearchParams({ orderId: cleanCode });
     } catch (err) {
       setError(err.message || "រកមិនឃើញការបញ្ជាទិញនេះទេ។ សូមពិនិត្យមើលលេខកូដបញ្ជាទិញរបស់អ្នកឡើងវិញ!");
@@ -93,7 +96,7 @@ export const CheckOrderPage = () => {
 
   useEffect(() => {
     if (initialOrderId) {
-      loadOrder(initialOrderId);
+      loadOrder(initialOrderId, getStoredOrderLookupToken(initialOrderId));
     }
   }, [initialOrderId]);
 
@@ -103,7 +106,7 @@ export const CheckOrderPage = () => {
 
     const interval = setInterval(async () => {
       try {
-        const updatedStatus = await fetchOrderStatus(orderData.publicOrderId);
+        const updatedStatus = await fetchOrderStatus(orderData.publicOrderId, lookupToken);
         setStatusData(updatedStatus);
       } catch {
         // Retry
@@ -111,11 +114,11 @@ export const CheckOrderPage = () => {
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [orderData, statusData]);
+  }, [orderData, statusData, lookupToken]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    loadOrder(orderCode);
+    loadOrder(orderCode, lookupToken);
   };
 
   const localizedTimeline = statusData?.timeline?.map((item) => ({
@@ -150,8 +153,8 @@ export const CheckOrderPage = () => {
       </div>
 
       {/* Search Bar */}
-      <form onSubmit={handleSubmit} className="relative max-w-xl mx-auto flex flex-col min-[430px]:flex-row min-[430px]:items-center gap-2">
-        <div className="relative flex-1">
+      <form onSubmit={handleSubmit} className="relative max-w-xl mx-auto grid grid-cols-1 min-[430px]:grid-cols-[1fr_auto] gap-2">
+        <div className="relative">
           <Search className="w-4 h-4 text-brand-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
@@ -161,10 +164,18 @@ export const CheckOrderPage = () => {
             className="w-full pl-10 pr-4 py-3 rounded-button text-sm bg-brand-surface border border-brand-border focus:border-brand-violet focus:outline-none focus:ring-2 focus:ring-brand-violet/20 font-mono tracking-wide"
           />
         </div>
+        <input
+          type="password"
+          value={lookupToken}
+          onChange={(e) => setLookupToken(e.target.value)}
+          placeholder="Private order token (only on another device)"
+          autoComplete="off"
+          className="w-full px-4 py-3 rounded-button text-sm bg-brand-surface border border-brand-border focus:border-brand-violet focus:outline-none focus:ring-2 focus:ring-brand-violet/20 font-mono min-[430px]:col-start-1"
+        />
         <button
           type="submit"
           disabled={isLoading || !orderCode.trim()}
-          className="gradient-button w-full min-[430px]:w-auto justify-center text-white px-6 py-3 rounded-button font-semibold text-sm shadow-soft hover:opacity-95 active:scale-98 transition-all flex items-center gap-2"
+          className="gradient-button w-full min-[430px]:w-auto min-[430px]:row-start-1 min-[430px]:row-span-2 min-[430px]:col-start-2 justify-center text-white px-6 py-3 rounded-button font-semibold text-sm shadow-soft hover:opacity-95 active:scale-98 transition-all flex items-center gap-2"
         >
           {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "ស្វែងរក"}
         </button>

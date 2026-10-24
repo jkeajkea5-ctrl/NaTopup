@@ -1,6 +1,50 @@
 import { GameItem, PromotionItem, ProductItem, GameField, OrderStatusData, OrderDetailData } from "../types";
 
 const API_BASE = "/api";
+const ORDER_TOKEN_STORAGE_KEY = "na-topup:order-lookup-tokens:v1";
+
+async function readJsonResponse(res: Response): Promise<any> {
+  const text = await res.text();
+  try {
+    return text ? JSON.parse(text) : {};
+  } catch {
+    throw new Error(res.ok ? "The server returned an invalid response." : "The server is temporarily unavailable. Please try again.");
+  }
+}
+
+function readOrderTokens(): Record<string, string> {
+  if (typeof window === "undefined") return {};
+  try {
+    const value = JSON.parse(window.localStorage.getItem(ORDER_TOKEN_STORAGE_KEY) || "{}");
+    return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+  } catch {
+    return {};
+  }
+}
+
+export function getStoredOrderLookupToken(publicOrderId: string): string {
+  return readOrderTokens()[publicOrderId.trim().toUpperCase()] || "";
+}
+
+export function storeOrderLookupToken(publicOrderId: string, lookupToken: string): void {
+  if (typeof window === "undefined" || !publicOrderId || !lookupToken) return;
+  try {
+    const tokens = readOrderTokens();
+    tokens[publicOrderId.trim().toUpperCase()] = lookupToken;
+    // Keep only the newest 50 browser entries to avoid unbounded local storage.
+    const recent = Object.fromEntries(Object.entries(tokens).slice(-50));
+    window.localStorage.setItem(ORDER_TOKEN_STORAGE_KEY, JSON.stringify(recent));
+  } catch {
+    // Storage restrictions must not turn a successfully created order into a
+    // browser-visible checkout failure. The in-memory caller still has token.
+  }
+}
+
+function secureOrderHeaders(publicOrderId: string, lookupToken?: string): HeadersInit {
+  const token = lookupToken || getStoredOrderLookupToken(publicOrderId);
+  if (!token) throw new Error("This order needs its private lookup token. Open it from the browser used to place the order.");
+  return { "X-Order-Lookup-Token": token };
+}
 
 async function adminJson(path: string, options?: RequestInit) {
   const res = await fetch(`${API_BASE}${path}`, { credentials: "include", ...options });
@@ -93,7 +137,7 @@ export async function createOrder(data: {
   playerData: Record<string, string>;
   customerEmail?: string;
   customerPhone?: string;
-}): Promise<{
+}, idempotencyKey: string): Promise<{
   publicOrderId: string;
   lookupToken: string;
   status: string;
@@ -103,17 +147,18 @@ export async function createOrder(data: {
 }> {
   const res = await fetch(`${API_BASE}/orders`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "Idempotency-Key": idempotencyKey },
     body: JSON.stringify(data),
   });
-  const json = await res.json();
+  const json = await readJsonResponse(res);
   if (!res.ok || !json.success) {
     throw new Error(json.error?.message || "Failed to create order");
   }
+  storeOrderLookupToken(json.data.publicOrderId, json.data.lookupToken);
   return json.data;
 }
 
-export async function initKhqrPayment(publicOrderId: string, provider: "ANJAKPAY" | "KHQRPAY_ABA_V2" = "KHQRPAY_ABA_V2"): Promise<{
+export async function initKhqrPayment(publicOrderId: string, provider: "ANJAKPAY" | "KHQRPAY_ABA_V2" = "KHQRPAY_ABA_V2", lookupToken?: string): Promise<{
   paymentId: string;
   publicOrderId: string;
   qrString: string;
@@ -131,28 +176,28 @@ export async function initKhqrPayment(publicOrderId: string, provider: "ANJAKPAY
 }> {
   const res = await fetch(`${API_BASE}/orders/${publicOrderId}/payment`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...secureOrderHeaders(publicOrderId, lookupToken) },
     body: JSON.stringify({ provider }),
   });
-  const json = await res.json();
+  const json = await readJsonResponse(res);
   if (!res.ok || !json.success) {
     throw new Error(json.error?.message || "Failed to generate KHQR");
   }
   return json.data;
 }
 
-export async function fetchOrderStatus(publicOrderId: string): Promise<OrderStatusData> {
-  const res = await fetch(`${API_BASE}/orders/${publicOrderId}/status`, { cache: "no-store" });
-  const json = await res.json();
+export async function fetchOrderStatus(publicOrderId: string, lookupToken?: string): Promise<OrderStatusData> {
+  const res = await fetch(`${API_BASE}/orders/${publicOrderId}/status`, { cache: "no-store", headers: secureOrderHeaders(publicOrderId, lookupToken) });
+  const json = await readJsonResponse(res);
   if (!res.ok || !json.success) {
     throw new Error(json.error?.message || "Failed to poll status");
   }
   return json.data;
 }
 
-export async function fetchOrderDetail(publicOrderId: string): Promise<OrderDetailData> {
-  const res = await fetch(`${API_BASE}/orders/${publicOrderId}`);
-  const json = await res.json();
+export async function fetchOrderDetail(publicOrderId: string, lookupToken?: string): Promise<OrderDetailData> {
+  const res = await fetch(`${API_BASE}/orders/${publicOrderId}`, { headers: secureOrderHeaders(publicOrderId, lookupToken) });
+  const json = await readJsonResponse(res);
   if (!res.ok || !json.success) {
     throw new Error(json.error?.message || "Failed to fetch order");
   }

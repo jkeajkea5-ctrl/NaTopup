@@ -12,6 +12,7 @@
     "prisma:db:push": "prisma db push",
     "prisma:seed": "tsx prisma/seed.ts",
     "admin:invite": "tsx scripts/create-admin-invite.ts",
+    "security:indexes": "tsx scripts/apply-security-indexes.ts",
     "cron:setup": "tsx scripts/setup-cron-job-org.ts",
     "test:mongo": "tsx scripts/test-mongo.ts",
     "test": "tsx --test tests/*.test.ts",

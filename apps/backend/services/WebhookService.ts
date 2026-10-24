@@ -211,7 +211,7 @@ export class WebhookService {
       transactionId: order.payment.providerTransactionId || order.publicOrderId,
       provider: order.payment.provider,
     });
-    if (!verifiedPaymentMatches(verification, order.payment.amount, order.payment.currency)) {
+    if (!verifiedPaymentMatches(verification, order.payment.amount, order.payment.currency, order.payment.providerTransactionId)) {
       const errorMsg = "Authenticated payment confirmation is pending or does not match the order";
       logger.error("KHQR callback rejected by provider confirmation", {
         orderId: order.publicOrderId,

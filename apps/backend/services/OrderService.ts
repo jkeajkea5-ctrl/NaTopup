@@ -4,6 +4,7 @@ import { logger } from "../lib/logger";
 import { prisma, safeDbQuery } from "../lib/prisma";
 import { FALLBACK_GAMES } from "../lib/fallbackData";
 import { generateLookupToken, generatePublicOrderId } from "../lib/security";
+import { verifyOrderLookupToken } from "../lib/requestSecurity";
 import { supplierManager } from "../suppliers/supplierManager";
 import { telegramAlertService } from "./TelegramAlertService";
 
@@ -25,7 +26,19 @@ export class OrderService {
     clientIp?: string;
     customerEmail?: string;
     customerPhone?: string;
+    checkoutRequestId?: string;
+    checkoutRequestHash?: string;
   }) {
+    const existingOrder = input.checkoutRequestId
+      ? await prisma.order.findUnique({ where: { checkoutRequestId: input.checkoutRequestId } }).catch(() => null)
+      : null;
+    if (existingOrder) {
+      if (existingOrder.checkoutRequestHash !== input.checkoutRequestHash) {
+        throw new Error("This checkout request key was already used for different order details.");
+      }
+      return existingOrder;
+    }
+
     // 1. Fetch the product. Live G2Bulk catalogue IDs (for example,
     // "g2b_1942") are not Mongo ObjectIds, so never send them to Prisma's
     // id lookup.
@@ -192,12 +205,14 @@ export class OrderService {
     // 4. Create a durable order before accepting payment. Atlas may need more
     // than one second for a cold connection, so a short timeout must not turn
     // a real customer order into temporary server memory.
-    const order: any = await safeDbQuery(
-      () =>
-        prisma.order.create({
+    let order: any = null;
+    try {
+      order = await prisma.order.create({
           data: {
             publicOrderId,
             publicLookupToken,
+            checkoutRequestId: input.checkoutRequestId,
+            checkoutRequestHash: input.checkoutRequestHash,
             status: OrderStatus.AWAITING_PAYMENT,
             gameId: product.gameId,
             productId: product.id,
@@ -227,12 +242,25 @@ export class OrderService {
             game: true,
             product: true,
           },
-      }),
-      null,
-      5000
-    );
+      });
+    } catch (error: any) {
+      // A unique-key race is expected when a browser retries the exact same
+      // checkout. Do not trip the shared database circuit breaker for it.
+      if (error?.code !== "P2002" || !input.checkoutRequestId) throw error;
+    }
 
     if (!order) {
+      // A concurrent request with the same idempotency key may have won the
+      // unique insert. Return that exact order instead of creating a duplicate.
+      const concurrentOrder = input.checkoutRequestId
+        ? await prisma.order.findUnique({ where: { checkoutRequestId: input.checkoutRequestId } }).catch(() => null)
+        : null;
+      if (concurrentOrder) {
+        if (concurrentOrder.checkoutRequestHash !== input.checkoutRequestHash) {
+          throw new Error("This checkout request key was already used for different order details.");
+        }
+        return concurrentOrder;
+      }
       throw new Error("Order database is unavailable. Please try again shortly.");
     }
 
@@ -249,7 +277,7 @@ export class OrderService {
   /**
    * Retrieves order by publicOrderId, sanitizing internal costs and secrets.
    */
-  async getPublicOrder(publicOrderId: string) {
+  async getPublicOrder(publicOrderId: string, lookupToken: string) {
     let order: any = await safeDbQuery(
       () =>
         prisma.order.findUnique({
@@ -293,6 +321,7 @@ export class OrderService {
     }
 
     if (!order) return null;
+    if (!verifyOrderLookupToken(lookupToken, order.publicLookupToken || "")) return null;
 
     return {
       publicOrderId: order.publicOrderId,

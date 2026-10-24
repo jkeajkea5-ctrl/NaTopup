@@ -32,6 +32,11 @@ import {
 
 const SAVED_PLAYER_FIELDS_KEY = "na-topup:saved-player-fields:v1";
 
+function createCheckoutRequestId() {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  return `checkout-${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+}
+
 function getSavedPlayerFields(gameSlug, fields) {
   if (!gameSlug || typeof window === "undefined") return {};
 
@@ -124,6 +129,7 @@ export const GameDetailPage = () => {
   const verificationSequenceRef = useRef(0);
   const restoredPlayerSlugRef = useRef(null);
   const autoOpenedAbaPaymentRef = useRef(null);
+  const checkoutRequestIdRef = useRef(null);
 
   // Dynamic player fields state
   const [playerFields, setPlayerFields] = useState({});
@@ -168,6 +174,7 @@ export const GameDetailPage = () => {
     setPaymentNotice(null);
     setPaymentSession(null);
     setSuccessInvoice(null);
+    checkoutRequestIdRef.current = null;
     return () => {
       clearTimeout(toastTimerRef.current);
       verificationSequenceRef.current += 1;
@@ -181,10 +188,10 @@ export const GameDetailPage = () => {
     setPlayerFields(getSavedPlayerFields(loadedGame.slug, loadedGame.fields));
   }, [data?.game, slug]);
 
-  const showSuccessfulInvoice = useCallback(async (publicOrderId, status) => {
+  const showSuccessfulInvoice = useCallback(async (publicOrderId, status, lookupToken) => {
     closeProviderCheckout();
     try {
-      const order = await fetchOrderDetail(publicOrderId);
+      const order = await fetchOrderDetail(publicOrderId, lookupToken);
       setSuccessInvoice({ order, status });
       setPaymentSession(null);
       setSubmitError(null);
@@ -205,10 +212,10 @@ export const GameDetailPage = () => {
       setPaymentNotice("Payment submitted. We are verifying it and preparing your invoice.");
 
       try {
-        const status = await fetchOrderStatus(paymentSession.publicOrderId);
+        const status = await fetchOrderStatus(paymentSession.publicOrderId, paymentSession.lookupToken);
         if (status.paymentStatus === "PAID" ||
             ["PAID", "FULFILMENT_QUEUED", "PROCESSING", "DELIVERED"].includes(status.status)) {
-          await showSuccessfulInvoice(paymentSession.publicOrderId, status.status);
+          await showSuccessfulInvoice(paymentSession.publicOrderId, status.status, paymentSession.lookupToken);
         }
       } catch {
         // The regular status poll will retry until the payment session expires.
@@ -227,12 +234,12 @@ export const GameDetailPage = () => {
       if (cancelled || inFlight) return;
       inFlight = true;
       try {
-        const status = await fetchOrderStatus(paymentSession.publicOrderId);
+        const status = await fetchOrderStatus(paymentSession.publicOrderId, paymentSession.lookupToken);
         if (cancelled) return;
         if (status.paymentStatus === "PAID" ||
             ["PAID", "FULFILMENT_QUEUED", "PROCESSING", "DELIVERED"].includes(status.status)) {
           clearInterval(timer);
-          await showSuccessfulInvoice(paymentSession.publicOrderId, status.status);
+          await showSuccessfulInvoice(paymentSession.publicOrderId, status.status, paymentSession.lookupToken);
         } else if (status.isTerminal) {
           clearInterval(timer);
           closeProviderCheckout();
@@ -330,6 +337,7 @@ export const GameDetailPage = () => {
   const products = data?.products || [];
 
   const handleFieldChange = (key, value) => {
+    checkoutRequestIdRef.current = null;
     verificationSequenceRef.current += 1;
     setIsValidatingPlayer(false);
     setPlayerFields((prev) => ({ ...prev, [key]: value }));
@@ -381,6 +389,7 @@ export const GameDetailPage = () => {
       ];
 
   const handleSelectPackage = (product) => {
+    checkoutRequestIdRef.current = null;
     setSelectedProduct(product);
     setPackageAlertMessage(null);
     setSubmitError(null);
@@ -455,15 +464,16 @@ export const GameDetailPage = () => {
     };
 
     try {
+      if (!checkoutRequestIdRef.current) checkoutRequestIdRef.current = createCheckoutRequestId();
       const orderRes = await createOrder({
         gameSlug: game.slug,
         productId: selectedProduct.id,
         playerData: playerFields,
-      });
+      }, checkoutRequestIdRef.current);
 
       let paymentRes;
       try {
-        paymentRes = await initKhqrPayment(orderRes.publicOrderId, paymentProvider);
+        paymentRes = await initKhqrPayment(orderRes.publicOrderId, paymentProvider, orderRes.lookupToken);
       } catch (err) {
         showPaymentError(err.message || "Unable to generate the payment QR code. Please try again.");
         throw err;
@@ -472,7 +482,7 @@ export const GameDetailPage = () => {
       if (paymentProvider === "KHQRPAY_ABA_V2") {
         // Display the KHQR PAY QR immediately in our checkout popup. The
         // modal polls the order status while the customer pays.
-        setPaymentSession({ ...paymentRes, publicOrderId: orderRes.publicOrderId });
+        setPaymentSession({ ...paymentRes, publicOrderId: orderRes.publicOrderId, lookupToken: orderRes.lookupToken });
       } else {
         try {
           await openProviderCheckout(
@@ -480,9 +490,9 @@ export const GameDetailPage = () => {
           async () => {
             closeProviderCheckout();
             try {
-              const status = await fetchOrderStatus(orderRes.publicOrderId);
+              const status = await fetchOrderStatus(orderRes.publicOrderId, orderRes.lookupToken);
               if (status.paymentStatus === "PAID" || ["PAID", "FULFILMENT_QUEUED", "PROCESSING", "DELIVERED"].includes(status.status)) {
-                await showSuccessfulInvoice(orderRes.publicOrderId, status.status);
+                await showSuccessfulInvoice(orderRes.publicOrderId, status.status, orderRes.lookupToken);
               }
             } catch {
               // The existing 3-second poll remains authoritative and will retry.
@@ -498,7 +508,7 @@ export const GameDetailPage = () => {
           showPaymentError(err.message || "Unable to open secure payment. Please try again.");
           throw err;
         }
-        setPaymentSession({ ...paymentRes, publicOrderId: orderRes.publicOrderId });
+        setPaymentSession({ ...paymentRes, publicOrderId: orderRes.publicOrderId, lookupToken: orderRes.lookupToken });
       }
       savePlayerFields(game.slug, game.fields, playerFields);
 

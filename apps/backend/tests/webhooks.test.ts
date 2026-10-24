@@ -68,6 +68,12 @@ test("requires authenticated payment amount and currency before fulfilment", () 
   assert.equal(verifiedPaymentMatches({
     paid: false, status: "PENDING", paidAmount: 3.7, currency: "USD",
   }, 3.7, "USD"), false);
+  assert.equal(verifiedPaymentMatches({
+    paid: true, status: "PAID", paidAmount: 3.7, currency: "USD", transactionId: "TX-WRONG",
+  }, 3.7, "USD", "TX-EXPECTED"), false);
+  assert.equal(verifiedPaymentMatches({
+    paid: true, status: "PAID", paidAmount: 3.7, currency: "USD", transactionId: "TX-EXPECTED",
+  }, 3.7, "USD", "TX-EXPECTED"), true);
 });
 
 test("infers the G2Bulk game required by its order status endpoint", () => {

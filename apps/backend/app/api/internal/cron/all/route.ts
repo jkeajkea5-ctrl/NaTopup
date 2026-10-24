@@ -3,6 +3,7 @@ import { config } from "../../../../../lib/config";
 import { verifyBearerToken } from "../../../../../lib/security";
 import { reconciliationService } from "../../../../../services/ReconciliationService";
 import { telegramAlertService } from "../../../../../services/TelegramAlertService";
+import { cleanupExpiredRateLimits } from "../../../../../lib/rateLimit";
 
 async function runAllReconciliation(request: Request) {
   if (!verifyBearerToken(request.headers.get("authorization"), config.cronSecret)) {
@@ -18,6 +19,7 @@ async function runAllReconciliation(request: Request) {
     const payments = await reconciliationService.reconcilePendingPayments();
     const fulfilments = await reconciliationService.reconcilePendingFulfilments();
     const telegram = await telegramAlertService.retryPendingOrderAlerts();
+    await cleanupExpiredRateLimits();
 
     return NextResponse.json({
       success: true,
