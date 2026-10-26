@@ -132,6 +132,14 @@
 .admin-security-status .admin-btn { min-height: 36px; }
 .admin-security .admin-form-grid { grid-template-columns: 1fr 1fr; padding: 0; }
 .admin-security .admin-profile-card { grid-column: 1 / -1; }
+.admin-2fa-card { display: grid; gap: 16px; }
+.admin-2fa-card > .admin-card-title > svg { width: 48px; height: 48px; padding: 12px; border-radius: 14px; color: #68527f; background: #eee7f7; }
+.admin-2fa-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)) auto; gap: 12px; align-items: end; }
+.admin-2fa-setup { display: grid; gap: 13px; justify-items: start; }
+.admin-2fa-setup > img { width: 220px; max-width: 100%; border: 1px solid var(--admin-line); border-radius: 14px; }
+.admin-2fa-setup > p, .admin-recovery-codes > p { margin: 0; color: var(--admin-muted); font-size: 12px; }
+.admin-recovery-codes { display: grid; gap: 10px; }
+.admin-recovery-codes code { max-width: 360px; padding: 14px; white-space: pre-wrap; border: 1px solid var(--admin-line); border-radius: 12px; color: var(--admin-navy); background: #faf7fc; font-size: 13px; line-height: 1.7; }
 .admin-toolbar:has(~ .admin-payment-settings) { display: none; }
 .admin-payment-settings { padding: 18px; display: grid; gap: 18px; }
 .admin-payment-provider-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
@@ -297,6 +305,7 @@
   .admin-payment-settings { padding: 12px; }
   .admin-payment-actions { align-items: stretch; flex-direction: column; }
   .admin-payment-actions .admin-btn { width: 100%; }
+  .admin-2fa-controls { grid-template-columns: minmax(0, 1fr); }
   .admin-card-grid { padding: 14px; }
   .admin-order-row { grid-template-columns: minmax(0, 1fr); gap: 8px; }
   .admin-order-row strong { white-space: normal; }

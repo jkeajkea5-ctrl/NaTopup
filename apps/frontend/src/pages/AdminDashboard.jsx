@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import QRCode from "qrcode";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowUpRight, Boxes, CalendarDays, ClipboardCheck, Copy, Gamepad2, History, Images, Link2, LogOut,
@@ -188,6 +189,50 @@ function Editor({ editor, saving, error, onClose, onSave }) {
   </dialog>;
 }
 
+function TwoFactorCard({ enabled, onChanged }) {
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [code, setCode] = useState("");
+  const [setup, setSetup] = useState(null);
+  const [qrImage, setQrImage] = useState("");
+  const [recoveryCodes, setRecoveryCodes] = useState([]);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  async function start() {
+    setBusy(true); setError("");
+    try {
+      const result = await updateAdminSecurity({ action: "start-2fa", currentPassword });
+      setSetup(result); setQrImage(await QRCode.toDataURL(result.provisioningUri, { width: 220, margin: 1 })); setCurrentPassword("");
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  }
+  async function confirm() {
+    setBusy(true); setError("");
+    try {
+      const result = await updateAdminSecurity({ action: "confirm-2fa", code });
+      setRecoveryCodes(result.recoveryCodes || []); setSetup(null); setCode(""); await onChanged();
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  }
+  async function disable() {
+    setBusy(true); setError("");
+    try {
+      await updateAdminSecurity({ action: "disable-2fa", currentPassword, code });
+      setCurrentPassword(""); setCode(""); setRecoveryCodes([]); await onChanged();
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  }
+
+  return <section className="admin-card admin-2fa-card">
+    <div className="admin-card-title"><ShieldCheck /><div><h3>Two-factor authentication</h3><p>{enabled ? "Enabled for your administrator account" : "Protect login with an authenticator app"}</p></div></div>
+    {error && <p className="admin-alert error">{error}</p>}
+    {recoveryCodes.length > 0 ? <div className="admin-recovery-codes"><strong>Save these recovery codes now</strong><p>Each code works once. They will not be shown again.</p><code>{recoveryCodes.join("\n")}</code><button type="button" className="admin-btn secondary" onClick={() => navigator.clipboard?.writeText(recoveryCodes.join("\n"))}><Copy size={15} />Copy codes</button></div>
+    : setup ? <div className="admin-2fa-setup"><img src={qrImage} alt="Authenticator setup QR code" /><p>Scan this QR with your authenticator app, then enter its 6-digit code.</p><label className="admin-field">Manual setup key<input readOnly value={setup.manualKey} /></label><label className="admin-field">Authentication code<input value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))} inputMode="numeric" autoComplete="one-time-code" placeholder="123456" /></label><button type="button" className="admin-btn primary" disabled={busy || code.length !== 6} onClick={confirm}>{busy ? "Verifying…" : "Confirm & enable"}</button></div>
+    : enabled ? <div className="admin-2fa-controls"><label className="admin-field">Current password<input type="password" autoComplete="current-password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} /></label><label className="admin-field">Authenticator or recovery code<input value={code} onChange={(event) => setCode(event.target.value.toUpperCase())} autoComplete="one-time-code" /></label><button type="button" className="admin-btn secondary" disabled={busy || !currentPassword || !code} onClick={disable}>{busy ? "Disabling…" : "Disable 2FA"}</button></div>
+    : <div className="admin-2fa-controls"><label className="admin-field">Confirm current password<input type="password" autoComplete="current-password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} /></label><button type="button" className="admin-btn primary" disabled={busy || !currentPassword} onClick={start}>{busy ? "Preparing…" : "Set up authenticator"}</button></div>}
+  </section>;
+}
+
 function SecurityPanel() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -219,6 +264,7 @@ function SecurityPanel() {
     <div className="admin-form-grid">
       <form className="admin-card admin-form-card admin-profile-card" onSubmit={updateProfile}><Settings /><div><h3>My administrator account</h3><p>Change your username, email, or password. Confirm with your current password.</p></div><label className="admin-field">Username<input required value={profileForm.username} onChange={(e) => setProfileForm({ ...profileForm, username: e.target.value })} /></label><label className="admin-field">Email<input required type="email" value={profileForm.email} onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })} /></label><label className="admin-field">Current password<input required type="password" autoComplete="current-password" value={profileForm.currentPassword} onChange={(e) => setProfileForm({ ...profileForm, currentPassword: e.target.value })} /></label><label className="admin-field">New password <small>(leave blank to keep it)</small><input minLength={10} type="password" autoComplete="new-password" value={profileForm.newPassword} onChange={(e) => setProfileForm({ ...profileForm, newPassword: e.target.value })} /></label><button className="admin-btn primary">Update my account</button></form>
     </div>
+    <TwoFactorCard enabled={Boolean(data?.currentAdmin?.totpEnabled)} onChanged={refresh} />
     <section className="admin-card admin-invite"><div><Link2 /><h3>One-time secret URL</h3><p>The first visitor receives temporary IP access until the 30-minute link expires.</p></div><button className="admin-btn primary" onClick={createInvite}>Create 30-minute link</button>{invite && <div className="admin-copy"><input readOnly value={invite} /><button className="admin-icon-btn" onClick={() => navigator.clipboard?.writeText(invite)}><Copy size={17} /></button></div>}</section>
     <div className="admin-form-grid">
       <section className="admin-card"><h3>Admin accounts</h3><div className="admin-list">{data?.admins?.map((admin) => <div key={admin.id}><span><strong>{admin.username}</strong><small>{admin.email} · {admin.role}</small></span>{admin.role !== "SUPERADMIN" && <button onClick={() => action({ action: "toggle-admin", id: admin.id, isActive: !admin.isActive }, admin.isActive ? "Account disabled." : "Account enabled.")} className={admin.isActive ? "state-on" : "state-off"}>{admin.isActive ? "Active" : "Disabled"}</button>}</div>)}{!loading && data && !data.admins?.length && <Empty>No administrator accounts found.</Empty>}</div></section>

@@ -62,8 +62,9 @@ export function fetchAdminSession(): Promise<{ authenticated: boolean; allowed: 
   return adminJson("/admin/session");
 }
 
-export function loginAdmin(username: string, password: string) {
-  return adminJson("/admin/session", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username, password }) });
+export function loginAdmin(username: string, password: string, code = "", challenge = "") {
+  const body = challenge ? { challenge, code } : { username, password };
+  return adminJson("/admin/session", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 }
 
 export function logoutAdmin() {

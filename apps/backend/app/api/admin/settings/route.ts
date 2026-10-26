@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { ADMIN_COOKIE, SESSION_SECONDS, createAdminSession, getAdminSession, hashAdminPassword, isAdminIpRule, requireAdminWithIp, requireSuperAdmin, verifyAdminPassword } from "../../../../lib/adminAuth";
 import { prisma } from "../../../../lib/prisma";
 import { getPaymentProviderSettings, savePaymentProviderSettings } from "../../../../lib/paymentProviderSettings";
+import { consumeRecoveryCode, decryptTotpSecret, encryptTotpSecret, generateRecoveryCodes, generateTotpSecret, provisioningUri, verifyTotp } from "../../../../lib/twoFactor";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,7 @@ export async function GET(request: Request) {
   if (roleDenied) return roleDenied;
   try {
     const [admins, databaseAllowlist, paymentProviders] = await Promise.all([
-      prisma.adminUser.findMany({ orderBy: { createdAt: "asc" }, select: { id: true, username: true, email: true, role: true, isActive: true, createdAt: true, updatedAt: true } }),
+      prisma.adminUser.findMany({ orderBy: { createdAt: "asc" }, select: { id: true, username: true, email: true, role: true, isActive: true, totpEnabled: true, createdAt: true, updatedAt: true } }),
       prisma.adminIpAllowlist.findMany({ where: { OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] }, orderBy: { createdAt: "asc" }, select: { id: true, ipAddress: true, label: true, isActive: true, lastUsedAt: true, expiresAt: true, createdAt: true } }),
       getPaymentProviderSettings(),
     ]);
@@ -120,6 +121,33 @@ export async function POST(request: Request) {
     if (body?.action === "update-payment-providers") {
       const paymentProviders = await savePaymentProviderSettings(body.providers);
       return NextResponse.json({ success: true, data: { paymentProviders } });
+    }
+    if (body?.action === "start-2fa") {
+      const admin = await prisma.adminUser.findUnique({ where: { id: session!.id } });
+      if (!admin || !verifyAdminPassword(body.currentPassword, admin.passwordHash)) return error("The current password is incorrect.", 403);
+      if (admin.totpEnabled) return error("Two-factor authentication is already enabled.");
+      const secret = generateTotpSecret();
+      await prisma.adminUser.update({ where: { id: admin.id }, data: { totpSecret: encryptTotpSecret(secret), totpRecoveryCodes: null, totpLastUsedStep: null } });
+      return NextResponse.json({ success: true, data: { provisioningUri: provisioningUri(admin.username, secret), manualKey: secret } });
+    }
+    if (body?.action === "confirm-2fa") {
+      const admin = await prisma.adminUser.findUnique({ where: { id: session!.id } });
+      if (!admin?.totpSecret || admin.totpEnabled) return error("Start two-factor setup first.");
+      const step = verifyTotp(decryptTotpSecret(admin.totpSecret), body.code);
+      if (step === null) return error("The authentication code is invalid.", 401);
+      const recovery = generateRecoveryCodes();
+      await prisma.adminUser.update({ where: { id: admin.id }, data: { totpEnabled: true, totpLastUsedStep: String(step), totpRecoveryCodes: JSON.stringify(recovery.hashes) } });
+      return NextResponse.json({ success: true, data: { enabled: true, recoveryCodes: recovery.codes } });
+    }
+    if (body?.action === "disable-2fa") {
+      const admin = await prisma.adminUser.findUnique({ where: { id: session!.id } });
+      if (!admin || !verifyAdminPassword(body.currentPassword, admin.passwordHash)) return error("The current password is incorrect.", 403);
+      if (!admin.totpEnabled || !admin.totpSecret) return error("Two-factor authentication is not enabled.");
+      const step = verifyTotp(decryptTotpSecret(admin.totpSecret), body.code);
+      const recovery = step === null ? consumeRecoveryCode(admin.totpRecoveryCodes, body.code) : null;
+      if (step === null && !recovery) return error("The authentication or recovery code is invalid.", 401);
+      await prisma.adminUser.update({ where: { id: admin.id }, data: { totpEnabled: false, totpSecret: null, totpRecoveryCodes: null, totpLastUsedStep: null } });
+      return NextResponse.json({ success: true, data: { enabled: false } });
     }
     return error("Unknown security setting action.");
   } catch (err: any) {

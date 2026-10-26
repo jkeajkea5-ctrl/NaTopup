@@ -25,6 +25,10 @@ model AdminUser {
   passwordHash String
   role         String    @default("ADMIN")
   isActive     Boolean   @default(true)
+  totpEnabled       Boolean? @default(false)
+  totpSecret        String?
+  totpRecoveryCodes String?
+  totpLastUsedStep  String?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
   auditLogs    AuditLog[]
