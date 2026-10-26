@@ -825,6 +825,7 @@ export const GameDetailPage = () => {
                     <img src="/aba-khqr.svg" alt="ABA KHQR" className="w-10 h-10 rounded-xl object-contain shadow-xs flex-shrink-0 bg-white" />
                     <div className="text-left">
                       <h4 className="font-heading font-bold text-sm text-[#005E7B] leading-tight">{option.displayName}</h4>
+                      <p className="mt-0.5 text-[11px] font-medium leading-tight text-[#2E79A6]">Scan to pay with any banking app</p>
                     </div>
                   </div>
                   {paymentProvider === option.id && <div className="w-5 h-5 rounded-full bg-[#005E7B] text-white flex items-center justify-center shadow-xs flex-shrink-0"><Check className="w-3.5 h-3.5 stroke-[3]" /></div>}
