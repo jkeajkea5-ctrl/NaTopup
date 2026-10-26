@@ -132,6 +132,18 @@
 .admin-security-status .admin-btn { min-height: 36px; }
 .admin-security .admin-form-grid { grid-template-columns: 1fr 1fr; padding: 0; }
 .admin-security .admin-profile-card { grid-column: 1 / -1; }
+.admin-toolbar:has(~ .admin-payment-settings) { display: none; }
+.admin-payment-settings { padding: 18px; display: grid; gap: 18px; }
+.admin-payment-provider-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.admin-payment-provider-card { display: grid; gap: 16px; }
+.admin-payment-provider-logo { width: 52px; height: 52px; padding: 7px; border: 1px solid var(--admin-line-soft); border-radius: 14px; object-fit: contain; background: #fff; }
+.admin-payment-toggle { min-height: 66px; padding: 12px 14px; display: flex; align-items: center; gap: 12px; border: 1px solid var(--admin-line-soft); border-radius: 14px; cursor: pointer; background: #faf7fc; }
+.admin-payment-toggle input { width: 21px; height: 21px; flex: 0 0 auto; accent-color: #8e78d8; }
+.admin-payment-toggle span { display: grid; gap: 3px; }
+.admin-payment-toggle strong { color: var(--admin-navy); font-size: 13px; }
+.admin-payment-toggle small { color: var(--admin-muted); font-size: 11px; }
+.admin-payment-actions { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.admin-payment-actions p { margin: 0; color: var(--admin-muted); font-size: 12px; }
 .admin-form-card { display: grid; }
 .admin-form-card > svg { color: #2b72c8; }
 .admin-form-card .admin-field { width: 100%; }
@@ -281,6 +293,10 @@
   .admin-toolbar .admin-actions { align-items: flex-end; }
   .admin-toolbar .admin-field { flex: 1; }
   .admin-card-grid, .admin-security .admin-form-grid { grid-template-columns: minmax(0, 1fr); }
+  .admin-payment-provider-grid { grid-template-columns: minmax(0, 1fr); }
+  .admin-payment-settings { padding: 12px; }
+  .admin-payment-actions { align-items: stretch; flex-direction: column; }
+  .admin-payment-actions .admin-btn { width: 100%; }
   .admin-card-grid { padding: 14px; }
   .admin-order-row { grid-template-columns: minmax(0, 1fr); gap: 8px; }
   .admin-order-row strong { white-space: normal; }

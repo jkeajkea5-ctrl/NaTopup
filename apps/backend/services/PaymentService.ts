@@ -35,7 +35,7 @@ export class PaymentService {
     const now = new Date();
 
     // If active unexpired payment exists, return it
-    if (order.payment && order.payment.status === PaymentStatus.PENDING && order.payment.qrExpiresAt > now) {
+    if (order.payment && order.payment.provider === paymentProvider && order.payment.status === PaymentStatus.PENDING && order.payment.qrExpiresAt > now) {
       if (!order.payment.providerTransactionId) {
         const repairedPayment = await safeDbQuery(
           () =>
@@ -60,7 +60,7 @@ export class PaymentService {
         qrString: order.payment.qrPayload,
         qrImageUrl:
           order.payment.qrImageUrl ||
-          (config.khqrpay.enabled ? undefined : `${config.khqrcc.baseUrl}/api/khqrcc/qr/${txId}`),
+          (order.payment.provider === "ANJAKPAY" ? `${config.khqrcc.baseUrl}/api/khqrcc/qr/${txId}` : undefined),
         checkoutUrl:
           order.payment.checkoutUrl ||
           khqrClient.getCheckoutUrl(txId, order.payment.amount, order.payment.provider),

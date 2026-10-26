@@ -3,6 +3,7 @@ import { paymentService } from "@/services/PaymentService";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { getClientIp, getOrderLookupToken, rateLimitHeaders, verifyOrderLookupToken } from "@/lib/requestSecurity";
+import { getEnabledPaymentProvider } from "@/lib/paymentProviderSettings";
 
 export async function POST(
   request: Request,
@@ -28,14 +29,14 @@ export async function POST(
       );
     }
     const body = await request.json().catch(() => ({}));
-    if (body?.provider === "ANJAKPAY") {
+    const selectedProvider = await getEnabledPaymentProvider(body?.provider);
+    if (!selectedProvider) {
       return NextResponse.json(
-        { success: false, error: { code: "PAYMENT_METHOD_UNAVAILABLE", message: "ABA KHQR is not available yet. Please use ABA KHQR v2." } },
+        { success: false, error: { code: "PAYMENT_METHOD_UNAVAILABLE", message: "This payment method is currently unavailable. Please choose another option." } },
         { status: 400 }
       );
     }
-    const provider = "KHQRPAY_ABA_V2";
-    const payment = await paymentService.getOrCreatePayment(publicId, provider);
+    const payment = await paymentService.getOrCreatePayment(publicId, selectedProvider.id);
 
     return NextResponse.json({
       success: true,

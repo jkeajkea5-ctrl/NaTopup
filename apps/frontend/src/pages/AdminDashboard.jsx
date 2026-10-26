@@ -18,6 +18,7 @@ const tabs = [
   ["packages", "Packages", Boxes],
   ["slides", "Slides", Images],
   ["users", "Users", Users],
+  ["payments", "ABA Settings", WalletCards],
   ["security", "Security", ShieldCheck],
 ];
 
@@ -32,6 +33,7 @@ const pageDescriptions = {
   packages: "Control package pricing, images, and availability",
   slides: "Manage promotional banners shown on the storefront",
   users: "Review customer accounts and order activity",
+  payments: "Rename ABA options and control which payment accounts customers can use",
   security: "Access control, trusted networks, and administrator accounts",
 };
 const money = (value) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Number(value) || 0);
@@ -225,6 +227,64 @@ function SecurityPanel() {
   </div>;
 }
 
+function PaymentSettingsPanel() {
+  const [providers, setProviders] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+
+  async function refresh() {
+    setLoading(true);
+    try {
+      const data = await fetchAdminSettings();
+      setProviders(Object.fromEntries((data.paymentProviders || []).map((provider) => [provider.id, provider])));
+      setError("");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { refresh(); }, []);
+
+  async function save(event) {
+    event.preventDefault();
+    setSaving(true); setError(""); setMessage("");
+    try {
+      const payload = Object.fromEntries(Object.entries(providers).map(([id, provider]) => [id, {
+        displayName: provider.displayName,
+        enabled: Boolean(provider.enabled),
+      }]));
+      const result = await updateAdminSecurity({ action: "update-payment-providers", providers: payload });
+      setProviders(Object.fromEntries((result.paymentProviders || []).map((provider) => [provider.id, provider])));
+      setMessage("ABA payment settings updated.");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const ordered = [providers.ANJAKPAY, providers.KHQRPAY_ABA_V2].filter(Boolean);
+  return <form className="admin-payment-settings" onSubmit={save}>
+    {error && <p className="admin-alert error">{error}</p>}
+    {message && <p className="admin-alert success">{message}</p>}
+    <div className="admin-security-status"><span>{loading ? "Loading ABA settings…" : "Changes apply to customer checkout immediately"}</span><button type="button" className="admin-btn secondary" onClick={refresh} disabled={loading || saving}><RefreshCw size={15} className={loading ? "spin" : ""} />Refresh</button></div>
+    <div className="admin-payment-provider-grid">
+      {ordered.map((provider, index) => <section className="admin-card admin-payment-provider-card" key={provider.id}>
+        <div className="admin-card-title"><img src="/aba-khqr.svg" alt="" className="admin-payment-provider-logo" /><div><small>ABA option {index + 1}</small><h3>{provider.id === "ANJAKPAY" ? "AnajakPay" : "KHQR PAY"}</h3><p>{provider.configured ? "Credentials configured" : "Provider credentials are missing"}</p></div></div>
+        <label className="admin-field">Customer display name<input required minLength="2" maxLength="50" value={provider.displayName} onChange={(event) => setProviders({ ...providers, [provider.id]: { ...provider, displayName: event.target.value } })} /></label>
+        <label className="admin-payment-toggle"><input type="checkbox" checked={provider.enabled} disabled={!provider.configured && !provider.enabled} onChange={(event) => setProviders({ ...providers, [provider.id]: { ...provider, enabled: event.target.checked } })} /><span><strong>{provider.enabled ? "Active" : "Inactive"}</strong><small>{provider.enabled ? "Shown to customers at checkout" : "Hidden and blocked by the server"}</small></span></label>
+        {!provider.configured && <p className="admin-alert error">Add this provider&apos;s credentials in Vercel before activating it.</p>}
+      </section>)}
+      {!loading && !ordered.length && <Empty>ABA payment settings could not be loaded.</Empty>}
+    </div>
+    <div className="admin-payment-actions"><p>At least one configured provider should remain active so customers can pay.</p><button className="admin-btn primary" disabled={loading || saving || !ordered.length}>{saving ? "Saving…" : "Save ABA settings"}</button></div>
+  </form>;
+}
+
 export const AdminDashboard = ({ adminSession }) => {
   const navigate = useNavigate();
   const [data, setData] = useState(null);
@@ -246,7 +306,7 @@ export const AdminDashboard = ({ adminSession }) => {
   const [profitLoading, setProfitLoading] = useState(false);
   const [profitError, setProfitError] = useState("");
   const [profitUpdatedAt, setProfitUpdatedAt] = useState("");
-  const visibleTabs = adminSession?.role === "SUPERADMIN" ? tabs : tabs.filter(([id]) => id !== "security");
+  const visibleTabs = adminSession?.role === "SUPERADMIN" ? tabs : tabs.filter(([id]) => !["security", "payments"].includes(id));
 
   const refresh = useCallback(async () => { setLoading(true); setError(""); try { setData(await fetchAdminDashboard(orderPeriod)); } catch (err) { setError(err.message); } finally { setLoading(false); } }, [orderPeriod]);
   const refreshProfit = useCallback(async () => {
@@ -386,6 +446,7 @@ export const AdminDashboard = ({ adminSession }) => {
         {activeTab === "packages" && <div className="admin-collection-view"><div className="admin-collection-meta"><p><strong>{filteredPackages.length}</strong> of {data.products.length} packages</p><span>{packageCategory === "ALL" ? "All storefront catalogs" : packageCatalogs.find((catalog) => catalog.id === packageCategory)?.label} · Smallest to largest</span></div><div className="admin-card-grid admin-package-grid">{filteredPackages.map((product) => <article className="admin-card admin-entity-card admin-package-card" key={product.id}><div className="admin-card-title"><Picture url={product.iconUrl || product.game.logoUrl} name={product.game.name} /><div><small>{packageCatalog(product).label}</small><h3>{product.name}</h3><p>{product.game.name}</p></div></div><div className="admin-price-block"><span>Customer price</span><strong>{product.price ? money(product.price.sellingPrice - product.price.discount) : "No price"}</strong><small>{product.price ? `Fixed cost ${money(product.importCost ?? product.price.supplierCost)} · Discount ${money(product.price.discount)}` : "Pricing record unavailable"}</small></div><div className="admin-tags"><span className={product.isActive ? "tag-active" : "tag-hidden"}>{product.isActive ? "Active" : "Hidden"}</span><span className={["best-selling", "pass"].includes(packageCatalog(product).id) ? "tag-featured" : ""}>{packageCatalog(product).label}</span>{product.customBadge && <span>{product.customBadge}</span>}</div><div className="admin-card-footer"><p>Order {product.sortOrder}</p><button className="admin-btn secondary" disabled={!product.price} onClick={() => edit("package", product)}><Pencil size={15} />Edit</button></div></article>)}{!filteredPackages.length && <Empty>No packages match this catalog, game, and search.</Empty>}</div></div>}
         {activeTab === "slides" && <div className="admin-collection-view"><div className="admin-collection-meta"><p><strong>{filteredSlides.length}</strong> of {data.slides.length} slides</p><span>Homepage promotions</span></div><div className="admin-card-grid admin-slide-grid">{filteredSlides.map((slide) => <article className="admin-card admin-entity-card admin-slide-card" key={slide.id}><div className="admin-banner-wrap">{slide.bannerUrl ? <img className="admin-banner" src={slide.bannerUrl} alt="" /> : <span><Images size={22} />No banner image</span>}</div><div><small>Promotion</small><h3>{slide.title}</h3></div><div className="admin-tags"><span className={slide.isActive ? "tag-active" : "tag-hidden"}>{slide.isActive ? "Active" : "Hidden"}</span><span>Order {slide.sortOrder}</span></div><div className="admin-card-footer"><p>{slide.targetUrl || "No target link"}</p><button className="admin-btn secondary" onClick={() => edit("slide", slide)}><Pencil size={15} />Edit</button></div></article>)}{!filteredSlides.length && <Empty>No slides match your search.</Empty>}</div></div>}
         {activeTab === "users" && <div className="admin-collection-view"><div className="admin-collection-meta"><p><strong>{filteredUsers.length}</strong> of {data.users.length} recent users</p><span>Newest first</span></div><div className="admin-card-grid">{filteredUsers.map((user) => <article className="admin-card admin-entity-card admin-user-card" key={user.id}><div className="admin-card-title"><span className="admin-user-avatar">{(user.name || user.email || "U").slice(0, 2).toUpperCase()}</span><div><small>Customer</small><h3>{user.name || "Unnamed user"}</h3><p>{user.email || "No email address"}</p></div></div><div className="admin-user-stat"><strong>{user._count.orders}</strong><span>Total orders</span></div><div className="admin-card-footer"><p>Joined {new Date(user.createdAt).toLocaleDateString()}</p><span className="admin-readonly-label">Read only</span></div></article>)}{!filteredUsers.length && <Empty>No users match your search.</Empty>}</div></div>}
+        {activeTab === "payments" && <PaymentSettingsPanel />}
         {activeTab === "security" && <SecurityPanel />}
       </section>}
     </main>

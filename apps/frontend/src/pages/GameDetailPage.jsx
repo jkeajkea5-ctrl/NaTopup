@@ -21,7 +21,7 @@ import {
   ArrowLeft,
   Clock3,
 } from "lucide-react";
-import { checkPlayerId, createOrder, fetchGameDetail, initKhqrPayment, fetchOrderDetail, fetchOrderStatus } from "../services/api";
+import { checkPlayerId, createOrder, fetchGameDetail, fetchPaymentOptions, initKhqrPayment, fetchOrderDetail, fetchOrderStatus } from "../services/api";
 import { ProductCard } from "../components/ProductCard";
 import { SuccessInvoiceModal } from "../components/SuccessInvoiceModal";
 import { TermsModal } from "../components/TermsModal";
@@ -177,6 +177,18 @@ export const GameDetailPage = () => {
     queryFn: () => fetchGameDetail(slug || ""),
     enabled: !!slug,
   });
+  const { data: paymentOptions = [], isLoading: paymentOptionsLoading, error: paymentOptionsError } = useQuery({
+    queryKey: ["paymentOptions"],
+    queryFn: fetchPaymentOptions,
+    staleTime: 30_000,
+  });
+
+  useEffect(() => {
+    if (paymentOptionsLoading) return;
+    if (!paymentOptions.some((option) => option.id === paymentProvider)) {
+      setPaymentProvider(paymentOptions[0]?.id || "");
+    }
+  }, [paymentOptions, paymentOptionsLoading, paymentProvider]);
 
   useEffect(() => {
     restoredPlayerSlugRef.current = null;
@@ -484,6 +496,11 @@ export const GameDetailPage = () => {
 
     if (TURNSTILE_SITE_KEY && !turnstileToken) {
       setSubmitError("Please complete the security check before payment.");
+      return;
+    }
+
+    if (!paymentProvider) {
+      setSubmitError("No ABA payment method is currently available. Please try again later.");
       return;
     }
 
@@ -802,31 +819,20 @@ export const GameDetailPage = () => {
 
               {/* Choose the payment provider before creating the payment. */}
               <div className="space-y-2">
-              <button type="button" disabled aria-disabled="true" className="game-detail-payment flex w-full cursor-not-allowed items-center justify-between p-3.5 rounded-2xl border-2 shadow-xs opacity-45">
-                <div className="flex items-center gap-3"><img src="/aba-khqr.svg" alt="ABA KHQR" className="w-10 h-10 rounded-xl object-contain shadow-xs flex-shrink-0 bg-white" /><div><h4 className="font-heading font-bold text-sm text-[#005E7B] leading-tight">ABA KHQR</h4><p className="text-[11px] text-[#2E79A6] font-medium leading-tight mt-0.5">Not available yet</p></div></div>
-              </button>
-              <button type="button" onClick={() => setPaymentProvider("KHQRPAY_ABA_V2")} className={`game-detail-payment flex w-full items-center justify-between p-3.5 rounded-2xl border-2 shadow-xs ${paymentProvider === "KHQRPAY_ABA_V2" ? "ring-2 ring-brand-violet" : "opacity-75"}`}>
-                <div className="flex items-center gap-3">
-                  <img
-                    src="/aba-khqr.svg"
-                    alt="ABA KHQR"
-                    className="w-10 h-10 rounded-xl object-contain shadow-xs flex-shrink-0 bg-white"
-                  />
-                  <div>
-                    <h4 className="font-heading font-bold text-sm text-[#005E7B] leading-tight">
-                      ABA KHQR v2
-                    </h4>
-                    <p className="text-[11px] text-[#2E79A6] font-medium leading-tight mt-0.5">
-                      Powered by KHQR PAY — scan with any banking app
-                    </p>
+              {paymentOptions.map((option) => (
+                <button type="button" key={option.id} onClick={() => setPaymentProvider(option.id)} className={`game-detail-payment flex w-full items-center justify-between p-3.5 rounded-2xl border-2 shadow-xs ${paymentProvider === option.id ? "ring-2 ring-brand-violet" : "opacity-75"}`}>
+                  <div className="flex items-center gap-3">
+                    <img src="/aba-khqr.svg" alt="ABA KHQR" className="w-10 h-10 rounded-xl object-contain shadow-xs flex-shrink-0 bg-white" />
+                    <div className="text-left">
+                      <h4 className="font-heading font-bold text-sm text-[#005E7B] leading-tight">{option.displayName}</h4>
+                      <p className="text-[11px] text-[#2E79A6] font-medium leading-tight mt-0.5">{option.description} — scan with any banking app</p>
+                    </div>
                   </div>
-                </div>
-                {paymentProvider === "KHQRPAY_ABA_V2" && (
-                  <div className="w-5 h-5 rounded-full bg-[#005E7B] text-white flex items-center justify-center shadow-xs flex-shrink-0">
-                    <Check className="w-3.5 h-3.5 stroke-[3]" />
-                  </div>
-                )}
-              </button>
+                  {paymentProvider === option.id && <div className="w-5 h-5 rounded-full bg-[#005E7B] text-white flex items-center justify-center shadow-xs flex-shrink-0"><Check className="w-3.5 h-3.5 stroke-[3]" /></div>}
+                </button>
+              ))}
+              {paymentOptionsLoading && <div className="rounded-xl border border-brand-border bg-white p-3 text-xs text-brand-muted">Loading ABA payment options…</div>}
+              {!paymentOptionsLoading && !paymentOptions.length && <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-600">{paymentOptionsError?.message || "No ABA payment method is currently active."}</div>}
               </div>
 
               {/* Total Price Breakdown */}
@@ -895,7 +901,7 @@ export const GameDetailPage = () => {
               <button
                 type="button"
                 onClick={handleProceedToPayment}
-                disabled={isSubmittingOrder || Boolean(TURNSTILE_SITE_KEY && !turnstileToken)}
+                disabled={isSubmittingOrder || !paymentProvider || Boolean(TURNSTILE_SITE_KEY && !turnstileToken)}
                 className="game-detail-primary-button hidden w-full items-center justify-center gap-2 rounded-xl px-4 py-3.5 font-kulen text-sm font-bold text-white shadow-md transition-all hover:shadow-lg active:scale-98 lg:flex cursor-pointer"
               >
                 {isSubmittingOrder ? (
@@ -1089,7 +1095,7 @@ export const GameDetailPage = () => {
           <button
             type="button"
             onClick={handleProceedToPayment}
-            disabled={isSubmittingOrder || Boolean(TURNSTILE_SITE_KEY && !turnstileToken)}
+            disabled={isSubmittingOrder || !paymentProvider || Boolean(TURNSTILE_SITE_KEY && !turnstileToken)}
             aria-busy={isSubmittingOrder}
             className="mobile-checkout-button flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-2xl px-5 py-3 font-kulen text-sm text-white sm:px-8"
           >

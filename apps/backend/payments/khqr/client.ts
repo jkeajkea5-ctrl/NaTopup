@@ -72,11 +72,9 @@ export function isWebhookTimestampFresh(
 }
 
 export class KhqrClient {
-  private khqrpayEnabled: boolean;
   private khqrpayBaseUrl: string;
   private khqrpayApiKey: string;
   private khqrpayWebhookSecret: string;
-  private khqrccEnabled: boolean;
   private khqrccBaseUrl: string;
   private khqrccCheckoutUrl: string;
   private khqrccProfileId: string;
@@ -87,11 +85,9 @@ export class KhqrClient {
   private khqrWebhookSecret: string;
 
   constructor() {
-    this.khqrpayEnabled = config.khqrpay.enabled;
     this.khqrpayBaseUrl = config.khqrpay.baseUrl.replace(/\/$/, "");
     this.khqrpayApiKey = config.khqrpay.apiKey;
     this.khqrpayWebhookSecret = config.khqrpay.webhookSecret;
-    this.khqrccEnabled = config.khqrcc.enabled;
     this.khqrccBaseUrl = config.khqrcc.baseUrl.replace(/\/$/, "");
     this.khqrccCheckoutUrl = config.khqrcc.checkoutUrl.replace(/\/$/, "");
     this.khqrccProfileId = config.khqrcc.profileId;
@@ -108,10 +104,10 @@ export class KhqrClient {
    */
   getCheckoutUrl(orderReference: string, amount: number, provider = "KHQRPAY_ABA_V2"): string {
     if (provider === "KHQRPAY_ABA_V2") {
-      if (!this.khqrpayEnabled || !this.khqrpayApiKey) throw new Error("ABA KHQR v2 is not configured");
+      if (!this.khqrpayApiKey) throw new Error("ABA KHQR v2 is not configured");
       return `${this.khqrpayBaseUrl}/pay/${encodeURIComponent(orderReference)}`;
     }
-    if (!this.khqrccEnabled || !this.khqrccProfileId || !this.khqrccSecretKey) throw new Error("ABA Anajak is not configured");
+    if (!this.khqrccProfileId || !this.khqrccSecretKey) throw new Error("ABA Anajak is not configured");
     const amountStr = amount.toFixed(2);
     const successUrlObject = new URL("/api/payments/anajakpay/success", config.backendUrl);
     successUrlObject.searchParams.set("orderId", orderReference);
@@ -173,7 +169,7 @@ export class KhqrClient {
     const expirationMinutes = input.expirationMinutes || config.business.paymentExpiryMinutes;
     const expiresAt = new Date(Date.now() + expirationMinutes * 60 * 1000);
 
-    if (!this.khqrccEnabled || !this.khqrccProfileId || !this.khqrccSecretKey) {
+    if (!this.khqrccProfileId || !this.khqrccSecretKey) {
       throw new Error("AnajakPay Direct QR is not configured");
     }
 
@@ -297,7 +293,7 @@ export class KhqrClient {
     }
 
     // 1. Check with AnajakPay / KHQRcc Check Transaction V2 API
-    if (this.khqrccEnabled && this.khqrccProfileId && this.khqrccSecretKey) {
+    if (this.khqrccProfileId && this.khqrccSecretKey) {
       try {
         const hash = sha1(this.khqrccSecretKey + txId);
         const url = `${this.khqrccBaseUrl}/api/${this.khqrccProfileId}/payment-gateway/v1/payments/check-transv2-khqrcc`;

@@ -115,6 +115,19 @@ export async function fetchGameDetail(slug: string): Promise<{
   return json.data;
 }
 
+export async function fetchPaymentOptions(): Promise<Array<{
+  id: "ANJAKPAY" | "KHQRPAY_ABA_V2";
+  displayName: string;
+  description: string;
+}>> {
+  const res = await fetch(`${API_BASE}/payment-options`, { cache: "no-store" });
+  const json = await readJsonResponse(res);
+  if (!res.ok || !json.success) {
+    throw new Error(json.error?.message || "Payment options are unavailable");
+  }
+  return json.data;
+}
+
 export async function checkPlayerId(
   gameSlug: string,
   fields: Record<string, string>
