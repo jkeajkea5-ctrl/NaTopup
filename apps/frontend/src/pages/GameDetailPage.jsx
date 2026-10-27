@@ -9,6 +9,7 @@ import {
   Loader2,
   ArrowRight,
   CreditCard,
+  Download,
   HelpCircle,
   UserCheck,
   Gem,
@@ -19,7 +20,6 @@ import {
   Send,
   ShoppingBag,
   ArrowLeft,
-  Clock3,
 } from "lucide-react";
 import { checkPlayerId, createOrder, fetchGameDetail, fetchPaymentOptions, initKhqrPayment, fetchOrderDetail, fetchOrderStatus } from "../services/api";
 import { ProductCard } from "../components/ProductCard";
@@ -166,6 +166,8 @@ export const GameDetailPage = () => {
   const [paymentSession, setPaymentSession] = useState(null);
   const [paymentSecondsLeft, setPaymentSecondsLeft] = useState(0);
   const [paymentQrDataUrl, setPaymentQrDataUrl] = useState("");
+  const [isDownloadingQr, setIsDownloadingQr] = useState(false);
+  const [qrDownloadError, setQrDownloadError] = useState("");
   const [successInvoice, setSuccessInvoice] = useState(null);
 
   const { data, isLoading, error } = useQuery({
@@ -559,6 +561,46 @@ export const GameDetailPage = () => {
     }
   };
 
+  const handleDownloadPaymentQr = async () => {
+    if (!paymentSession?.qrString || isDownloadingQr) return;
+    setIsDownloadingQr(true);
+    setQrDownloadError("");
+    try {
+      const dataUrl = paymentQrDataUrl || await QRCode.toDataURL(paymentSession.qrString, {
+        errorCorrectionLevel: "M", margin: 2, width: 800,
+      });
+      const fileName = `KHQR_${paymentSession.publicOrderId}.png`;
+      const blob = await (await fetch(dataUrl)).blob();
+      const isAppleMobile = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+        (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+      if (isAppleMobile && typeof navigator.share === "function") {
+        const file = new File([blob], fileName, { type: "image/png" });
+        if (typeof navigator.canShare !== "function" || navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title: fileName });
+          return;
+        }
+      }
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (error) {
+      if (error?.name !== "AbortError") setQrDownloadError("Could not save the QR. Please try again.");
+    } finally {
+      setIsDownloadingQr(false);
+    }
+  };
+
+  const handleClosePaymentQr = () => {
+    if (!window.confirm("Are you sure you want to close?")) return;
+    setPaymentSession(null);
+    setPaymentNotice(null);
+  };
+
   return (
     <div className="game-detail-page w-full min-w-0 max-w-6xl mx-auto space-y-5 sm:space-y-6 pb-28 lg:pb-12">
       <SuccessInvoiceModal
@@ -570,26 +612,48 @@ export const GameDetailPage = () => {
         }}
       />
       {!!paymentSession && paymentProvider === "KHQRPAY_ABA_V2" && (
-        <div className="fixed inset-0 z-[10000] flex items-end justify-center bg-[#1e1111]/70 backdrop-blur-[2px] sm:items-center sm:p-4" role="presentation">
-          <section role="dialog" aria-modal="true" aria-label="ABA KHQR v2 payment" className="flex max-h-[100dvh] w-full max-w-[480px] flex-col overflow-y-auto bg-white shadow-2xl sm:max-h-[calc(100dvh-2rem)] sm:rounded-2xl">
-            <header className="relative flex min-h-[72px] items-center justify-center bg-[#f21824] text-white">
-              <div className="absolute inset-y-0 left-1/2 w-[116px] -translate-x-1/2 bg-[#e91d2c]" aria-hidden="true" />
-              <span className="relative font-sans text-xl font-black tracking-[-0.075em]">KHQR</span>
-              <button type="button" onClick={() => { setPaymentSession(null); setPaymentNotice(null); }} aria-label="Close payment" className="absolute right-5 flex h-10 w-10 items-center justify-center rounded-full text-white transition-colors hover:bg-white/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"><X className="h-6 w-6" /></button>
-            </header>
-            <div className="flex min-h-[124px] items-center justify-between gap-4 border-b border-dashed border-[#b9cce1] px-7 py-5 sm:px-8">
-              <div className="min-w-0">
-                <p className="truncate text-base font-medium uppercase tracking-wide text-[#12223c] sm:text-lg">{paymentSession.merchantName || "NA TOPUP"}</p>
-                <p className="mt-2 text-[30px] font-medium leading-none text-[#071a35] sm:text-[32px]">${Number(paymentSession.amount || 0).toFixed(2)} <span className="text-sm font-medium text-[#365578]">USD</span></p>
+        <div className="khqr-payway-overlay" role="presentation" onClick={(event) => {
+          if (event.target.closest(".khqr-payway-dialog")) return;
+          handleClosePaymentQr();
+        }}>
+          <div className="khqr-payway-shell">
+            <div className="khqr-payway-brand" aria-hidden="true">ABA&apos; <strong>PAYWAY</strong></div>
+            <section role="dialog" aria-modal="true" aria-label="ABA KHQR payment" className="khqr-payway-dialog" onClick={(event) => {
+              if (event.target === event.currentTarget) handleClosePaymentQr();
+            }}>
+              <header className="khqr-payway-heading">
+                <h2>ABA KHQR</h2>
+                <span className="khqr-payway-mobile-handle" aria-hidden="true" />
+                <span className="khqr-payway-mobile-mark" aria-hidden="true">KHQR</span>
+                <span className="khqr-payway-countdown" aria-live="off">
+                  <Loader2 size={25} aria-hidden="true" />
+                  {String(Math.floor(paymentSecondsLeft / 60)).padStart(2, "0")}:{String(paymentSecondsLeft % 60).padStart(2, "0")}
+                </span>
+                <button type="button" onClick={handleClosePaymentQr} aria-label="Close payment" className="khqr-payway-close"><X size={22} strokeWidth={1.7} /></button>
+              </header>
+              <div className="khqr-payway-ticket">
+                <div className="khqr-payway-ticket-header"><span>KHQR</span></div>
+                <div className="khqr-payway-ticket-body">
+                  <div className="khqr-payway-merchant">{paymentSession.merchantName || "NA TOPUP"}</div>
+                  <div className="khqr-payway-amount">{Number(paymentSession.amount || 0).toFixed(2)} <span>USD</span></div>
+                  <div className="khqr-payway-perforation" aria-hidden="true" />
+                  <div className="khqr-payway-qr">
+                    {(paymentSession.qrImageUrl || paymentQrDataUrl) ? <img src={paymentSession.qrImageUrl || paymentQrDataUrl} onError={(event) => { if (paymentQrDataUrl && event.currentTarget.src !== paymentQrDataUrl) event.currentTarget.src = paymentQrDataUrl; }} alt="ABA KHQR payment QR code" /> : <span>Loading payment QR…</span>}
+                  </div>
+                  <div className="khqr-payway-mobile-actions">
+                    <strong>Scan to Pay</strong>
+                    <span>or</span>
+                    <button type="button" onClick={handleDownloadPaymentQr} disabled={isDownloadingQr}>
+                      <Download size={19} aria-hidden="true" /> {isDownloadingQr ? "Preparing QR…" : "Download QR"}
+                    </button>
+                    <p>and upload to Mobile Banking app<br /> supporting KHQR</p>
+                    {qrDownloadError && <p className="khqr-payway-download-error" role="alert">{qrDownloadError}</p>}
+                  </div>
+                </div>
               </div>
-              <span className="flex shrink-0 items-center gap-1.5 rounded-xl border border-[#cfe0f2] bg-[#f1f7fd] px-3 py-2 text-sm font-medium text-[#285d91]"><Clock3 className="h-4 w-4" aria-hidden="true" />{Math.floor(paymentSecondsLeft / 60)}:{String(paymentSecondsLeft % 60).padStart(2, "0")}</span>
-            </div>
-            <div className="flex flex-1 flex-col px-6 pb-[max(32px,env(safe-area-inset-bottom))] pt-10 sm:px-8 sm:pb-12 sm:pt-12">
-              <div className="mx-auto flex aspect-square w-full max-w-[330px] items-center justify-center bg-white">
-                {(paymentSession.qrImageUrl || paymentQrDataUrl) ? <img src={paymentSession.qrImageUrl || paymentQrDataUrl} onError={(event) => { if (paymentQrDataUrl && event.currentTarget.src !== paymentQrDataUrl) event.currentTarget.src = paymentQrDataUrl; }} alt="ABA KHQR v2 payment QR code" className="h-full w-full object-contain" /> : <div className="flex h-full w-full items-center justify-center border border-slate-100 text-sm text-slate-500">Loading payment QR…</div>}
-              </div>
-            </div>
-          </section>
+              <p className="khqr-payway-instruction">Scan with ABA Mobile, or other Mobile Banking App supporting KHQR</p>
+            </section>
+          </div>
         </div>
       )}
 

@@ -2746,3 +2746,127 @@ h6 {
   .maintenance-card { padding: 34px 20px; border-radius: 22px; }
   .maintenance-card > img { width: 112px; }
 }
+/* KHQR payment card used by the active payment flow. */
+.khqr-payway-overlay {
+  position: fixed;
+  z-index: 10000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow-y: auto;
+  padding: 12px;
+  background: #101b2bed;
+}
+.khqr-payway-shell { width: min(100%, 453px); margin: auto; }
+.khqr-payway-brand,
+.khqr-payway-mobile-handle,
+.khqr-payway-mobile-mark { display: none; }
+.khqr-payway-dialog {
+  position: relative;
+  padding: 0 24px 20px;
+  border-radius: 11px;
+  background: #fff;
+  box-shadow: 0 16px 40px #050b1852;
+}
+.khqr-payway-heading { position: relative; height: 58px; display: flex; align-items: center; justify-content: space-between; }
+.khqr-payway-heading h2 { margin: 0; color: #001b41; font: 400 23px/1.3 Arial, sans-serif; }
+.khqr-payway-countdown { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; margin-right: 42px; color: #001b41; font: 400 16px/1 Arial, sans-serif; font-variant-numeric: tabular-nums; }
+.khqr-payway-countdown svg { color: #00b9d4; animation: khqr-countdown-spin 2s linear infinite; }
+@keyframes khqr-countdown-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .khqr-payway-countdown svg { animation: none; } }
+.khqr-payway-close { position: absolute; top: 16px; right: 0; width: 26px; height: 26px; display: grid; place-items: center; border: 0; background: none; color: #00b4db; cursor: pointer; }
+.khqr-payway-close:focus-visible { outline: 2px solid #00b4db; outline-offset: 3px; }
+.khqr-payway-mobile-actions { display: none; }
+.khqr-payway-mobile-actions button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 28px; border: 0; background: transparent; color: #00b9dd; font: 700 14px/1.2 Arial, sans-serif; cursor: pointer; }
+.khqr-payway-mobile-actions button:disabled { opacity: .55; cursor: wait; }
+.khqr-payway-mobile-actions button:focus-visible { outline: 2px solid #00b9dd; outline-offset: 2px; }
+.khqr-payway-mobile-actions p { margin: 2px 0 0; color: #bd2636; font: 13px/1.3 Arial, sans-serif; }
+.khqr-payway-ticket {
+  width: min(100%, 328px);
+  margin: 0 auto;
+  overflow: hidden;
+  border-radius: 26px;
+  background: #fff;
+  box-shadow: 0 12px 26px #101b2b18;
+}
+.khqr-payway-ticket-header {
+  aspect-ratio: 5.65;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: #e71419;
+  font: 700 26px/1 Arial, sans-serif;
+  letter-spacing: -.08em;
+}
+.khqr-payway-ticket-body { position: relative; padding: 9.75% 14% 11.6%; background: #fff; }
+.khqr-payway-ticket-body::before {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 22px;
+  height: 22px;
+  background: #e71419;
+  clip-path: polygon(0 0, 100% 0, 100% 100%);
+  content: "";
+}
+.khqr-payway-merchant { overflow: hidden; color: #001b41; font: 400 12px/1.3 Arial, sans-serif; text-overflow: ellipsis; white-space: nowrap; }
+.khqr-payway-amount { margin-top: 8px; color: #1a2030; font: 700 26px/1.1 Arial, sans-serif; }
+.khqr-payway-amount span { margin-left: 4px; font: 400 10px/1 Arial, sans-serif; }
+.khqr-payway-perforation { height: 1px; margin: 11% -19.5% 16%; background: repeating-linear-gradient(to right, #b8b8b8 0 8px, transparent 8px 16px); }
+.khqr-payway-qr { width: 100%; aspect-ratio: 1; display: grid; place-items: center; background: #fff; }
+.khqr-payway-qr img { display: block; width: 100%; height: 100%; object-fit: contain; image-rendering: crisp-edges; }
+.khqr-payway-qr span { color: #64748b; font: 12px Arial, sans-serif; text-align: center; }
+.khqr-payway-instruction { max-width: 280px; margin: 34px auto 0; color: #9ba0a9; font: 400 16px/1.3 Arial, sans-serif; text-align: center; }
+@media (max-width: 600px) {
+  .khqr-payway-overlay { display: flex; align-items: flex-end; overflow: hidden; padding: 0 13px 25px; background: #211b1bb8; }
+  .khqr-payway-shell { width: 100%; max-width: 480px; margin: 0 auto; }
+  .khqr-payway-brand { height: 32px; display: flex; justify-content: flex-end; align-items: flex-start; padding-right: 24px; color: #fff; font: 700 14px/1 Arial, sans-serif; letter-spacing: .07em; }
+  .khqr-payway-brand strong { margin-left: 4px; font-style: italic; letter-spacing: -.03em; }
+  .khqr-payway-dialog {
+    height: min(500px, max(390px, 70dvh), calc(100dvh - 67px));
+    overflow: hidden;
+    padding: 0;
+    border-radius: 19px 19px 0 0;
+  }
+  .khqr-payway-heading { height: 62px; display: flex; flex-direction: column; justify-content: flex-start; margin: 0; padding-top: 16px; color: #fff; background: #ed1016; }
+  .khqr-payway-heading h2 { display: none; }
+  .khqr-payway-mobile-handle { width: 52px; height: 5px; display: block; border-radius: 6px; background: #e2dfe0; box-shadow: 0 1px 3px #2228; }
+  .khqr-payway-mobile-mark { display: block; margin-top: 9px; font: 400 19px/1 Arial, sans-serif; letter-spacing: -.07em; }
+  .khqr-payway-countdown { position: absolute; top: 17px; right: 46px; display: inline-flex; gap: 5px; margin: 0; color: #fff; font-size: 12px; }
+  .khqr-payway-countdown svg { width: 18px; height: 18px; color: #6ce5ef; }
+  .khqr-payway-close { top: 16px; right: 12px; color: #fff; opacity: .8; }
+  .khqr-payway-close:focus-visible { outline-color: #fff; }
+  .khqr-payway-ticket { width: 100%; overflow: visible; border-radius: 0; box-shadow: none; }
+  .khqr-payway-ticket-header { display: none; }
+  .khqr-payway-ticket-body { padding: 26px 0 0; }
+  .khqr-payway-merchant,
+  .khqr-payway-amount { width: 190px; margin-right: auto; margin-left: auto; }
+  .khqr-payway-merchant { font-size: 10px; }
+  .khqr-payway-amount { margin-top: 10px; font-size: 22px; }
+  .khqr-payway-perforation { height: 1px; margin: 14px 0 4px; }
+  .khqr-payway-qr { width: clamp(128px, 26dvh, 190px); height: clamp(128px, 26dvh, 190px); margin: 0 auto; }
+  .khqr-payway-mobile-actions { display: flex; flex-direction: column; align-items: center; text-align: center; }
+  .khqr-payway-mobile-actions strong { margin-top: 5px; color: #001b41; font: 700 13px/1.3 Arial, sans-serif; }
+  .khqr-payway-mobile-actions > span { margin-top: 6px; color: #001b41; font: 14px/1.3 Arial, sans-serif; }
+  .khqr-payway-mobile-actions button { min-height: 40px; margin-top: 8px; font-size: 15px; }
+  .khqr-payway-mobile-actions p { margin: 6px 0 0; color: #9ba0a9; font: 13px/1.35 Arial, sans-serif; }
+  .khqr-payway-mobile-actions .khqr-payway-download-error { color: #bd2636; }
+  .khqr-payway-instruction { display: none; }
+}
+@media (max-width: 600px) and (max-height: 650px) {
+  .khqr-payway-ticket-body { padding-top: 18px; }
+  .khqr-payway-qr { width: clamp(110px, 24dvh, 160px); height: clamp(110px, 24dvh, 160px); }
+  .khqr-payway-mobile-actions button { min-height: 32px; margin-top: 3px; }
+  .khqr-payway-mobile-actions p { margin-top: 2px; font-size: 11px; }
+}
+@media (max-width: 600px) and (max-height: 450px) {
+  .khqr-payway-heading { height: 54px; padding-top: 12px; }
+  .khqr-payway-ticket-body { padding-top: 8px; }
+  .khqr-payway-amount { margin-top: 4px; }
+  .khqr-payway-perforation { margin: 6px 0 2px; }
+  .khqr-payway-qr { width: 110px; height: 110px; }
+  .khqr-payway-mobile-actions strong { margin-top: 2px; }
+  .khqr-payway-mobile-actions > span { margin-top: 1px; }
+  .khqr-payway-mobile-actions button { min-height: 27px; margin-top: 0; }
+  .khqr-payway-mobile-actions p { display: none; }
+}
