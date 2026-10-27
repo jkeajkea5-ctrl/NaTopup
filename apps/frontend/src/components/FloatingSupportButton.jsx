@@ -5,23 +5,18 @@ import { CONTACT_LINKS } from "../contactLinks";
 export const FloatingSupportButton = () => {
   const { pathname } = useLocation();
 
-  // Hide on admin page
-  if (pathname.startsWith("/admin")) {
+  // Keep fixed controls away from admin screens and the checkout security
+  // widget. Support remains available in the header and footer.
+  if (pathname.startsWith("/admin") || pathname.startsWith("/game/")) {
     return null;
   }
-
-  // Adjust bottom offset on game detail page due to mobile bottom checkout bar
-  const isGameDetailPage = pathname.startsWith("/game/");
-  const bottomPosClass = isGameDetailPage
-    ? "bottom-[calc(120px+env(safe-area-inset-bottom,0px))] lg:bottom-6"
-    : "bottom-6";
 
   return (
     <a
       href={CONTACT_LINKS.telegram}
       target="_blank"
       rel="noopener noreferrer"
-      className={`support-contact fixed ${bottomPosClass} right-3 sm:right-6 z-30 group flex flex-col items-center gap-2 rounded-[20px] sm:rounded-[22px] p-2.5 sm:p-3`}
+      className="support-contact fixed bottom-6 right-3 sm:right-6 z-30 group flex flex-col items-center gap-2 rounded-[20px] sm:rounded-[22px] p-2.5 sm:p-3"
       title="ត្រូវការជំនួយ ? ទាក់ទង Telegram 24/7"
       aria-label="ត្រូវការជំនួយ ? ទាក់ទង Telegram 24/7"
     >

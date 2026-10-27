@@ -1236,6 +1236,13 @@ dialog {
   pointer-events: none;
 }
 
+/* Keep Cloudflare's interactive iframe above fixed mobile checkout controls. */
+.turnstile-check,
+.turnstile-check iframe {
+  pointer-events: auto !important;
+}
+.turnstile-check { touch-action: manipulation; }
+
 /* Game detail color system: royal violet, rose and warm gold. */
 .game-detail-page {
   --game-violet: #573875;

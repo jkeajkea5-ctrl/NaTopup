@@ -75,5 +75,5 @@ export function TurnstileWidget({ siteKey, onToken, resetSignal = 0 }) {
   }, [resetSignal]);
 
   if (!siteKey) return null;
-  return <div ref={containerRef} className="min-h-[65px] w-full" aria-label="Security verification" />;
+  return <div ref={containerRef} className="turnstile-check relative z-[60] isolate min-h-[65px] w-full pointer-events-auto" aria-label="Security verification" />;
 }
