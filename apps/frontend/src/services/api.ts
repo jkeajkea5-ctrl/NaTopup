@@ -98,6 +98,10 @@ export function saveAdminDashboardMutation(data: Record<string, unknown>) {
   return adminJson("/admin/dashboard", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
 }
 
+export function archiveAdminOrder(id: string) {
+  return adminJson("/admin/orders", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
+}
+
 export function syncAdminGameCatalog(gameId: string, supplier: "G2BULK" | "VIZO") {
   return adminJson("/admin/catalog-sync", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ gameId, supplier }) });
 }

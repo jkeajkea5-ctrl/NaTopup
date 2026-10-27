@@ -3,11 +3,11 @@ import QRCode from "qrcode";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowUpRight, Boxes, CalendarDays, ClipboardCheck, Copy, Gamepad2, History, Images, Link2, LogOut,
-  Menu, Pencil, Plus, RefreshCw, Search, Settings, ShieldCheck, Upload,
+  Menu, Pencil, Plus, RefreshCw, Search, Settings, ShieldCheck, Trash2, Upload,
   Users, WalletCards, X,
 } from "lucide-react";
 import {
-  fetchAdminDashboard, fetchAdminSettings, fetchAdminSuppliers, logoutAdmin, saveAdminDashboardMutation,
+  archiveAdminOrder, fetchAdminDashboard, fetchAdminSettings, fetchAdminSuppliers, logoutAdmin, saveAdminDashboardMutation,
   syncAdminGameCatalog, updateAdminSecurity, uploadAdminImage,
 } from "../services/api";
 import "./AdminDashboard.css";
@@ -361,6 +361,7 @@ export const AdminDashboard = ({ adminSession }) => {
   const [editor, setEditor] = useState(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [deletingOrder, setDeletingOrder] = useState("");
   const [catalogSyncing, setCatalogSyncing] = useState("");
   const [liveBalances, setLiveBalances] = useState(null);
   const [profitLoading, setProfitLoading] = useState(false);
@@ -435,6 +436,17 @@ export const AdminDashboard = ({ adminSession }) => {
     const url = URL.createObjectURL(new Blob(["\ufeff", csv], { type: "text/csv" })); const link = document.createElement("a"); link.href = url; link.download = "na-topup-orders.csv"; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
+  async function removeOrder(order) {
+    if (!window.confirm(`Remove order ${order.publicOrderId} from the dashboard?\n\nThe transaction record will be retained in the audit history.`)) return;
+    setDeletingOrder(order.id); setError(""); setNotice("");
+    try {
+      await archiveAdminOrder(order.id);
+      setNotice(`Order ${order.publicOrderId} removed from the dashboard.`);
+      await refresh();
+    } catch (err) { setError(err.message); }
+    finally { setDeletingOrder(""); }
+  }
+
   const filteredOrders = (data?.orders || []).filter(matches).filter((o) => status === "ALL" || o.status === status);
   const filtered = (items) => (items || []).filter(matches);
   const catalogOrder = ["best-selling", "pass", "normal", "other"];
@@ -480,13 +492,14 @@ export const AdminDashboard = ({ adminSession }) => {
           </div>
           <div className="admin-orders-meta"><p><strong>{filteredOrders.length}</strong> shown · {periodTotals[orderPeriod]} total {periodLabels[orderPeriod]}.</p><span>Newest first · up to {data.orderListLimit || 250}</span></div>
           <div className="admin-table admin-orders-table">
-            <div className="admin-order-table-head" aria-hidden="true"><span>Order</span><span>Game & package</span><span>Customer</span><span>Payment</span><span>Status</span></div>
+            <div className="admin-order-table-head" aria-hidden="true"><span>Order</span><span>Game & package</span><span>Customer</span><span>Payment</span><span>Status</span><span>Action</span></div>
             {filteredOrders.map((order) => <article className="admin-order-row" key={order.id}>
               <div className="admin-order-identity"><span className="admin-order-icon"><ClipboardCheck size={17} /></span><span><small>Order ID</small><strong>{order.publicOrderId}</strong><em>{new Date(order.createdAt).toLocaleString()}</em></span></div>
               <div className="admin-order-product"><Picture url={order.product.iconUrl || order.game.logoUrl} name={order.game.name} /><span><small>Game & package</small><strong>{order.game.name}</strong><em>{order.product.name}</em></span></div>
               <div className="admin-order-customer"><small>Customer</small><strong>{order.playerName || "Player account"}</strong><em>{order.playerId}</em></div>
               <div className="admin-order-payment"><small>Payment</small><strong>{money(order.total)}</strong><em className={`admin-payment-state ${(order.payment?.status || "unpaid").toLowerCase()}`}>{order.payment?.status || "No payment"}</em></div>
               <div className="admin-order-status"><small>Status</small><b className={`admin-status ${order.status.toLowerCase()}`}>{labels[order.status] || order.status}</b></div>
+              <div className="admin-order-actions"><button type="button" className="admin-order-delete" aria-label={`Remove order ${order.publicOrderId}`} title={["AWAITING_PAYMENT", "FAILED", "EXPIRED"].includes(order.status) && order.payment?.status !== "PAID" ? "Remove order" : "Paid and active orders are protected"} disabled={deletingOrder === order.id || !["AWAITING_PAYMENT", "FAILED", "EXPIRED"].includes(order.status) || order.payment?.status === "PAID"} onClick={() => removeOrder(order)}>{deletingOrder === order.id ? <RefreshCw size={16} className="spin" /> : <Trash2 size={16} />}</button></div>
             </article>)}
             {!filteredOrders.length && <Empty>No orders match your current filters.</Empty>}
           </div>

@@ -15,21 +15,24 @@ export async function GET(request: Request) {
     const requestedPeriod = new URL(request.url).searchParams.get("orderPeriod");
     const orderPeriod = requestedPeriod === "TODAY" || requestedPeriod === "YESTERDAY" ? requestedPeriod : "ALL";
     const paid = { status: { in: ["PAID", "PROCESSING", "DELIVERED"] } };
+    // MongoDB distinguishes an explicit null from legacy documents where this
+    // newly-added field does not exist yet. Both represent a visible order.
+    const visibleOrders: any = { OR: [{ archivedAt: null }, { archivedAt: { isSet: false } }] };
     const today = cambodiaDayRange();
     const yesterday = cambodiaYesterdayRange();
     const orderWhere = orderPeriod === "TODAY"
-      ? { createdAt: { gte: today.start, lt: today.end } }
+      ? { ...visibleOrders, createdAt: { gte: today.start, lt: today.end } }
       : orderPeriod === "YESTERDAY"
-        ? { createdAt: { gte: yesterday.start, lt: yesterday.end } }
-        : undefined;
+        ? { ...visibleOrders, createdAt: { gte: yesterday.start, lt: yesterday.end } }
+        : visibleOrders;
     const [orders, orderCount, todayOrderCount, yesterdayOrderCount, games, products, slides, users, suppliers, totals, dailyTotals, completed] = await Promise.all([
       prisma.order.findMany({ where: orderWhere, take: 250, orderBy: { createdAt: "desc" }, select: {
         id: true, publicOrderId: true, createdAt: true, status: true, playerId: true, playerName: true, total: true,
         gameId: true, productId: true, payment: { select: { status: true } },
       } }),
-      prisma.order.count(),
-      prisma.order.count({ where: { createdAt: { gte: today.start, lt: today.end } } }),
-      prisma.order.count({ where: { createdAt: { gte: yesterday.start, lt: yesterday.end } } }),
+      prisma.order.count({ where: visibleOrders }),
+      prisma.order.count({ where: { ...visibleOrders, createdAt: { gte: today.start, lt: today.end } } }),
+      prisma.order.count({ where: { ...visibleOrders, createdAt: { gte: yesterday.start, lt: yesterday.end } } }),
       prisma.game.findMany({ orderBy: [{ sortOrder: "asc" }, { name: "asc" }], select: {
         id: true, name: true, slug: true, category: true, logoUrl: true, bannerUrl: true, sortOrder: true, isActive: true, isPopular: true,
       } }),
@@ -54,16 +57,17 @@ export async function GET(request: Request) {
       prisma.supplier.findMany({ orderBy: { priority: "asc" }, select: {
         id: true, code: true, name: true, isEnabled: true, priority: true, balance: true, currency: true, healthStatus: true, lastChecked: true,
       } }),
-      prisma.order.aggregate({ where: paid, _sum: { total: true, supplierCostSnapshot: true }, _count: true }),
+      prisma.order.aggregate({ where: { ...paid, ...visibleOrders }, _sum: { total: true, supplierCostSnapshot: true }, _count: true }),
       prisma.order.aggregate({
         where: {
           ...paid,
+          ...visibleOrders,
           paidAt: { gte: today.start, lt: today.end },
         },
         _sum: { total: true, supplierCostSnapshot: true },
         _count: true,
       }),
-      prisma.order.count({ where: { status: "DELIVERED" } }),
+      prisma.order.count({ where: { status: "DELIVERED", ...visibleOrders } }),
     ]);
     const gameMap = new Map(games.map((game) => [game.id, game]));
     const productMap = new Map(products.map((product) => [product.id, product]));

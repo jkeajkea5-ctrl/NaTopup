@@ -4,6 +4,7 @@ import { ADMIN_COOKIE, adminIpRuleMatches, createAdminSession, hasAdminSession, 
 import { adminMutation } from "../lib/adminValidation";
 import { prisma } from "../lib/prisma";
 import { PATCH } from "../app/api/admin/dashboard/route";
+import { DELETE as archiveOrder } from "../app/api/admin/orders/route";
 
 process.env.ADMIN_DASHBOARD_KEY = "test-only-key-with-at-least-32-characters";
 process.env.ADMIN_DASHBOARD_ORIGIN = "http://localhost:5200";
@@ -100,6 +101,37 @@ test("save route validates before writing, and wraps updates with the audit in a
     assert.equal((await PATCH(request(game))).status, 409);
   } finally {
     prisma.$transaction = original;
+    (prisma.adminUser as any).findUnique = originalFindAdmin;
+  }
+});
+
+test("order removal archives unpaid orders with an audit and protects paid orders", async () => {
+  const originalTransaction = prisma.$transaction;
+  const originalFindAdmin = prisma.adminUser.findUnique;
+  const calls: string[] = [];
+  let status = "AWAITING_PAYMENT";
+  (prisma.adminUser as any).findUnique = async () => ({ username: "admin", role: "SUPERADMIN", isActive: true });
+  (prisma as any).$transaction = async (callback: any) => callback({
+    order: {
+      findUnique: async () => ({ id: TEST_ADMIN_ID, publicOrderId: "NA-TEST01", status, archivedAt: null, payment: { status: status === "PAID" ? "PAID" : "PENDING", verifiedAt: status === "PAID" ? new Date() : null } }),
+      update: async () => { calls.push("archive"); },
+    },
+    auditLog: { create: async () => { calls.push("audit"); } },
+  });
+  const archiveRequest = () => new Request("http://localhost:3001/api/admin/orders", {
+    method: "DELETE",
+    headers: { cookie: `${ADMIN_COOKIE}=${createAdminSession({ id: TEST_ADMIN_ID, username: "admin", role: "SUPERADMIN" })}`, origin: "http://localhost:5200", "Content-Type": "application/json" },
+    body: JSON.stringify({ id: TEST_ADMIN_ID }),
+  });
+  try {
+    assert.equal((await archiveOrder(archiveRequest())).status, 200);
+    assert.deepEqual(calls, ["archive", "audit"]);
+    calls.length = 0;
+    status = "PAID";
+    assert.equal((await archiveOrder(archiveRequest())).status, 409);
+    assert.deepEqual(calls, []);
+  } finally {
+    prisma.$transaction = originalTransaction;
     (prisma.adminUser as any).findUnique = originalFindAdmin;
   }
 });

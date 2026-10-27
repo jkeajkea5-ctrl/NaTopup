@@ -218,6 +218,7 @@ model Order {
   completedAt          DateTime?
   failedAt             DateTime?
   expiredAt            DateTime?
+  archivedAt           DateTime?
   
   createdAt            DateTime      @default(now())
   updatedAt            DateTime      @updatedAt
@@ -232,6 +233,7 @@ model Order {
 
   @@index([status])
   @@index([createdAt])
+  @@index([archivedAt])
 }
 
 model Payment {
