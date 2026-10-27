@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Header } from "./components/Header";
@@ -16,6 +16,8 @@ import { PaymentReturnPage } from "./pages/PaymentReturnPage";
 import { FloatingSupportButton } from "./components/FloatingSupportButton";
 import { InstallPrompt } from "./components/InstallPrompt";
 import { MotionEffects } from "./components/MotionEffects";
+import { fetchSiteStatus } from "./services/api";
+import { Wrench } from "lucide-react";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -30,7 +32,48 @@ function AppFrame() {
   const { pathname } = useLocation();
   const adminRoute = pathname.startsWith("/admin");
   const paymentReturnRoute = pathname === "/payment-return";
+  const existingOrderRoute = pathname === "/check-order";
   const minimalRoute = adminRoute || paymentReturnRoute;
+  const maintenanceExempt = adminRoute || paymentReturnRoute || existingOrderRoute;
+  const [maintenance, setMaintenance] = useState(false);
+  const [statusChecked, setStatusChecked] = useState(maintenanceExempt);
+
+  useEffect(() => {
+    if (maintenanceExempt) {
+      setStatusChecked(true);
+      return undefined;
+    }
+    let active = true;
+    async function refreshStatus() {
+      try {
+        const status = await fetchSiteStatus();
+        if (active) setMaintenance(status.maintenance);
+      } catch {
+        if (active) setMaintenance(false);
+      } finally {
+        if (active) setStatusChecked(true);
+      }
+    }
+    setStatusChecked(false);
+    refreshStatus();
+    const timer = window.setInterval(refreshStatus, 30_000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, [maintenanceExempt]);
+
+  if (!maintenanceExempt && (!statusChecked || maintenance)) {
+    return <main className="maintenance-page">
+      <div className="maintenance-card">
+        <img src="/na-topup-icon-2026.png?v=20260924" alt="NA TOPUP" />
+        {statusChecked ? <>
+          <span className="maintenance-icon"><Wrench aria-hidden="true" /></span>
+          <p className="maintenance-kicker">Scheduled maintenance</p>
+          <h1>We’ll be back soon</h1>
+          <p>NA TOPUP is temporarily unavailable while we make improvements. Please try again shortly.</p>
+          <button type="button" onClick={() => window.location.reload()}>Check again</button>
+        </> : <p className="maintenance-loading">Checking store availability…</p>}
+      </div>
+    </main>;
+  }
   return (
     <>
       <ScrollToTop />

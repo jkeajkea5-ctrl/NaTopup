@@ -83,6 +83,13 @@ export function updateAdminSecurity(data: Record<string, unknown>) {
   return adminJson("/admin/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
 }
 
+export async function fetchSiteStatus(): Promise<{ maintenance: boolean }> {
+  const res = await fetch(`${API_BASE}/site-status`, { cache: "no-store" });
+  const json = await readJsonResponse(res);
+  if (!res.ok || !json.success) throw new Error("Site status is unavailable");
+  return { maintenance: json.data?.maintenance === true };
+}
+
 export function fetchAdminDashboard(orderPeriod: "TODAY" | "YESTERDAY" | "ALL" = "ALL") {
   return adminJson(`/admin/dashboard?orderPeriod=${orderPeriod}`);
 }

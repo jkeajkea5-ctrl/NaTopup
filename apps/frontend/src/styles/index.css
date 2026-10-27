@@ -2708,3 +2708,41 @@ h6 {
     display: none;
   }
 }
+/* Public maintenance state. Admin and order-recovery routes bypass this view. */
+.maintenance-page {
+  min-height: 100dvh;
+  padding: 24px;
+  display: grid;
+  place-items: center;
+  color: #322a3b;
+  background:
+    radial-gradient(circle at 20% 10%, #ffe8f0 0, transparent 34%),
+    radial-gradient(circle at 85% 85%, #e8e8ff 0, transparent 38%),
+    #fbf9fc;
+}
+.maintenance-card {
+  width: min(100%, 520px);
+  padding: 42px 34px;
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  border: 1px solid #eadfeb;
+  border-radius: 28px;
+  background: #ffffffee;
+  box-shadow: 0 24px 70px #755d8024;
+}
+.maintenance-card > img { width: 132px; height: auto; margin-bottom: 22px; }
+.maintenance-icon { width: 58px; height: 58px; display: grid; place-items: center; border-radius: 18px; color: #8a64b4; background: linear-gradient(135deg, #f9e4ed, #ebe7fb); }
+.maintenance-icon svg { width: 27px; height: 27px; }
+.maintenance-kicker { margin: 20px 0 5px; color: #956a9f; font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.maintenance-card h1 { margin: 0; color: #30273a; font-size: clamp(30px, 7vw, 44px); line-height: 1.08; }
+.maintenance-card h1 + p { max-width: 390px; margin: 16px 0 25px; color: #766b7e; font-size: 15px; line-height: 1.7; }
+.maintenance-card button { min-height: 48px; padding: 0 25px; border: 0; border-radius: 14px; color: #fff; background: linear-gradient(135deg, #c05e87, #7d7ee3); box-shadow: 0 10px 24px #9c6eaf38; font-weight: 800; cursor: pointer; }
+.maintenance-card button:hover { filter: brightness(.96); }
+.maintenance-loading { margin: 8px 0 0; color: #806f89; font-weight: 700; }
+
+@media (max-width: 520px) {
+  .maintenance-page { padding: 14px; }
+  .maintenance-card { padding: 34px 20px; border-radius: 22px; }
+  .maintenance-card > img { width: 112px; }
+}

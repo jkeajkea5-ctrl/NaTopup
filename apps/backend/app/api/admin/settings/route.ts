@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { ADMIN_COOKIE, SESSION_SECONDS, createAdminSession, getAdminSession, hashAdminPassword, isAdminIpRule, requireAdminWithIp, requireSuperAdmin, verifyAdminPassword } from "../../../../lib/adminAuth";
 import { prisma } from "../../../../lib/prisma";
 import { getPaymentProviderSettings, savePaymentProviderSettings } from "../../../../lib/paymentProviderSettings";
+import { getMaintenanceMode, saveMaintenanceMode } from "../../../../lib/maintenanceSettings";
 import { consumeRecoveryCode, decryptTotpSecret, encryptTotpSecret, generateRecoveryCodes, generateTotpSecret, provisioningUri, verifyTotp } from "../../../../lib/twoFactor";
 
 export const dynamic = "force-dynamic";
@@ -17,10 +18,11 @@ export async function GET(request: Request) {
   const roleDenied = requireSuperAdmin(request);
   if (roleDenied) return roleDenied;
   try {
-    const [admins, databaseAllowlist, paymentProviders] = await Promise.all([
+    const [admins, databaseAllowlist, paymentProviders, maintenance] = await Promise.all([
       prisma.adminUser.findMany({ orderBy: { createdAt: "asc" }, select: { id: true, username: true, email: true, role: true, isActive: true, totpEnabled: true, createdAt: true, updatedAt: true } }),
       prisma.adminIpAllowlist.findMany({ where: { OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] }, orderBy: { createdAt: "asc" }, select: { id: true, ipAddress: true, label: true, isActive: true, lastUsedAt: true, expiresAt: true, createdAt: true } }),
       getPaymentProviderSettings(),
+      getMaintenanceMode(),
     ]);
     const databaseIps = new Set(databaseAllowlist.map((entry) => entry.ipAddress));
     const environmentAllowlist = (process.env.ADMIN_ALLOWED_IPS || process.env.ADMIN_IP_ALLOWLIST || "")
@@ -40,7 +42,7 @@ export async function GET(request: Request) {
     const allowlist = [...environmentAllowlist, ...databaseAllowlist.map((entry) => ({ ...entry, locked: false }))];
     const session = getAdminSession(request);
     const currentAdmin = admins.find((admin) => admin.id === session?.id) || null;
-    return NextResponse.json({ success: true, data: { admins, allowlist, currentAdmin, paymentProviders } }, { headers: { "Cache-Control": "no-store" } });
+    return NextResponse.json({ success: true, data: { admins, allowlist, currentAdmin, paymentProviders, maintenance } }, { headers: { "Cache-Control": "no-store" } });
   } catch {
     return error("Security settings could not be loaded.", 503);
   }
@@ -121,6 +123,11 @@ export async function POST(request: Request) {
     if (body?.action === "update-payment-providers") {
       const paymentProviders = await savePaymentProviderSettings(body.providers);
       return NextResponse.json({ success: true, data: { paymentProviders } });
+    }
+    if (body?.action === "update-maintenance") {
+      if (typeof body.enabled !== "boolean") return error("Maintenance status must be enabled or disabled.");
+      const maintenance = await saveMaintenanceMode(body.enabled);
+      return NextResponse.json({ success: true, data: { maintenance } });
     }
     if (body?.action === "start-2fa") {
       const admin = await prisma.adminUser.findUnique({ where: { id: session!.id } });

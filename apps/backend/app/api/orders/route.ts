@@ -11,9 +11,23 @@ import {
 } from "../../../lib/requestSecurity";
 import { orderService } from "../../../services/OrderService";
 import { verifyTurnstileToken } from "../../../lib/turnstile";
+import { getMaintenanceMode } from "../../../lib/maintenanceSettings";
 
 export async function POST(request: Request) {
   try {
+    if (await getMaintenanceMode()) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: "MAINTENANCE_MODE",
+            message: "The store is temporarily under maintenance. Please try again shortly.",
+          },
+        },
+        { status: 503, headers: { "Retry-After": "300" } }
+      );
+    }
+
     const ip = getClientIp(request);
     const minuteLimit = await checkRateLimit(`order-create:minute:${ip}`, { windowMs: 60000, maxRequests: 6 });
     if (!minuteLimit.allowed) {

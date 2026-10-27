@@ -1045,6 +1045,9 @@
 .admin-shell .admin-invite { border-color: #d9c9e5; background: linear-gradient(135deg, #fff8fb, #f1edff); }
 .admin-invite > div:first-child > svg { color: #8e78d8; }
 .admin-shell .admin-security .admin-list > div { border: 1px solid #ebe0f0; background: #faf6fc; }
+.admin-maintenance-card { max-width: 760px; border-color: #e0d3e7 !important; background: linear-gradient(135deg, #fffafd, #f5f1fc) !important; }
+.admin-maintenance-card .admin-payment-toggle { margin-top: 4px; }
+.admin-maintenance-card .admin-hint { margin: 0; }
 
 @media (max-width: 700px) {
   .admin-collection-meta { padding: 11px 14px 0; }

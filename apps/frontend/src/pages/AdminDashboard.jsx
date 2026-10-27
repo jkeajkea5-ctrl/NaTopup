@@ -258,6 +258,12 @@ function SecurityPanel() {
   }
   async function updateProfile(e) { e.preventDefault(); await action({ action: "update-profile", ...profileForm }, "Account details updated."); }
   async function createInvite() { const result = await action({ action: "create-invite", expiresInMinutes: 30 }, "One-time invite created."); if (result?.url) setInvite(result.url); }
+  async function updateMaintenance(enabled) {
+    await action(
+      { action: "update-maintenance", enabled },
+      enabled ? "Maintenance mode enabled." : "Maintenance mode disabled."
+    );
+  }
   return <div className="admin-security">
     {error && <p className="admin-alert error">{error}</p>}{message && <p className="admin-alert success">{message}</p>}
     <div className="admin-security-status"><span>{loading ? "Loading security settings…" : data ? "Security settings loaded" : "Security settings unavailable"}</span><button type="button" className="admin-btn secondary" onClick={refresh} disabled={loading}><RefreshCw size={15} className={loading ? "spin" : ""} />Retry</button></div>
@@ -265,6 +271,14 @@ function SecurityPanel() {
       <form className="admin-card admin-form-card admin-profile-card" onSubmit={updateProfile}><Settings /><div><h3>My administrator account</h3><p>Change your username, email, or password. Confirm with your current password.</p></div><label className="admin-field">Username<input required value={profileForm.username} onChange={(e) => setProfileForm({ ...profileForm, username: e.target.value })} /></label><label className="admin-field">Email<input required type="email" value={profileForm.email} onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })} /></label><label className="admin-field">Current password<input required type="password" autoComplete="current-password" value={profileForm.currentPassword} onChange={(e) => setProfileForm({ ...profileForm, currentPassword: e.target.value })} /></label><label className="admin-field">New password <small>(leave blank to keep it)</small><input minLength={10} type="password" autoComplete="new-password" value={profileForm.newPassword} onChange={(e) => setProfileForm({ ...profileForm, newPassword: e.target.value })} /></label><button className="admin-btn primary">Update my account</button></form>
     </div>
     <TwoFactorCard enabled={Boolean(data?.currentAdmin?.totpEnabled)} onChanged={refresh} />
+    <section className="admin-card admin-maintenance-card">
+      <div className="admin-card-title"><Settings /><div><h3>Maintenance mode</h3><p>Temporarily close the customer storefront and prevent new orders.</p></div></div>
+      <label className="admin-payment-toggle">
+        <input type="checkbox" checked={Boolean(data?.maintenance)} disabled={loading} onChange={(event) => updateMaintenance(event.target.checked)} />
+        <span><strong>{data?.maintenance ? "Maintenance active" : "Storefront active"}</strong><small>{data?.maintenance ? "Customers see the maintenance page" : "Customers can browse and place orders"}</small></span>
+      </label>
+      <p className="admin-hint">Admin access, payment returns, and existing order lookup remain available.</p>
+    </section>
     <section className="admin-card admin-invite"><div><Link2 /><h3>One-time secret URL</h3><p>The first visitor receives temporary IP access until the 30-minute link expires.</p></div><button className="admin-btn primary" onClick={createInvite}>Create 30-minute link</button>{invite && <div className="admin-copy"><input readOnly value={invite} /><button className="admin-icon-btn" onClick={() => navigator.clipboard?.writeText(invite)}><Copy size={17} /></button></div>}</section>
     <div className="admin-form-grid">
       <section className="admin-card"><h3>Admin accounts</h3><div className="admin-list">{data?.admins?.map((admin) => <div key={admin.id}><span><strong>{admin.username}</strong><small>{admin.email} · {admin.role}</small></span>{admin.role !== "SUPERADMIN" && <button onClick={() => action({ action: "toggle-admin", id: admin.id, isActive: !admin.isActive }, admin.isActive ? "Account disabled." : "Account enabled.")} className={admin.isActive ? "state-on" : "state-off"}>{admin.isActive ? "Active" : "Disabled"}</button>}</div>)}{!loading && data && !data.admins?.length && <Empty>No administrator accounts found.</Empty>}</div></section>
