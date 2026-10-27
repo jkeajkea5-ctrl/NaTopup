@@ -113,7 +113,7 @@ test("order removal archives unpaid orders with an audit and protects paid order
   (prisma.adminUser as any).findUnique = async () => ({ username: "admin", role: "SUPERADMIN", isActive: true });
   (prisma as any).$transaction = async (callback: any) => callback({
     order: {
-      findUnique: async () => ({ id: TEST_ADMIN_ID, publicOrderId: "NA-TEST01", status, archivedAt: null, payment: { status: ["PAID", "DELIVERED"].includes(status) ? "PAID" : "PENDING", verifiedAt: ["PAID", "DELIVERED"].includes(status) ? new Date() : null } }),
+      findUnique: async () => ({ id: TEST_ADMIN_ID, publicOrderId: "NA-TEST01", status, archivedAt: null, payment: { status: ["PAID", "DELIVERED"].includes(status) ? "PAID" : status === "EXPIRED" ? "EXPIRED" : "PENDING" } }),
       update: async () => { calls.push("archive"); },
     },
     auditLog: { create: async () => { calls.push("audit"); } },
@@ -131,6 +131,10 @@ test("order removal archives unpaid orders with an audit and protects paid order
     assert.equal((await archiveOrder(archiveRequest())).status, 409);
     assert.deepEqual(calls, []);
     status = "DELIVERED";
+    assert.equal((await archiveOrder(archiveRequest())).status, 200);
+    assert.deepEqual(calls, ["archive", "audit"]);
+    calls.length = 0;
+    status = "EXPIRED";
     assert.equal((await archiveOrder(archiveRequest())).status, 200);
     assert.deepEqual(calls, ["archive", "audit"]);
   } finally {

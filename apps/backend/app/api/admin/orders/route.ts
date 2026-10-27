@@ -71,12 +71,12 @@ export async function DELETE(request: Request) {
     const result = await prisma.$transaction(async (tx) => {
       const order = await tx.order.findUnique({
         where: { id },
-        select: { id: true, publicOrderId: true, status: true, archivedAt: true, payment: { select: { status: true, verifiedAt: true } } },
+        select: { id: true, publicOrderId: true, status: true, archivedAt: true, payment: { select: { status: true } } },
       });
       if (!order) throw new OrderArchiveError("Order not found.", 404);
       if (order.archivedAt) return { id: order.id, publicOrderId: order.publicOrderId };
       const completedDelivery = order.status === "DELIVERED";
-      if (!deletableStatuses.has(order.status) || (!completedDelivery && (order.payment?.verifiedAt || order.payment?.status === "PAID"))) {
+      if (!deletableStatuses.has(order.status) || (!completedDelivery && order.payment?.status === "PAID")) {
         throw new OrderArchiveError("Paid orders still being fulfilled, processing orders, and review orders cannot be removed.", 409);
       }
       const archivedAt = new Date();
