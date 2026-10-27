@@ -52,7 +52,7 @@ export async function GET(request: Request) {
   }
 }
 
-const deletableStatuses = new Set(["AWAITING_PAYMENT", "FAILED", "EXPIRED"]);
+const deletableStatuses = new Set(["AWAITING_PAYMENT", "DELIVERED", "FAILED", "EXPIRED"]);
 
 class OrderArchiveError extends Error {
   constructor(message: string, readonly status: number) {
@@ -75,8 +75,9 @@ export async function DELETE(request: Request) {
       });
       if (!order) throw new OrderArchiveError("Order not found.", 404);
       if (order.archivedAt) return { id: order.id, publicOrderId: order.publicOrderId };
-      if (!deletableStatuses.has(order.status) || order.payment?.verifiedAt || order.payment?.status === "PAID") {
-        throw new OrderArchiveError("Paid, processing, delivered, or review orders cannot be removed.", 409);
+      const completedDelivery = order.status === "DELIVERED";
+      if (!deletableStatuses.has(order.status) || (!completedDelivery && (order.payment?.verifiedAt || order.payment?.status === "PAID"))) {
+        throw new OrderArchiveError("Paid orders still being fulfilled, processing orders, and review orders cannot be removed.", 409);
       }
       const archivedAt = new Date();
       await tx.order.update({ where: { id }, data: { archivedAt } });

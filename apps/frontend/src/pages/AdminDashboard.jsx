@@ -27,6 +27,8 @@ const labels = {
   AWAITING_PAYMENT: "Awaiting payment", PAID: "Paid", PROCESSING: "Processing",
   DELIVERED: "Delivered", FAILED: "Failed", EXPIRED: "Expired", REVIEW_REQUIRED: "Review required",
 };
+const removableOrderStatuses = new Set(["AWAITING_PAYMENT", "DELIVERED", "FAILED", "EXPIRED"]);
+const canRemoveOrder = (order) => removableOrderStatuses.has(order.status) && (order.status === "DELIVERED" || order.payment?.status !== "PAID");
 const pageDescriptions = {
   orders: "Track purchases, payments, customers, and fulfilment",
   profit: "Live order totals and supplier API balances",
@@ -499,7 +501,7 @@ export const AdminDashboard = ({ adminSession }) => {
               <div className="admin-order-customer"><small>Customer</small><strong>{order.playerName || "Player account"}</strong><em>{order.playerId}</em></div>
               <div className="admin-order-payment"><small>Payment</small><strong>{money(order.total)}</strong><em className={`admin-payment-state ${(order.payment?.status || "unpaid").toLowerCase()}`}>{order.payment?.status || "No payment"}</em></div>
               <div className="admin-order-status"><small>Status</small><b className={`admin-status ${order.status.toLowerCase()}`}>{labels[order.status] || order.status}</b></div>
-              <div className="admin-order-actions"><button type="button" className="admin-order-delete" aria-label={`Remove order ${order.publicOrderId}`} title={["AWAITING_PAYMENT", "FAILED", "EXPIRED"].includes(order.status) && order.payment?.status !== "PAID" ? "Remove order" : "Paid and active orders are protected"} disabled={deletingOrder === order.id || !["AWAITING_PAYMENT", "FAILED", "EXPIRED"].includes(order.status) || order.payment?.status === "PAID"} onClick={() => removeOrder(order)}>{deletingOrder === order.id ? <RefreshCw size={16} className="spin" /> : <Trash2 size={16} />}</button></div>
+              <div className="admin-order-actions"><button type="button" className="admin-order-delete" aria-label={`Remove order ${order.publicOrderId}`} title={canRemoveOrder(order) ? "Remove order" : "Paid and active orders are protected"} disabled={deletingOrder === order.id || !canRemoveOrder(order)} onClick={() => removeOrder(order)}>{deletingOrder === order.id ? <RefreshCw size={16} className="spin" /> : <Trash2 size={16} />}</button></div>
             </article>)}
             {!filteredOrders.length && <Empty>No orders match your current filters.</Empty>}
           </div>
