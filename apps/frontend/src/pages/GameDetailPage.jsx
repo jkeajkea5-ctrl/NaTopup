@@ -198,8 +198,6 @@ export const GameDetailPage = () => {
     setPaymentNotice(null);
     setPaymentSession(null);
     setSuccessInvoice(null);
-    setTurnstileToken("");
-    setTurnstileResetSignal((value) => value + 1);
     checkoutRequestIdRef.current = null;
     return () => {
       clearTimeout(toastTimerRef.current);
