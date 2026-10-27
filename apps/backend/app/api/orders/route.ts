@@ -10,7 +10,6 @@ import {
   rateLimitHeaders,
 } from "../../../lib/requestSecurity";
 import { orderService } from "../../../services/OrderService";
-import { verifyTurnstileToken } from "../../../lib/turnstile";
 import { getMaintenanceMode } from "../../../lib/maintenanceSettings";
 
 export async function POST(request: Request) {
@@ -92,23 +91,6 @@ export async function POST(request: Request) {
           },
         },
         { status: playerLimit.unavailable ? 503 : 429, headers: rateLimitHeaders(playerLimit) }
-      );
-    }
-
-    const turnstile = await verifyTurnstileToken(body?.turnstileToken, ip);
-    if (!turnstile.success) {
-      const unavailable = turnstile.reason === "not-configured" || turnstile.reason === "provider-error";
-      return NextResponse.json(
-        {
-          success: false,
-          error: {
-            code: unavailable ? "SECURITY_CHECK_UNAVAILABLE" : "SECURITY_CHECK_FAILED",
-            message: unavailable
-              ? "The checkout security check is temporarily unavailable. Please try again."
-              : "Please complete the security check and try again.",
-          },
-        },
-        { status: unavailable ? 503 : 403 }
       );
     }
 

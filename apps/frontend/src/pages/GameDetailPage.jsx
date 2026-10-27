@@ -25,7 +25,6 @@ import { checkPlayerId, createOrder, fetchGameDetail, fetchPaymentOptions, initK
 import { ProductCard } from "../components/ProductCard";
 import { SuccessInvoiceModal } from "../components/SuccessInvoiceModal";
 import { TermsModal } from "../components/TermsModal";
-import { TurnstileWidget } from "../components/TurnstileWidget";
 import {
   closeProviderCheckout,
   isMobilePaymentDevice,
@@ -34,7 +33,6 @@ import {
 } from "../services/paymentCheckout";
 
 const SAVED_PLAYER_FIELDS_KEY = "na-topup:saved-player-fields:v1";
-const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY || "";
 
 function getPaymentAbaDeepLink(session) {
   // Use ABA Mobile's native QR scheme first. On iOS Safari this produces the
@@ -162,8 +160,6 @@ export const GameDetailPage = () => {
 
   // Checkout submission
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
-  const [turnstileToken, setTurnstileToken] = useState("");
-  const [turnstileResetSignal, setTurnstileResetSignal] = useState(0);
   const [submitError, setSubmitError] = useState(null);
   const [paymentErrorPopup, setPaymentErrorPopup] = useState(null);
   const [paymentNotice, setPaymentNotice] = useState(null);
@@ -494,11 +490,6 @@ export const GameDetailPage = () => {
       return;
     }
 
-    if (TURNSTILE_SITE_KEY && !turnstileToken) {
-      setSubmitError("Please complete the security check before payment.");
-      return;
-    }
-
     if (!paymentProvider) {
       setSubmitError("No ABA payment method is currently available. Please try again later.");
       return;
@@ -520,9 +511,7 @@ export const GameDetailPage = () => {
         gameSlug: game.slug,
         productId: selectedProduct.id,
         playerData: playerFields,
-      }, checkoutRequestIdRef.current, turnstileToken);
-      setTurnstileToken("");
-      setTurnstileResetSignal((value) => value + 1);
+      }, checkoutRequestIdRef.current);
 
       let paymentRes;
       try {
@@ -566,8 +555,6 @@ export const GameDetailPage = () => {
       savePlayerFields(game.slug, game.fields, playerFields);
 
     } catch (err) {
-      setTurnstileToken("");
-      setTurnstileResetSignal((value) => value + 1);
       setSubmitError(err.message || "ការបញ្ជាទិញមានបញ្ហា។ សូមព្យាយាមម្តងទៀត!");
     } finally {
       setIsSubmittingOrder(false);
@@ -876,12 +863,6 @@ export const GameDetailPage = () => {
                 </div>
               </div>
 
-              <TurnstileWidget
-                siteKey={TURNSTILE_SITE_KEY}
-                onToken={setTurnstileToken}
-                resetSignal={turnstileResetSignal}
-              />
-
               {/* Error if checkout fails */}
               {submitError && (
                 <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs flex items-center gap-2 font-kulen">
@@ -901,7 +882,7 @@ export const GameDetailPage = () => {
               <button
                 type="button"
                 onClick={handleProceedToPayment}
-                disabled={isSubmittingOrder || !paymentProvider || Boolean(TURNSTILE_SITE_KEY && !turnstileToken)}
+                disabled={isSubmittingOrder || !paymentProvider}
                 className="game-detail-primary-button hidden w-full items-center justify-center gap-2 rounded-xl px-4 py-3.5 font-kulen text-sm font-bold text-white shadow-md transition-all hover:shadow-lg active:scale-98 lg:flex cursor-pointer"
               >
                 {isSubmittingOrder ? (
@@ -1095,7 +1076,7 @@ export const GameDetailPage = () => {
           <button
             type="button"
             onClick={handleProceedToPayment}
-            disabled={isSubmittingOrder || !paymentProvider || Boolean(TURNSTILE_SITE_KEY && !turnstileToken)}
+            disabled={isSubmittingOrder || !paymentProvider}
             aria-busy={isSubmittingOrder}
             className="mobile-checkout-button flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-2xl px-5 py-3 font-kulen text-sm text-white sm:px-8"
           >
