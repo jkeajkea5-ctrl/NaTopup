@@ -43,6 +43,27 @@ function getPaymentAbaDeepLink(session) {
   return session?.abaDeepLink || null;
 }
 
+async function createBrandedPaymentQrDataUrl(qrString, width) {
+  const canvas = document.createElement("canvas");
+  await QRCode.toCanvas(canvas, qrString, { errorCorrectionLevel: "H", margin: 4, width });
+
+  try {
+    const emblem = new Image();
+    await new Promise((resolve, reject) => {
+      emblem.onload = resolve;
+      emblem.onerror = reject;
+      emblem.src = "/khqr-center-emblem.svg";
+    });
+    const size = Math.round(canvas.width * 0.16);
+    const offset = Math.round((canvas.width - size) / 2);
+    canvas.getContext("2d").drawImage(emblem, offset, offset, size, size);
+  } catch {
+    // Keep the payment QR usable if the decorative emblem cannot load.
+  }
+
+  return canvas.toDataURL("image/png");
+}
+
 function createCheckoutRequestId() {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") return crypto.randomUUID();
   return `checkout-${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
@@ -303,7 +324,7 @@ export const GameDetailPage = () => {
     let cancelled = false;
     setPaymentQrDataUrl("");
     if (!paymentSession?.qrString) return undefined;
-    QRCode.toDataURL(paymentSession.qrString, { errorCorrectionLevel: "M", margin: 1, width: 660 })
+    createBrandedPaymentQrDataUrl(paymentSession.qrString, 660)
       .then((url) => { if (!cancelled) setPaymentQrDataUrl(url); })
       .catch(() => undefined);
     return () => { cancelled = true; };
@@ -566,9 +587,7 @@ export const GameDetailPage = () => {
     setIsDownloadingQr(true);
     setQrDownloadError("");
     try {
-      const dataUrl = paymentQrDataUrl || await QRCode.toDataURL(paymentSession.qrString, {
-        errorCorrectionLevel: "M", margin: 2, width: 800,
-      });
+      const dataUrl = await createBrandedPaymentQrDataUrl(paymentSession.qrString, 800);
       const fileName = `KHQR_${paymentSession.publicOrderId}.png`;
       const blob = await (await fetch(dataUrl)).blob();
       const isAppleMobile = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
@@ -634,11 +653,19 @@ export const GameDetailPage = () => {
               <div className="khqr-payway-ticket">
                 <div className="khqr-payway-ticket-header"><span>KHQR</span></div>
                 <div className="khqr-payway-ticket-body">
-                  <div className="khqr-payway-merchant">{paymentSession.merchantName || "NA TOPUP"}</div>
-                  <div className="khqr-payway-amount">{Number(paymentSession.amount || 0).toFixed(2)} <span>USD</span></div>
+                  <div className="khqr-payway-summary">
+                    <div className="khqr-payway-summary-text">
+                      <div className="khqr-payway-merchant">{paymentSession.merchantName || "NA TOPUP"}</div>
+                      <div className="khqr-payway-amount">{Number(paymentSession.amount || 0).toFixed(2)} <span>USD</span></div>
+                    </div>
+                    <span className="khqr-payway-mobile-countdown" aria-live="off">
+                      <Loader2 size={25} aria-hidden="true" />
+                      {String(Math.floor(paymentSecondsLeft / 60)).padStart(2, "0")}:{String(paymentSecondsLeft % 60).padStart(2, "0")}
+                    </span>
+                  </div>
                   <div className="khqr-payway-perforation" aria-hidden="true" />
                   <div className="khqr-payway-qr">
-                    {(paymentSession.qrImageUrl || paymentQrDataUrl) ? <img src={paymentSession.qrImageUrl || paymentQrDataUrl} onError={(event) => { if (paymentQrDataUrl && event.currentTarget.src !== paymentQrDataUrl) event.currentTarget.src = paymentQrDataUrl; }} alt="ABA KHQR payment QR code" /> : <span>Loading payment QR…</span>}
+                    {(paymentQrDataUrl || paymentSession.qrImageUrl) ? <img src={paymentQrDataUrl || paymentSession.qrImageUrl} onError={(event) => { if (paymentSession.qrImageUrl && event.currentTarget.src !== paymentSession.qrImageUrl) event.currentTarget.src = paymentSession.qrImageUrl; }} alt="ABA KHQR payment QR code" /> : <span>Loading payment QR…</span>}
                   </div>
                   <div className="khqr-payway-mobile-actions">
                     <strong>Scan to Pay</strong>
