@@ -21,7 +21,7 @@ let paymentOptions;
 const mocks = {
   api: Object.fromEntries([
     "checkPlayerId", "createOrder", "fetchGameDetail", "fetchPaymentOptions",
-    "initKhqrPayment", "fetchOrderDetail", "fetchOrderStatus",
+    "initKhqrPayment", "cancelOrder", "fetchOrderDetail", "fetchOrderStatus",
   ].map((name) => [name, (...args) => api[name](...args)])),
   router: { useParams: () => ({ slug: fixtures.game.slug }), useNavigate: () => () => {}, Link: "a" },
   query: { useQuery: ({ queryKey }) => ({
@@ -84,6 +84,7 @@ async function mountCheckout(t, provider = "KHQRPAY_ABA_V2") {
       paymentId: "payment-1", expiresAt: new Date(Date.now() + 600_000).toISOString(), amount: 1,
       checkoutUrl: "https://anajakpay.com/checkout/test",
     })),
+    cancelOrder: t.mock.fn(async () => ({ status: "CANCELLED" })),
     fetchOrderStatus: t.mock.fn(async () => ({ status: "AWAITING_PAYMENT" })),
     fetchOrderDetail: t.mock.fn(async (id) => ({ publicOrderId: id })),
   };
@@ -130,7 +131,7 @@ test("a paid checkout allows a new order without signing out", async (t) => {
   assert.notEqual(api.createOrder.mock.calls[0].arguments[1], api.createOrder.mock.calls[1].arguments[1]);
 });
 
-test("closing and reselecting the same package reopens the unpaid QR", async (t) => {
+test("cancelling and reselecting the same package creates a fresh QR order", async (t) => {
   const checkout = await mountCheckout(t);
   await checkout.pay();
   await checkout.close();
@@ -138,12 +139,12 @@ test("closing and reselecting the same package reopens the unpaid QR", async (t)
     checkout.root.findAllByType("test-product")[0].props.onSelect(fixtures.products[0]);
   });
   await checkout.pay();
-  assert.equal(api.createOrder.mock.calls[0].arguments[1], api.createOrder.mock.calls[1].arguments[1]);
-  assert.equal(checkout.orders.size, 1);
+  assert.notEqual(api.createOrder.mock.calls[0].arguments[1], api.createOrder.mock.calls[1].arguments[1]);
+  assert.equal(checkout.orders.size, 2);
   assert.equal(checkout.root.findAllByProps({ "aria-label": "ABA KHQR payment" }).length, 1);
 });
 
-test("switching packages and returning resumes the original unpaid checkout", async (t) => {
+test("cancelling package checkouts creates a fresh order each time", async (t) => {
   const checkout = await mountCheckout(t);
   await checkout.pay();
   await checkout.close();
@@ -158,8 +159,8 @@ test("switching packages and returning resumes the original unpaid checkout", as
   await checkout.pay();
   const requestIds = api.createOrder.mock.calls.map((call) => call.arguments[1]);
   assert.notEqual(requestIds[0], requestIds[1]);
-  assert.equal(requestIds[0], requestIds[2]);
-  assert.equal(checkout.orders.size, 2);
+  assert.notEqual(requestIds[0], requestIds[2]);
+  assert.equal(checkout.orders.size, 3);
 });
 
 test("an open QR cannot submit a duplicate checkout", async (t) => {

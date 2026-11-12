@@ -45,3 +45,34 @@ export async function GET(
     );
   }
 }
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: { publicId: string } }
+) {
+  try {
+    const { publicId } = params;
+    const limit = await checkRateLimit(`order-cancel:${getClientIp(request)}:${publicId}`, { windowMs: 60000, maxRequests: 6 });
+    if (!limit.allowed) {
+      return NextResponse.json(
+        { success: false, error: { code: "RATE_LIMIT_EXCEEDED", message: "Too many cancellation attempts. Please wait." } },
+        { status: limit.unavailable ? 503 : 429, headers: rateLimitHeaders(limit) }
+      );
+    }
+
+    const order = await orderService.cancelOrder(publicId, getOrderLookupToken(request));
+    if (!order) {
+      return NextResponse.json(
+        { success: false, error: { code: "ORDER_NOT_FOUND", message: "Order not found." } },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ success: true, data: { publicOrderId: order.publicOrderId, status: order.status } });
+  } catch (err: any) {
+    return NextResponse.json(
+      { success: false, error: { code: "ORDER_CANCEL_FAILED", message: err.message || "Unable to cancel order." } },
+      { status: 400 }
+    );
+  }
+}

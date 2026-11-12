@@ -183,6 +183,18 @@ export async function createOrder(data: {
   return json.data;
 }
 
+export async function cancelOrder(publicOrderId: string, lookupToken?: string): Promise<{ publicOrderId: string; status: string }> {
+  const res = await fetch(`${API_BASE}/orders/${publicOrderId}`, {
+    method: "DELETE",
+    headers: secureOrderHeaders(publicOrderId, lookupToken),
+  });
+  const json = await readJsonResponse(res);
+  if (!res.ok || !json.success) {
+    throw new Error(json.error?.message || "Failed to cancel order");
+  }
+  return json.data;
+}
+
 export async function initKhqrPayment(publicOrderId: string, provider: "ANJAKPAY" | "KHQRPAY_ABA_V2" = "KHQRPAY_ABA_V2", lookupToken?: string): Promise<{
   paymentId: string;
   publicOrderId: string;

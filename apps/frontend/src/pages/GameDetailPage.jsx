@@ -21,7 +21,7 @@ import {
   ShoppingBag,
   ArrowLeft,
 } from "lucide-react";
-import { checkPlayerId, createOrder, fetchGameDetail, fetchPaymentOptions, initKhqrPayment, fetchOrderDetail, fetchOrderStatus } from "../services/api";
+import { checkPlayerId, createOrder, cancelOrder, fetchGameDetail, fetchPaymentOptions, initKhqrPayment, fetchOrderDetail, fetchOrderStatus } from "../services/api";
 import { ProductCard } from "../components/ProductCard";
 import { SuccessInvoiceModal } from "../components/SuccessInvoiceModal";
 import { TermsModal } from "../components/TermsModal";
@@ -589,7 +589,14 @@ export const GameDetailPage = () => {
             setPaymentNotice(null);
             showPaymentError("Unable to open secure payment. Please try again.");
           },
-          () => {
+          async () => {
+            finishCheckoutRequest(orderRes.publicOrderId);
+            try {
+              await cancelOrder(orderRes.publicOrderId, orderRes.lookupToken);
+            } catch {
+              // The order may already be terminal or expired; either way its
+              // active checkout lock is no longer usable.
+            }
             setPaymentSession(null);
             setPaymentNotice(null);
           }
@@ -641,8 +648,20 @@ export const GameDetailPage = () => {
     }
   };
 
-  const handleClosePaymentQr = () => {
+  const handleClosePaymentQr = async () => {
     if (!window.confirm("Are you sure you want to close?")) return;
+    // Cancelling the QR means the customer is starting over. Release the
+    // idempotency entry so the next attempt creates a fresh order and QR.
+    const session = paymentSession;
+    if (session?.publicOrderId) {
+      finishCheckoutRequest(session.publicOrderId);
+      try {
+        await cancelOrder(session.publicOrderId, session.lookupToken);
+      } catch {
+        // The local session is still dismissed; an expired/terminal order is
+        // already released by the server and cancellation is safe to retry.
+      }
+    }
     setPaymentSession(null);
     setPaymentNotice(null);
   };

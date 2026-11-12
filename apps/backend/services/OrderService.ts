@@ -384,6 +384,22 @@ export class OrderService {
     };
   }
 
+  async cancelOrder(publicOrderId: string, lookupToken: string) {
+    let order: any = await safeDbQuery(
+      () => prisma.order.findUnique({ where: { publicOrderId } }),
+      null,
+      1000
+    );
+    if (!order) order = inMemoryOrders.get(publicOrderId);
+    if (!order || !verifyOrderLookupToken(lookupToken, order.publicLookupToken || "")) return null;
+
+    if (![OrderStatus.AWAITING_PAYMENT, OrderStatus.PAYMENT_VERIFYING].includes(order.status as OrderStatus)) {
+      return order;
+    }
+
+    return this.transitionStatus(order.id, OrderStatus.CANCELLED, "Customer cancelled the payment checkout");
+  }
+
   /**
    * Transitions order status adhering strictly to the state machine.
    */
