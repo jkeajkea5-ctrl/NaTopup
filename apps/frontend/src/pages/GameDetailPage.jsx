@@ -161,7 +161,7 @@ export const GameDetailPage = () => {
   const verificationSequenceRef = useRef(0);
   const restoredPlayerSlugRef = useRef(null);
   const autoOpenedAbaPaymentRef = useRef(null);
-  const checkoutRequestIdRef = useRef(null);
+  const checkoutRequestsRef = useRef(new Map());
 
   // Dynamic player fields state
   const [playerFields, setPlayerFields] = useState({});
@@ -221,7 +221,6 @@ export const GameDetailPage = () => {
     setPaymentNotice(null);
     setPaymentSession(null);
     setSuccessInvoice(null);
-    checkoutRequestIdRef.current = null;
     return () => {
       clearTimeout(toastTimerRef.current);
       verificationSequenceRef.current += 1;
@@ -235,18 +234,25 @@ export const GameDetailPage = () => {
     setPlayerFields(getSavedPlayerFields(loadedGame.slug, loadedGame.fields));
   }, [data?.game, slug]);
 
+  const finishCheckoutRequest = useCallback((publicOrderId) => {
+    for (const [key, request] of checkoutRequestsRef.current) {
+      if (request.publicOrderId === publicOrderId) checkoutRequestsRef.current.delete(key);
+    }
+  }, []);
+
   const showSuccessfulInvoice = useCallback(async (publicOrderId, status, lookupToken) => {
     closeProviderCheckout();
+    finishCheckoutRequest(publicOrderId);
+    setPaymentSession(null);
+    setPaymentNotice(null);
     try {
       const order = await fetchOrderDetail(publicOrderId, lookupToken);
       setSuccessInvoice({ order, status });
-      setPaymentSession(null);
       setSubmitError(null);
-      setPaymentNotice(null);
     } catch (err) {
       setSubmitError(err.message || "Payment succeeded, but the receipt could not be loaded. Please try again.");
     }
-  }, []);
+  }, [finishCheckoutRequest]);
 
   useEffect(() => {
     const handlePaymentReturn = async (event) => {
@@ -290,12 +296,14 @@ export const GameDetailPage = () => {
         } else if (status.isTerminal) {
           clearInterval(timer);
           closeProviderCheckout();
+          finishCheckoutRequest(paymentSession.publicOrderId);
           setPaymentSession(null);
           setPaymentNotice(null);
           setSubmitError(status.customerStatusText || "Payment was not completed.");
         } else if (Date.now() >= new Date(paymentSession.expiresAt).getTime()) {
           clearInterval(timer);
           closeProviderCheckout();
+          finishCheckoutRequest(paymentSession.publicOrderId);
           setPaymentSession(null);
           setPaymentNotice(null);
           setSubmitError("Payment session expired. Please try again.");
@@ -310,7 +318,7 @@ export const GameDetailPage = () => {
       cancelled = true;
       clearInterval(timer);
     };
-  }, [paymentSession, showSuccessfulInvoice]);
+  }, [paymentSession, showSuccessfulInvoice, finishCheckoutRequest]);
 
   useEffect(() => {
     if (!paymentSession?.expiresAt) return;
@@ -395,7 +403,6 @@ export const GameDetailPage = () => {
   const products = data?.products || [];
 
   const handleFieldChange = (key, value) => {
-    checkoutRequestIdRef.current = null;
     verificationSequenceRef.current += 1;
     setIsValidatingPlayer(false);
     setPlayerFields((prev) => ({ ...prev, [key]: value }));
@@ -447,7 +454,6 @@ export const GameDetailPage = () => {
       ];
 
   const handleSelectPackage = (product) => {
-    checkoutRequestIdRef.current = null;
     setSelectedProduct(product);
     setPackageAlertMessage(null);
     setSubmitError(null);
@@ -472,7 +478,7 @@ export const GameDetailPage = () => {
   };
 
   const handleProceedToPayment = async () => {
-    if (isSubmittingOrder) return;
+    if (isSubmittingOrder || paymentSession) return;
 
     if (isValidatingPlayer || !verifiedPlayerName) {
       const message = isValidatingPlayer
@@ -527,12 +533,30 @@ export const GameDetailPage = () => {
     };
 
     try {
-      if (!checkoutRequestIdRef.current) checkoutRequestIdRef.current = createCheckoutRequestId();
-      const orderRes = await createOrder({
+      const orderData = {
         gameSlug: game.slug,
         productId: selectedProduct.id,
         playerData: playerFields,
-      }, checkoutRequestIdRef.current);
+      };
+      // Keep an unpaid checkout resumable even if the customer closes its QR,
+      // selects another package, or edits and restores their player details.
+      const requestKey = JSON.stringify([
+        game.slug, selectedProduct.id,
+        Object.entries(playerFields).sort(([left], [right]) => left.localeCompare(right)),
+      ]);
+      let checkoutRequest = checkoutRequestsRef.current.get(requestKey);
+      if (!checkoutRequest) {
+        checkoutRequest = { id: createCheckoutRequestId() };
+        checkoutRequestsRef.current.set(requestKey, checkoutRequest);
+      }
+      let orderRes = await createOrder(orderData, checkoutRequest.id);
+      // A dismissed QR may have been paid or expired while polling was stopped.
+      // Never initialize another payment against that completed order.
+      if (!["CREATED", "AWAITING_PAYMENT", "PAYMENT_VERIFYING"].includes(orderRes.status)) {
+        checkoutRequest.id = createCheckoutRequestId();
+        orderRes = await createOrder(orderData, checkoutRequest.id);
+      }
+      checkoutRequest.publicOrderId = orderRes.publicOrderId;
 
       let paymentRes;
       try {
@@ -542,11 +566,9 @@ export const GameDetailPage = () => {
         throw err;
       }
 
-      if (paymentProvider === "KHQRPAY_ABA_V2") {
-        // Display the KHQR PAY QR immediately in our checkout popup. The
-        // modal polls the order status while the customer pays.
-        setPaymentSession({ ...paymentRes, publicOrderId: orderRes.publicOrderId, lookupToken: orderRes.lookupToken });
-      } else {
+      // Start polling for both the local QR modal and the hosted checkout.
+      setPaymentSession({ ...paymentRes, publicOrderId: orderRes.publicOrderId, lookupToken: orderRes.lookupToken });
+      if (paymentProvider !== "KHQRPAY_ABA_V2") {
         try {
           await openProviderCheckout(
           paymentRes.checkoutUrl,
@@ -561,17 +583,22 @@ export const GameDetailPage = () => {
               // The existing 3-second poll remains authoritative and will retry.
             }
           },
-          () => showPaymentError("Unable to open secure payment. Please try again."),
+          () => {
+            closeProviderCheckout();
+            setPaymentSession(null);
+            setPaymentNotice(null);
+            showPaymentError("Unable to open secure payment. Please try again.");
+          },
           () => {
             setPaymentSession(null);
             setPaymentNotice(null);
           }
           );
         } catch (err) {
+          setPaymentSession(null);
           showPaymentError(err.message || "Unable to open secure payment. Please try again.");
           throw err;
         }
-        setPaymentSession({ ...paymentRes, publicOrderId: orderRes.publicOrderId, lookupToken: orderRes.lookupToken });
       }
       savePlayerFields(game.slug, game.fields, playerFields);
 
