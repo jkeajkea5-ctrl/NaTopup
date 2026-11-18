@@ -5,6 +5,7 @@ import { prisma, safeDbQuery } from "../lib/prisma";
 import { FALLBACK_GAMES } from "../lib/fallbackData";
 import { generateLookupToken, generatePublicOrderId } from "../lib/security";
 import { verifyOrderLookupToken } from "../lib/requestSecurity";
+import { PLAYER_VERIFIED_ORDER_EVENT_REASON } from "../lib/playerVerification";
 import { supplierManager } from "../suppliers/supplierManager";
 import { telegramAlertService } from "./TelegramAlertService";
 
@@ -259,11 +260,18 @@ export class OrderService {
             customerEmail: input.customerEmail,
             customerPhone: input.customerPhone,
             events: {
-              create: {
-                fromStatus: "NONE",
-                toStatus: OrderStatus.AWAITING_PAYMENT,
-                reason: "Order created by customer",
-              },
+              create: [
+                {
+                  fromStatus: "NONE",
+                  toStatus: OrderStatus.AWAITING_PAYMENT,
+                  reason: "Order created by customer",
+                },
+                {
+                  fromStatus: "NONE",
+                  toStatus: OrderStatus.AWAITING_PAYMENT,
+                  reason: PLAYER_VERIFIED_ORDER_EVENT_REASON,
+                },
+              ],
             },
           },
           include: {

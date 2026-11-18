@@ -38,6 +38,35 @@ test("invalid players cannot create orders or initialize payments", async (t) =>
   assert.equal(generate.mock.callCount(), 0);
 });
 
+test("a fresh verified-order event avoids repeating player validation before payment", async (t) => {
+  const check = t.mock.method(supplierManager, "checkPlayer", async () => {
+    throw new Error("The player should not be checked twice");
+  });
+  mockMethod(t, prisma.order, "findUnique", async () => ({
+    id: "stored-order",
+    publicOrderId: "NT124",
+    game: { slug: "mobile-legends" },
+    playerData: '{"userId":"123"}',
+    events: [{ createdAt: new Date() }],
+    payment: {
+      id: "payment-1",
+      provider: "KHQRPAY_ABA_V2",
+      providerTransactionId: "provider-payment-1",
+      status: "PENDING",
+      qrExpiresAt: new Date(Date.now() + 60_000),
+      qrPayload: "qr-payload",
+      checkoutUrl: "https://example.test/pay",
+      amount: 1,
+      currency: "USD",
+      amountKhr: 4100,
+    },
+  }));
+
+  const payment = await new PaymentService().getOrCreatePayment("NT124");
+  assert.equal(payment.paymentId, "payment-1");
+  assert.equal(check.mock.callCount(), 0);
+});
+
 test("verification accepts confirmed accounts and normalizes game aliases", async (t) => {
   const check = t.mock.method(supplierManager, "checkPlayer", async () => ({ valid: true, playerName: "Player" }));
   const result = await supplierManager.requireVerifiedPlayer("free-fire-khsgmy", { userId: "123" });

@@ -154,15 +154,18 @@ export async function GET(
               order.payment.paidAt = new Date();
             }
 
-            // 3. Start fulfilment before the serverless request exits.
-            try {
-              await fulfilmentService.processFulfilment(order.id);
-            } catch (err: any) {
+            // 3. The customer can now see their paid invoice. Supplier
+            // dispatch can involve another remote request, so do not make the
+            // payment-status response wait for it. `processFulfilment` first
+            // creates/claims a durable fulfilment record; if a serverless
+            // runtime ends this background task, the existing recovery cron
+            // resumes paid orders safely and idempotently.
+            void fulfilmentService.processFulfilment(order.id).catch((err: any) => {
               logger.error("Error during fulfilment after polling confirmation", {
                 orderId: publicId,
                 error: err.message,
               });
-            }
+            });
           }
         } catch (err: any) {
           logger.warn("Non-fatal error polling Check Transaction V2", {

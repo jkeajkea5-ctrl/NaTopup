@@ -1,6 +1,10 @@
 import { PaymentStatus } from "@topup/shared";
 import { config } from "../lib/config";
 import { logger } from "../lib/logger";
+import {
+  PLAYER_VERIFICATION_REUSE_WINDOW_MS,
+  PLAYER_VERIFIED_ORDER_EVENT_REASON,
+} from "../lib/playerVerification";
 import { prisma, safeDbQuery } from "../lib/prisma";
 import { khqrClient } from "../payments/khqr/client";
 import { supplierManager } from "../suppliers/supplierManager";
@@ -14,7 +18,16 @@ export class PaymentService {
       () =>
         prisma.order.findUnique({
           where: { publicOrderId },
-          include: { payment: true, game: true },
+          include: {
+            payment: true,
+            game: true,
+            events: {
+              where: { reason: PLAYER_VERIFIED_ORDER_EVENT_REASON },
+              orderBy: { createdAt: "desc" },
+              take: 1,
+              select: { createdAt: true },
+            },
+          },
         }),
       null,
       5000
@@ -30,7 +43,16 @@ export class PaymentService {
       throw new Error("The order database is unavailable. Please try again shortly.");
     }
 
-    await supplierManager.requireVerifiedPlayer(order.game.slug, JSON.parse(order.playerData || "{}"));
+    const verificationTime = order.events?.[0]?.createdAt;
+    const hasFreshVerification =
+      verificationTime instanceof Date &&
+      verificationTime.getTime() >= Date.now() - PLAYER_VERIFICATION_REUSE_WINDOW_MS;
+    if (!hasFreshVerification) {
+      // Old orders and orders without the durable verification event are
+      // checked again. New checkouts reuse only the verification performed
+      // during the preceding order-creation request.
+      await supplierManager.requireVerifiedPlayer(order.game.slug, JSON.parse(order.playerData || "{}"));
+    }
 
     const now = new Date();
 
