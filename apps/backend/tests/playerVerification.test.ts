@@ -29,9 +29,9 @@ test("invalid players cannot create orders or initialize payments", async (t) =>
   assert.equal(create.mock.callCount(), 0);
 
   const generate = t.mock.method(khqrClient, "generatePayment", async () => { throw new Error("Unexpected payment creation"); });
-  for (const payment of [null, { status: "PENDING", qrExpiresAt: new Date(Date.now() + 60000) }]) {
+  for (const payment of [null, { status: "PENDING", provider: "KHQRPAY_ABA_V2", qrExpiresAt: new Date(Date.now() + 60000) }]) {
     mockMethod(t, prisma.order, "findUnique", async () => ({
-      id: "stored-order", game: { slug: "mobile-legends" }, playerData: '{"userId":"missing"}', payment,
+      id: "stored-order", status: "AWAITING_PAYMENT", game: { slug: "mobile-legends" }, playerData: '{"userId":"missing"}', payment,
     }));
     await assert.rejects(new PaymentService().getOrCreatePayment("NT123"), /could not be verified/);
   }
@@ -45,6 +45,7 @@ test("a fresh verified-order event avoids repeating player validation before pay
   mockMethod(t, prisma.order, "findUnique", async () => ({
     id: "stored-order",
     publicOrderId: "NT124",
+    status: "AWAITING_PAYMENT",
     game: { slug: "mobile-legends" },
     playerData: '{"userId":"123"}',
     events: [{ createdAt: new Date() }],

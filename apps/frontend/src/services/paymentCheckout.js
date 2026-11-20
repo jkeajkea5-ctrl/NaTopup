@@ -29,6 +29,7 @@ export function openAbaMobileApp(value) {
 }
 
 function removeProviderCloseButton() {
+  if (typeof document === "undefined") return;
   document.getElementById(CLOSE_BUTTON_ID)?.remove();
 }
 
@@ -82,7 +83,7 @@ export function showProviderCloseButton(onClose) {
   checkoutContainer.appendChild(closeButton);
 }
 
-export function closeProviderCheckout(provider = window.KhqrPayway) {
+export function closeProviderCheckout(provider = typeof window === "undefined" ? undefined : window.KhqrPayway) {
   removeProviderCloseButton();
 
   // Ask the provider to close first, then clean up its DOM as a fallback.
@@ -90,7 +91,10 @@ export function closeProviderCheckout(provider = window.KhqrPayway) {
   // the bottom sheet when its public close method is called.
   try {
     provider?.closeCheckoutByContinueUrl?.();
+  } catch {
+    // A provider plugin failure must still allow the customer to close checkout.
   } finally {
+    if (typeof document === "undefined") return;
     const mobileSheet = document.getElementById("khqr_checkout_sheet");
     const mobileApp = document.getElementById("khqr_checkout_app");
     const desktopCheckout = document.getElementById("khqr-checkout");

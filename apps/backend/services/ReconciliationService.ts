@@ -105,10 +105,11 @@ export class ReconciliationService {
           resolved++;
         } else if (now > payment.qrExpiresAt && payment.status !== PaymentStatus.EXPIRED) {
           // Payment expired
-          await prisma.payment.update({
-            where: { id: payment.id },
+          const expired = await prisma.payment.updateMany({
+            where: { id: payment.id, status: { in: [PaymentStatus.PENDING, PaymentStatus.VERIFYING] } },
             data: { status: PaymentStatus.EXPIRED, verifiedAt: now },
           });
+          if (expired.count !== 1) continue;
 
           await orderService.transitionStatus(
             payment.order.id,
@@ -142,7 +143,7 @@ export class ReconciliationService {
     const paidOrderMismatches = await prisma.order.findMany({
       where: {
         status: {
-          in: [OrderStatus.AWAITING_PAYMENT, OrderStatus.PAYMENT_VERIFYING, OrderStatus.EXPIRED],
+          in: [OrderStatus.AWAITING_PAYMENT, OrderStatus.PAYMENT_VERIFYING, OrderStatus.EXPIRED, OrderStatus.CANCELLED],
         },
         payment: { is: { status: PaymentStatus.PAID } },
       },

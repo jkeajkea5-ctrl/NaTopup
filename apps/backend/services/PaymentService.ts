@@ -1,4 +1,4 @@
-import { PaymentStatus } from "@topup/shared";
+import { OrderStatus, PaymentStatus } from "@topup/shared";
 import { config } from "../lib/config";
 import { logger } from "../lib/logger";
 import {
@@ -41,6 +41,18 @@ export class PaymentService {
     // and customer status page. Never accept funds for an in-memory order.
     if (String(order.id).startsWith("mem_")) {
       throw new Error("The order database is unavailable. Please try again shortly.");
+    }
+
+    if (![OrderStatus.AWAITING_PAYMENT, OrderStatus.PAYMENT_VERIFYING].includes(order.status) ||
+        order.payment?.status === PaymentStatus.PAID) {
+      throw new Error("This order can no longer accept a payment. Please check its status or start a new checkout.");
+    }
+
+    // A provider session may still settle after its QR is dismissed or expires.
+    // Keep its reference intact so callbacks and reconciliation can recover it.
+    if (order.payment && (order.payment.provider !== paymentProvider ||
+        order.payment.status !== PaymentStatus.PENDING || order.payment.qrExpiresAt <= new Date())) {
+      throw new Error("This order already has a payment session. Please use that session or start a new checkout.");
     }
 
     const verificationTime = order.events?.[0]?.createdAt;
@@ -114,28 +126,8 @@ export class PaymentService {
     // that the application would be unable to reconcile later.
     const payment = await safeDbQuery(
       () =>
-        prisma.payment.upsert({
-            where: { orderId: order.id },
-            update: {
-              status: PaymentStatus.PENDING,
-              provider: paymentProvider,
-              providerReference: order.publicOrderId,
-              providerPaymentId: khqrResult.orderReference,
-              providerTransactionId: khqrResult.orderReference,
-              // Store an explicit null for MongoDB. A missing optional field
-              // does not match `verifiedAt: null` during reconciliation.
-              verifiedAt: null,
-              qrPayload: khqrResult.qrString,
-              qrImageUrl: khqrResult.qrImageUrl,
-              checkoutUrl: khqrResult.checkoutUrl,
-              merchantName: khqrResult.merchantName,
-              abaDeepLink: khqrResult.abaDeepLink,
-              md5Hash: khqrResult.md5,
-              qrExpiresAt: khqrResult.expiresAt,
-              amount: order.total,
-              amountKhr: order.totalKhr,
-            },
-            create: {
+        prisma.payment.create({
+            data: {
               orderId: order.id,
               provider: paymentProvider,
               providerReference: order.publicOrderId,
@@ -154,6 +146,11 @@ export class PaymentService {
               md5Hash: khqrResult.md5,
               qrExpiresAt: khqrResult.expiresAt,
             },
+        }).catch(async (error: any) => {
+          if (error?.code !== "P2002") throw error;
+          // Concurrent initialization must never reset a payment another
+          // request saved (and which a callback may already have marked paid).
+          return prisma.payment.findUnique({ where: { orderId: order.id } });
         }),
       null,
       5000
@@ -161,6 +158,11 @@ export class PaymentService {
 
     if (!payment) {
       throw new Error("Unable to save the payment session. Please try again.");
+    }
+
+    if (payment.status !== PaymentStatus.PENDING || payment.provider !== paymentProvider ||
+        payment.qrExpiresAt <= new Date()) {
+      throw new Error("The payment session changed. Please check the order status before trying again.");
     }
 
     logger.info("Generated new KHQR payment session", {
@@ -176,10 +178,10 @@ export class PaymentService {
       orderId: order.id,
       publicOrderId: order.publicOrderId,
       qrString: payment.qrPayload,
-      qrImageUrl: khqrResult.qrImageUrl,
-      checkoutUrl: khqrResult.checkoutUrl,
-      merchantName: khqrResult.merchantName,
-      abaDeepLink: khqrResult.abaDeepLink,
+      qrImageUrl: payment.qrImageUrl || undefined,
+      checkoutUrl: payment.checkoutUrl || undefined,
+      merchantName: payment.merchantName || undefined,
+      abaDeepLink: payment.abaDeepLink || undefined,
       md5: payment.md5Hash || "",
       amount: payment.amount,
       currency: payment.currency,

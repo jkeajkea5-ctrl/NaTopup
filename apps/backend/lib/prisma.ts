@@ -29,10 +29,11 @@ export async function safeDbQuery<T>(
     return fallbackValue;
   }
 
+  let timeout: ReturnType<typeof setTimeout> | undefined;
   try {
-    const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("DB_TIMEOUT")), timeoutMs)
-    );
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeout = setTimeout(() => reject(new Error("DB_TIMEOUT")), timeoutMs);
+    });
     const result = await Promise.race([queryFn(), timeoutPromise]);
     isDbHealthy = true;
     return result;
@@ -40,6 +41,8 @@ export async function safeDbQuery<T>(
     isDbHealthy = false;
     lastDbFailure = now;
     return fallbackValue;
+  } finally {
+    clearTimeout(timeout);
   }
 }
 

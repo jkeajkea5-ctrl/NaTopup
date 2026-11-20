@@ -14,3 +14,9 @@ test("closes the provider overlay without reloading", () => {
 test("does nothing when the provider is unavailable", () => {
   assert.doesNotThrow(() => closeProviderCheckout(null));
 });
+
+test("provider close failures do not break checkout cleanup", () => {
+  assert.doesNotThrow(() => closeProviderCheckout({
+    closeCheckoutByContinueUrl: () => { throw new Error("Provider is unavailable"); },
+  }));
+});

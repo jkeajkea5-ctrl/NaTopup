@@ -479,10 +479,10 @@ export class OrderService {
 
     let updated: any = null;
     if (!String(order.id).startsWith("mem_")) {
-      updated = await safeDbQuery(
-        () =>
-          prisma.order.update({
-            where: { id: order.id },
+      updated = await prisma.order.update({
+            // A stale expiry/cancellation read must not overwrite a payment
+            // confirmation or a supplier delivery committed by another worker.
+            where: { id: order.id, status: currentStatus },
             data: {
               ...updateData,
               events: {
@@ -501,10 +501,15 @@ export class OrderService {
             include: {
               events: { orderBy: { createdAt: "desc" }, take: 1, select: { id: true } },
             },
-          }),
-        null,
-        1200
-      );
+          }).catch(async (error: any) => {
+            if (error?.code !== "P2025") throw error;
+            return null;
+          });
+      if (!updated) {
+        const current = await prisma.order.findUnique({ where: { id: order.id } });
+        if (!current) throw new Error("Order no longer exists.");
+        return current;
+      }
     }
 
     // Always keep in-memory cache synchronized

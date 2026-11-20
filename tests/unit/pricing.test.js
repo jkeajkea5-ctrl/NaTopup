@@ -1,7 +1,7 @@
 import assert from "node:assert";
 import test from "node:test";
-import { calculateCustomerPrice, isSupplierPriceSafe, roundCurrency } from "../../packages/shared/dist/pricing.js";
-import { PricingStrategy } from "../../packages/shared/dist/enums.js";
+import { calculateCustomerPrice, isSupplierPriceSafe, roundCurrency } from "../../packages/shared/src/pricing.ts";
+import { PricingStrategy } from "../../packages/shared/src/enums.ts";
 
 test("roundCurrency rounds safely to 2 decimals", () => {
   assert.strictEqual(roundCurrency(1.254), 1.25);

@@ -55,7 +55,7 @@ export const config = {
   
   authSecret: process.env.AUTH_SECRET || "default_auth_secret_must_be_overridden_in_prod",
   internalApiSecret: process.env.INTERNAL_API_SECRET || "default_internal_secret",
-  cronSecret: process.env.CRON_SECRET || "default_cron_secret",
+  cronSecret: process.env.CRON_SECRET?.trim() || "",
   adminSecretKey: process.env.ADMIN_SECRET_KEY || "admin123456",
   
   khqr: {

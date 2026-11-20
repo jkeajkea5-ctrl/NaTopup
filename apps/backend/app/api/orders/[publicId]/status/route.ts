@@ -35,6 +35,7 @@ export async function GET(
             payment: {
               select: {
                 id: true,
+                provider: true,
                 status: true,
                 qrExpiresAt: true,
                 paidAt: true,
@@ -79,8 +80,10 @@ export async function GET(
     // If order is awaiting payment, poll Check Transaction V2 no more than
     // once every 3 seconds, as recommended by KHQRcc.
     if (
-      order.status === OrderStatus.AWAITING_PAYMENT ||
-      order.status === OrderStatus.PAYMENT_VERIFYING
+      order.payment && (
+        order.status === OrderStatus.AWAITING_PAYMENT ||
+        order.status === OrderStatus.PAYMENT_VERIFYING
+      )
     ) {
       const lastCheck = lastCheckMap.get(publicId) || 0;
       if (Date.now() - lastCheck >= 3000) {

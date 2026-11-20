@@ -1,4 +1,4 @@
-import test from "node:test";
+import test, { before, after } from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { config } from "../lib/config";
@@ -10,6 +10,10 @@ import { telegramAlertService } from "../services/TelegramAlertService";
 import { GET as reconcilePayments } from "../app/api/internal/cron/payments/route";
 import { GET as reconcileFulfilments } from "../app/api/internal/cron/fulfilments/route";
 import { GET as reconcileAll } from "../app/api/internal/cron/all/route";
+
+const originalCronSecret = config.cronSecret;
+before(() => { config.cronSecret = "test-only-cron-secret"; });
+after(() => { config.cronSecret = originalCronSecret; });
 
 function cronRequest(path: string) {
   return new Request(`http://localhost:3001${path}`, {
@@ -68,6 +72,16 @@ test("all-in-one cron rejects requests without the shared secret", async () => {
   const response = await reconcileAll(
     new Request("http://localhost:3001/api/internal/cron/all")
   );
+  assert.equal(response.status, 401);
+});
+
+test("an unconfigured cron rejects the former default secret", async (t) => {
+  const previous = config.cronSecret;
+  config.cronSecret = "";
+  t.after(() => { config.cronSecret = previous; });
+  const response = await reconcileAll(new Request("http://localhost:3001/api/internal/cron/all", {
+    headers: { authorization: "Bearer default_cron_secret" },
+  }));
   assert.equal(response.status, 401);
 });
 

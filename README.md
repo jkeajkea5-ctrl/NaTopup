@@ -31,3 +31,20 @@ From the dashboard’s Security tab, the SUPERADMIN can add admin/operator accou
 - `npm run prisma:seed` — seed local development data
 
 Never commit `.env`, payment credentials, supplier API keys, database files, generated build output, or catalogue backups.
+
+## Before an event
+
+Run `npm test` and `npm run build`. The test command covers checkout, pricing,
+payment callbacks, and backend regression tests without making real purchases.
+
+The deployed backend needs a private `CRON_SECRET`, matching the scheduler's
+bearer token, and a public HTTPS `BACKEND_URL` for bank callbacks. Cron endpoints
+reject requests when the secret is missing. Confirm the every-minute recovery
+job succeeds in the hosting logs; local environment checks do not verify hosted
+settings. Set `FRONTEND_URL` to the public storefront for payment returns.
+
+Check supplier funds against the expected event sales and keep a paid test
+receipt that confirms delivery to the intended Mobile Legends account before
+opening event traffic. A dismissed or expired QR can still settle: the original
+payment reference stays intact and provider-confirmed funds remain recoverable.
+Use a new checkout to change payment providers or replace an expired session.

@@ -133,6 +133,7 @@ export class KhqrClient {
       let response: Response;
       try {
         response = await fetch(`${this.khqrpayBaseUrl}/api/v1/aba/create`, {
+          signal: AbortSignal.timeout(15000),
           method: "POST",
           headers: {
             Authorization: `Bearer ${this.khqrpayApiKey}`,
@@ -208,6 +209,7 @@ export class KhqrClient {
     let response: Response;
     try {
       response = await fetch(url, {
+        signal: AbortSignal.timeout(15000),
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: body.toString(),
@@ -269,6 +271,7 @@ export class KhqrClient {
       if (!this.khqrpayApiKey) return { paid: false, status: "PENDING", rawResponse: { message: "KHQR PAY v2 API key is not configured" } };
       try {
         const response = await fetch(`${this.khqrpayBaseUrl}/api/v1/payment?id=${encodeURIComponent(txId)}`, {
+          signal: AbortSignal.timeout(6000),
           cache: "no-store",
           headers: { Authorization: `Bearer ${this.khqrpayApiKey}`, "Cache-Control": "no-cache" },
         });
@@ -303,6 +306,7 @@ export class KhqrClient {
         });
 
         let response = await fetch(url, {
+          signal: AbortSignal.timeout(6000),
           method: "POST",
           cache: "no-store",
           headers: {
@@ -315,6 +319,7 @@ export class KhqrClient {
         if (response.status === 429 || response.status >= 500) {
           await new Promise((resolve) => setTimeout(resolve, 400));
           response = await fetch(url, {
+            signal: AbortSignal.timeout(6000),
             method: "POST",
             cache: "no-store",
             headers: {
@@ -385,6 +390,7 @@ export class KhqrClient {
     if (this.khqrApiKey && this.khqrApiKey.trim().length > 0) {
       try {
         const response = await fetch(`${this.khqrBaseUrl}/payments/verify-v2`, {
+          signal: AbortSignal.timeout(6000),
           method: "POST",
           cache: "no-store",
           headers: {
