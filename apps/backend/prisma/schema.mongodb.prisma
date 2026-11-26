@@ -292,6 +292,8 @@ model Fulfilment {
   
   idempotencyKey String          @unique // e.g. FULFIL-TP-XXXXXXXX
   attemptCount   Int             @default(0)
+  reconciliationAttempts Int      @default(0)
+  nextCheckAt    DateTime?
   lastCheckedAt  DateTime?
   lastError      String?
   
@@ -304,6 +306,7 @@ model Fulfilment {
 
   @@index([status])
   @@index([supplierOrderId])
+  @@index([nextCheckAt])
 }
 
 model SupplierOrder {

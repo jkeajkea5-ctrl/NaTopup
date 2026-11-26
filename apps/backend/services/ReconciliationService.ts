@@ -20,6 +20,11 @@ export function paymentRetryEligibility(retryBefore: Date) {
 }
 
 export class ReconciliationService {
+  private nextSupplierCheck(attempts: number): Date {
+    const base = config.supplierReconciliation.baseDelaySeconds * 1000;
+    const max = config.supplierReconciliation.maxDelaySeconds * 1000;
+    return new Date(Date.now() + Math.min(max, base * 2 ** Math.min(attempts, 10)));
+  }
   /**
    * Reconciles pending payments with the payment provider.
    */
@@ -214,13 +219,19 @@ export class ReconciliationService {
 
     const pendingFulfilments = await prisma.fulfilment.findMany({
       where: {
-        status: FulfilmentStatus.PROCESSING,
+        status: { in: [FulfilmentStatus.PROCESSING, FulfilmentStatus.PENDING_VERIFICATION] },
         supplierOrderId: { not: null },
+        OR: [
+          { nextCheckAt: null },
+          { nextCheckAt: { isSet: false } },
+          { nextCheckAt: { lte: new Date() } },
+        ],
       },
       include: {
         order: true,
         supplierOrders: { orderBy: { createdAt: "desc" }, take: 1 },
       },
+      take: config.supplierReconciliation.limit,
     });
 
     for (const fulfilment of pendingFulfilments) {
@@ -249,6 +260,27 @@ export class ReconciliationService {
             statusResult.errorMessage || "Supplier reported delivery failure"
           );
           updated++;
+        } else {
+          const attempts = Number((fulfilment as any).reconciliationAttempts || 0) + 1;
+          const pending = await prisma.fulfilment.updateMany({
+            where: {
+              id: fulfilment.id,
+              status: { in: [FulfilmentStatus.PROCESSING, FulfilmentStatus.PENDING_VERIFICATION] },
+            },
+            data: {
+              status: FulfilmentStatus.PENDING_VERIFICATION,
+              reconciliationAttempts: attempts,
+              lastCheckedAt: new Date(),
+              nextCheckAt: this.nextSupplierCheck(attempts),
+              lastError: statusResult.errorMessage || "Supplier status remains unconfirmed",
+            },
+          });
+          if (pending.count !== 1) continue;
+          await orderService.transitionStatus(
+            fulfilment.orderId,
+            OrderStatus.PENDING_VERIFICATION,
+            "Supplier status remains pending verification"
+          );
         }
       } catch (err: any) {
         logger.error("Error reconciling supplier fulfilment", {

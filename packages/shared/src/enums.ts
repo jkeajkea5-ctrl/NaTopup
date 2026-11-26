@@ -5,6 +5,9 @@ export enum OrderStatus {
   PAID = "PAID",
   FULFILMENT_QUEUED = "FULFILMENT_QUEUED",
   PROCESSING = "PROCESSING",
+  // A supplier write may have reached the provider even when our HTTP
+  // response timed out. This is deliberately separate from payment state.
+  PENDING_VERIFICATION = "PENDING_VERIFICATION",
   DELIVERED = "DELIVERED",
   FAILED = "FAILED",
   EXPIRED = "EXPIRED",
@@ -25,6 +28,7 @@ export enum FulfilmentStatus {
   PENDING = "PENDING",
   QUEUED = "QUEUED",
   PROCESSING = "PROCESSING",
+  PENDING_VERIFICATION = "PENDING_VERIFICATION",
   DELIVERED = "DELIVERED",
   FAILED = "FAILED",
   REVIEW_REQUIRED = "REVIEW_REQUIRED",
@@ -87,8 +91,14 @@ export const VALID_ORDER_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
     OrderStatus.FAILED,
   ],
   [OrderStatus.PROCESSING]: [
+    OrderStatus.PENDING_VERIFICATION,
     OrderStatus.DELIVERED,
     OrderStatus.FAILED,
+    OrderStatus.REVIEW_REQUIRED,
+  ],
+  [OrderStatus.PENDING_VERIFICATION]: [
+    OrderStatus.PROCESSING,
+    OrderStatus.DELIVERED,
     OrderStatus.REVIEW_REQUIRED,
   ],
   [OrderStatus.REVIEW_REQUIRED]: [

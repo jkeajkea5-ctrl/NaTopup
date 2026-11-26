@@ -165,9 +165,9 @@ export class FulfilmentService {
       return;
     }
 
-    // 6. Submit Order to Supplier Gateway
-    // The public order ID is already unique and lets supplier callbacks map
-    // directly to the order regardless of the configured ORDER_PREFIX.
+    // 6. Persist the supplier intent *before* the network write. A process
+    // crash or an HTTP timeout must leave a durable, queryable reference, not
+    // an invitation to submit the top-up a second time.
     const referenceId = order.publicOrderId;
     const supplierOrderInput = {
       supplierCode,
@@ -179,27 +179,40 @@ export class FulfilmentService {
       extraFields: JSON.parse(order.playerData || "{}"),
     };
 
-    logger.info("Dispatching order to supplier gateway", {
+    const supplierOrder = await prisma.supplierOrder.create({
+      data: {
+        fulfilmentId: fulfilment.id,
+        supplier: supplierCode,
+        supplierOrderId: referenceId,
+        referenceCode: referenceId,
+        status: SupplierOrderStatus.PENDING,
+        cost: currentCost,
+        requestPayload: JSON.stringify({
+          productId: supplierProd.supplierProductCode,
+          playerId: order.playerId,
+          serverId: order.serverId || undefined,
+          referenceId,
+        }),
+      },
+    });
+    await prisma.fulfilment.update({
+      where: { id: fulfilment.id },
+      data: { supplierOrderId: referenceId },
+    });
+
+    logger.info("supplier_order_dispatch_started", {
       orderId: order.publicOrderId,
       provider: supplierCode,
       supplierProduct: supplierProd.supplierProductCode,
     });
 
     const result = await supplierManager.placeOrder(supplierOrderInput);
-
-    // 7. Record Supplier Order record in DB
-    await prisma.supplierOrder.create({
+    await prisma.supplierOrder.update({
+      where: { id: supplierOrder.id },
       data: {
-        fulfilmentId: fulfilment.id,
-        supplier: supplierCode,
         supplierOrderId: result.supplierOrderId || referenceId,
-        referenceCode: referenceId,
         status: result.supplierStatus,
         cost: result.supplierCost || currentCost,
-        requestPayload: JSON.stringify({
-          productId: supplierProd.supplierProductCode,
-          playerId: order.playerId,
-        }),
         responsePayload: JSON.stringify(result.rawResponse || {}),
       },
     });
@@ -211,6 +224,7 @@ export class FulfilmentService {
         data: {
           supplierOrderId: result.supplierOrderId,
           supplierCost: result.supplierCost,
+          nextCheckAt: new Date(),
         },
       });
 
@@ -218,23 +232,38 @@ export class FulfilmentService {
       if (result.supplierStatus === SupplierOrderStatus.COMPLETED) {
         await this.markFulfilmentDelivered(fulfilment.id);
       }
-    } else {
-      await prisma.fulfilment.update({
-        where: { id: fulfilment.id },
+    } else if (result.supplierStatus === SupplierOrderStatus.UNKNOWN) {
+      // A write timeout has an unknown outcome. VIZO guarantees ref_order
+      // uniqueness, so retain this reference and reconcile it; never retry
+      // create_order automatically.
+      const reason = result.errorMessage || "Supplier request outcome is unknown; verification pending";
+      const pending = await prisma.fulfilment.updateMany({
+        where: { id: fulfilment.id, status: FulfilmentStatus.PROCESSING },
         data: {
-          status: FulfilmentStatus.FAILED,
-          lastError: result.errorMessage || "Supplier rejected top-up",
+          status: FulfilmentStatus.PENDING_VERIFICATION,
+          lastError: reason,
+          nextCheckAt: new Date(),
         },
       });
-
-      // The customer has already paid at this point. A supplier rejection is
-      // not a failed invoice: it requires a safe manual resolution (correct
-      // package/account, retry, or refund) and must never trigger a blind
-      // repeat order.
+      if (pending.count !== 1) return;
       await orderService.transitionStatus(
         order.id,
-        OrderStatus.REVIEW_REQUIRED,
-        result.errorMessage || "Supplier purchase requires review"
+        OrderStatus.PENDING_VERIFICATION,
+        reason
+      );
+      logger.warn("supplier_order_pending_verification", {
+        orderId: order.publicOrderId,
+        provider: supplierCode,
+        status: "PENDING_VERIFICATION",
+        error: reason,
+      });
+    } else {
+      // A documented terminal supplier rejection is the only failure that can
+      // enter review. Refund handling must remain an explicit, confirmed
+      // supplier-failure action; it is never triggered by a timeout.
+      await this.markFulfilmentFailedForReview(
+        fulfilment.id,
+        result.errorMessage || "Supplier rejected top-up"
       );
     }
   }

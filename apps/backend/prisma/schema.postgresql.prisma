@@ -295,6 +295,8 @@ model Fulfilment {
   
   idempotencyKey String          @unique
   attemptCount   Int             @default(0)
+  reconciliationAttempts Int      @default(0)
+  nextCheckAt    DateTime?
   lastCheckedAt  DateTime?
   lastError      String?
   
@@ -308,6 +310,7 @@ model Fulfilment {
   @@index([orderId])
   @@index([status])
   @@index([supplierOrderId])
+  @@index([nextCheckAt])
 }
 
 model SupplierOrder {

@@ -8,7 +8,7 @@ export type TelegramAlertTopic = "paid" | "completed" | "system" | "lowBalanceG2
 export function getTelegramAlertTopic(status: OrderStatus): TelegramAlertTopic | null {
   if (status === OrderStatus.PAID) return "paid";
   if (status === OrderStatus.DELIVERED) return "completed";
-  if (status === OrderStatus.FAILED || status === OrderStatus.REVIEW_REQUIRED) return "system";
+  if (status === OrderStatus.FAILED || status === OrderStatus.REVIEW_REQUIRED || status === OrderStatus.PENDING_VERIFICATION) return "system";
   return null;
 }
 
@@ -47,6 +47,7 @@ function statusFor(status: OrderStatus): { icon: string; label: string } {
   if (status === OrderStatus.PAID) return { icon: "🟢", label: "PAID" };
   if (status === OrderStatus.DELIVERED) return { icon: "✅", label: "DELIVERED" };
   if (status === OrderStatus.REVIEW_REQUIRED) return { icon: "⚠️", label: "REVIEW REQUIRED" };
+  if (status === OrderStatus.PENDING_VERIFICATION) return { icon: "⏳", label: "PENDING VERIFICATION" };
   if (status === OrderStatus.FAILED) return { icon: "❌", label: "FAILED" };
   return { icon: "ℹ️", label: status.replaceAll("_", " ") };
 }
@@ -55,6 +56,7 @@ function receiptTitleFor(status: OrderStatus): string {
   if (status === OrderStatus.PAID) return "💳 <b>PAYMENT SUCCESS</b>";
   if (status === OrderStatus.DELIVERED) return "🎉 <b>ORDER DELIVERED</b>";
   if (status === OrderStatus.REVIEW_REQUIRED) return "⚠️ <b>ORDER NEEDS REVIEW</b>";
+  if (status === OrderStatus.PENDING_VERIFICATION) return "⏳ <b>SUPPLIER VERIFICATION PENDING</b>";
   if (status === OrderStatus.FAILED) return "❌ <b>ORDER FAILED</b>";
   return "🧾 <b>NA TOPUP RECEIPT</b>";
 }
@@ -111,7 +113,7 @@ export function formatTelegramReceipt(details: TelegramReceiptDetails): string {
     lines.push(`<b>Supplier:</b> ${escapeTelegramHtml(details.supplier)}${supplierOrder}`);
   }
   if (
-    (details.status === OrderStatus.FAILED || details.status === OrderStatus.REVIEW_REQUIRED) &&
+    (details.status === OrderStatus.FAILED || details.status === OrderStatus.REVIEW_REQUIRED || details.status === OrderStatus.PENDING_VERIFICATION) &&
     details.reason
   ) {
     lines.push(`<b>Reason:</b> ${escapeTelegramHtml(details.reason)}`);
@@ -274,7 +276,7 @@ class TelegramAlertService {
       supplier: order?.fulfilment?.supplier,
       supplierOrderId: order?.fulfilment?.supplierOrderId,
       reason:
-        status === OrderStatus.FAILED || status === OrderStatus.REVIEW_REQUIRED
+        status === OrderStatus.FAILED || status === OrderStatus.REVIEW_REQUIRED || status === OrderStatus.PENDING_VERIFICATION
           ? order?.fulfilment?.lastError || reason || "Unknown error"
           : undefined,
     });
@@ -364,7 +366,7 @@ class TelegramAlertService {
     const events = await eventDelegate.findMany({
       where: {
         toStatus: {
-          in: [OrderStatus.PAID, OrderStatus.DELIVERED, OrderStatus.FAILED, OrderStatus.REVIEW_REQUIRED],
+          in: [OrderStatus.PAID, OrderStatus.DELIVERED, OrderStatus.FAILED, OrderStatus.REVIEW_REQUIRED, OrderStatus.PENDING_VERIFICATION],
         },
         AND: [
           { telegramSentAt: null },

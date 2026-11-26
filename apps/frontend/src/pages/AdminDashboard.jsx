@@ -7,7 +7,7 @@ import {
   Users, WalletCards, X,
 } from "lucide-react";
 import {
-  archiveAdminOrder, fetchAdminDashboard, fetchAdminSettings, fetchAdminSuppliers, logoutAdmin, saveAdminDashboardMutation,
+  archiveAdminOrder, checkAdminSupplierStatus, fetchAdminDashboard, fetchAdminSettings, fetchAdminSuppliers, logoutAdmin, saveAdminDashboardMutation,
   syncAdminGameCatalog, updateAdminSecurity, uploadAdminImage,
 } from "../services/api";
 import "./AdminDashboard.css";
@@ -25,7 +25,7 @@ const tabs = [
 
 const labels = {
   AWAITING_PAYMENT: "Awaiting payment", PAID: "Paid", PROCESSING: "Processing",
-  DELIVERED: "Delivered", FAILED: "Failed", EXPIRED: "Expired", REVIEW_REQUIRED: "Review required",
+  DELIVERED: "Delivered", FAILED: "Failed", EXPIRED: "Expired", REVIEW_REQUIRED: "Review required", PENDING_VERIFICATION: "Pending verification",
 };
 const removableOrderStatuses = new Set(["AWAITING_PAYMENT", "DELIVERED", "FAILED", "EXPIRED"]);
 const canRemoveOrder = (order) => removableOrderStatuses.has(order.status) && (order.status === "DELIVERED" || order.payment?.status !== "PAID");
@@ -364,6 +364,7 @@ export const AdminDashboard = ({ adminSession }) => {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [deletingOrder, setDeletingOrder] = useState("");
+  const [checkingSupplier, setCheckingSupplier] = useState("");
   const [catalogSyncing, setCatalogSyncing] = useState("");
   const [liveBalances, setLiveBalances] = useState(null);
   const [profitLoading, setProfitLoading] = useState(false);
@@ -448,6 +449,15 @@ export const AdminDashboard = ({ adminSession }) => {
     } catch (err) { setError(err.message); }
     finally { setDeletingOrder(""); }
   }
+  async function checkSupplier(order) {
+    setCheckingSupplier(order.id); setError(""); setNotice("");
+    try {
+      const result = await checkAdminSupplierStatus(order.id);
+      setNotice(`Supplier status for ${order.publicOrderId}: ${result.status}.`);
+      await refresh();
+    } catch (err) { setError(err.message); }
+    finally { setCheckingSupplier(""); }
+  }
 
   const filteredOrders = (data?.orders || []).filter(matches).filter((o) => status === "ALL" || o.status === status);
   const filtered = (items) => (items || []).filter(matches);
@@ -501,7 +511,7 @@ export const AdminDashboard = ({ adminSession }) => {
               <div className="admin-order-customer"><small>Customer</small><strong>{order.playerName || "Player account"}</strong><em>{order.playerId}</em></div>
               <div className="admin-order-payment"><small>Payment</small><strong>{money(order.total)}</strong><em className={`admin-payment-state ${(order.payment?.status || "unpaid").toLowerCase()}`}>{order.payment?.status || "No payment"}</em></div>
               <div className="admin-order-status"><small>Status</small><b className={`admin-status ${order.status.toLowerCase()}`}>{labels[order.status] || order.status}</b></div>
-              <div className="admin-order-actions"><button type="button" className="admin-order-delete" aria-label={`Remove order ${order.publicOrderId}`} title={canRemoveOrder(order) ? "Remove order" : "Paid and active orders are protected"} disabled={deletingOrder === order.id || !canRemoveOrder(order)} onClick={() => removeOrder(order)}>{deletingOrder === order.id ? <RefreshCw size={16} className="spin" /> : <Trash2 size={16} />}</button></div>
+              <div className="admin-order-actions">{order.fulfilment && <button type="button" className="admin-order-delete" aria-label={`Check supplier status for ${order.publicOrderId}`} title="Check supplier status" disabled={checkingSupplier === order.id} onClick={() => checkSupplier(order)}>{checkingSupplier === order.id ? <RefreshCw size={16} className="spin" /> : <ClipboardCheck size={16} />}</button>}<button type="button" className="admin-order-delete" aria-label={`Remove order ${order.publicOrderId}`} title={canRemoveOrder(order) ? "Remove order" : "Paid and active orders are protected"} disabled={deletingOrder === order.id || !canRemoveOrder(order)} onClick={() => removeOrder(order)}>{deletingOrder === order.id ? <RefreshCw size={16} className="spin" /> : <Trash2 size={16} />}</button></div>
             </article>)}
             {!filteredOrders.length && <Empty>No orders match your current filters.</Empty>}
           </div>

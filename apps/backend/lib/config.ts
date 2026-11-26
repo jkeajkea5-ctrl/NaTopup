@@ -99,6 +99,14 @@ export const config = {
     baseUrl: process.env.VIZO_BASE_URL || "https://api.vizoapp.store",
     apiKey: process.env.VIZO_API_KEY || "",
     callbackUrl: process.env.VIZO_CALLBACK_URL || `${backendUrl}/api/webhooks/vizo`,
+    requestTimeoutMs: parseInt(process.env.VIZO_REQUEST_TIMEOUT_MS || "20000", 10),
+    statusTimeoutMs: parseInt(process.env.VIZO_STATUS_TIMEOUT_MS || "15000", 10),
+  },
+
+  supplierReconciliation: {
+    limit: parseInt(process.env.SUPPLIER_RECONCILIATION_LIMIT || "50", 10),
+    baseDelaySeconds: parseInt(process.env.SUPPLIER_STATUS_BACKOFF_BASE_SECONDS || "30", 10),
+    maxDelaySeconds: parseInt(process.env.SUPPLIER_STATUS_BACKOFF_MAX_SECONDS || "900", 10),
   },
 
   telegram: {

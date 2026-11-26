@@ -113,6 +113,19 @@ test("supplier status connection failures never report delivery", async (t) => {
   assert.equal(vizo.isDelivered, false);
 });
 
+test("Vizo reconciliation matches the persisted original reference when history provides it", async (t) => {
+  t.mock.method(globalThis, "fetch", async () => new Response(JSON.stringify({
+    orders: [{ transaction_id: "TX-42", ref_order: "NT-ORIGINAL", status: "success", sell_price: 1.5 }],
+  }), { status: 200, headers: { "content-type": "application/json" } }));
+  const adapter = vizoAdapter as any;
+  const previous = adapter.apiKey;
+  adapter.apiKey = "test-key";
+  const status = await adapter.getOrderStatus("unknown-after-timeout", "NT-ORIGINAL");
+  adapter.apiKey = previous;
+  assert.equal(status.isDelivered, true);
+  assert.equal(status.supplierOrderId, "unknown-after-timeout");
+});
+
 test("reports Vizo HTML access pages without exposing a JSON parse error", async (t) => {
   t.mock.method(globalThis, "fetch", async () => new Response("<!DOCTYPE html><title>Forbidden</title>", {
     status: 403,

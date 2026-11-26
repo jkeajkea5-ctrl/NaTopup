@@ -215,7 +215,7 @@ export class VizoAdapter implements ISupplierAdapter {
           method: "POST",
           headers: this.getHeaders(),
           body: JSON.stringify(payload),
-          signal: AbortSignal.timeout(20000),
+          signal: AbortSignal.timeout(config.vizo.requestTimeoutMs),
         });
 
         if (res.ok && (data.status === "success" || data.transaction_id)) {
@@ -277,7 +277,7 @@ export class VizoAdapter implements ISupplierAdapter {
       try {
         const { res, data } = await this.fetchJson("/api/v1/orders/order_history?limit=50", {
           headers: this.getHeaders(),
-          signal: AbortSignal.timeout(15000),
+          signal: AbortSignal.timeout(config.vizo.statusTimeoutMs),
         });
         if (res.ok && Array.isArray(data.orders)) {
           const match = data.orders.find(

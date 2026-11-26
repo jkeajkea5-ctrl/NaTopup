@@ -127,3 +127,10 @@ test("a late supplier failure cannot overwrite delivered fulfilment", async (t) 
   assert.equal(updates, 0);
   assert.equal(transitions, 0);
 });
+
+test("pending verification is a non-terminal fulfilment state", () => {
+  assert.equal(FulfilmentStatus.PENDING_VERIFICATION, "PENDING_VERIFICATION");
+  // The payment state intentionally remains independent: a paid invoice is
+  // still paid while the supplier outcome is being reconciled.
+  assert.equal(PaymentStatus.PAID, "PAID");
+});

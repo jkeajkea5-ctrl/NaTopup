@@ -29,6 +29,7 @@ export async function GET(request: Request) {
       prisma.order.findMany({ where: orderWhere, take: 250, orderBy: { createdAt: "desc" }, select: {
         id: true, publicOrderId: true, createdAt: true, status: true, playerId: true, playerName: true, total: true,
         gameId: true, productId: true, payment: { select: { status: true } },
+        fulfilment: { select: { status: true } },
       } }),
       prisma.order.count(),
       prisma.order.count({ where: { createdAt: { gte: today.start, lt: today.end } } }),
