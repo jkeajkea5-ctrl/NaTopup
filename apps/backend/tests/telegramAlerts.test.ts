@@ -14,6 +14,7 @@ test("routes order statuses to the correct Telegram topic", () => {
   assert.equal(getTelegramAlertTopic(OrderStatus.FAILED), "system");
   assert.equal(getTelegramAlertTopic(OrderStatus.REVIEW_REQUIRED), "system");
   assert.equal(getTelegramAlertTopic(OrderStatus.PROCESSING), null);
+  assert.equal(getTelegramAlertTopic(OrderStatus.PENDING_VERIFICATION), null);
 });
 
 test("escapes customer and supplier text before using Telegram HTML", () => {
