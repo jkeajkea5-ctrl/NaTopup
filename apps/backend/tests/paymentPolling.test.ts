@@ -53,3 +53,21 @@ test("expiry reconciliation cannot downgrade a concurrently paid payment", async
   await reconciliationService.reconcilePendingPayments();
   assert.equal(transition.mock.callCount(), 0);
 });
+
+test("reconciliation does not poll payments already marked expired", async (t) => {
+  let findManyCalls = 0;
+  replace(t, prisma.payment, "findMany", async ({ where }: any) => {
+    findManyCalls++;
+    assert.deepEqual(where.status, { in: ["PENDING", "VERIFYING"] });
+    return [];
+  });
+  const verify = t.mock.method(khqrClient, "verifyPayment", async () => {
+    throw new Error("Expired payments must not reach the provider");
+  });
+
+  const result = await reconciliationService.reconcilePendingPayments();
+
+  assert.deepEqual(result, { checked: 0, resolved: 0 });
+  assert.equal(findManyCalls, 1);
+  assert.equal(verify.mock.callCount(), 0);
+});

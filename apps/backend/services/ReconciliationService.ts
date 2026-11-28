@@ -43,22 +43,11 @@ export class ReconciliationService {
       take: config.paymentPolling.limit,
     });
 
-    // Current checkout sessions take priority. Use spare batch capacity to
-    // continue checking late payments after their QR session expired.
-    const remaining = Math.max(0, config.paymentPolling.limit - activePayments.length);
-    const expiredPayments = remaining
-      ? await prisma.payment.findMany({
-          where: {
-            status: PaymentStatus.EXPIRED,
-            createdAt: { gte: recoveryCutoff },
-            ...paymentRetryEligibility(retryBefore),
-          },
-          include: { order: true },
-          orderBy: { createdAt: "asc" },
-          take: remaining,
-        })
-      : [];
-    const pendingPayments = [...activePayments, ...expiredPayments];
+    // Do not repeatedly query the provider for sessions that are already
+    // expired. A pending session receives one final check before it is marked
+    // expired below; authenticated webhooks remain able to recover a payment
+    // that the provider reports after that point.
+    const pendingPayments = activePayments;
 
     let resolved = 0;
     for (const payment of pendingPayments) {
